@@ -1,0 +1,38 @@
+import {
+  Body,
+  Controller,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { ApiResponseDto } from '../../../common/dto/api-response.dto';
+import { UserRole } from '../../../common/enums';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { AlumniCardResponseDto } from '../../alumni/dto/alumni-response.dto';
+import { GenerateAlumniCardDto } from '../dto/generate-alumni-card.dto';
+import { AlumniCardService } from '../services/alumni-card.service';
+
+@ApiTags('Admin Portal')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+@Controller('admin/alumni')
+export class AdminAlumniCardController {
+  constructor(private readonly alumniCardService: AlumniCardService) {}
+
+  @Post(':id/card')
+  @ApiOperation({
+    summary: 'Generate digital alumni card',
+  })
+  async generateCard(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: GenerateAlumniCardDto,
+  ): Promise<ApiResponseDto<AlumniCardResponseDto>> {
+    const data = await this.alumniCardService.generate(id, dto);
+    return ApiResponseDto.of(data, 'Alumni card generated');
+  }
+}

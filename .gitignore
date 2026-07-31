@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+dist/
+coverage/
+
+# Env
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+config.bat
