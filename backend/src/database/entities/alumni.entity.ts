@@ -5,16 +5,17 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { ALUMNI_STATUS_ENUM, AlumniStatus } from '../../common/enums';
+import { AccountEntity } from './account.entity';
 import { AlumniAcademicInformationEntity } from './alumni-academic-information.entity';
-import { AlumniPersonalInformationEntity } from './alumni-personal-information.entity';
 import { AlumniProfessionalInformationEntity } from './alumni-professional-information.entity';
 import { AlumniRegistrationRequestEntity } from './alumni-registration-request.entity';
-import { UserEntity } from './user.entity';
+import { AlumniVerificationEntity } from './alumni-verification.entity';
 
 @Entity({ name: 'alumni' })
 export class AlumniEntity {
@@ -24,12 +25,12 @@ export class AlumniEntity {
   @Column({ name: 'user_id', type: 'uuid', nullable: true, unique: true })
   userId: string | null;
 
-  @ManyToOne(() => UserEntity, (user) => user.alumniProfiles, {
+  @ManyToOne(() => AccountEntity, (account) => account.alumniProfiles, {
     nullable: true,
     onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'user_id' })
-  user: UserEntity | null;
+  account: AccountEntity | null;
 
   @Column({
     name: 'registration_request_id',
@@ -39,16 +40,13 @@ export class AlumniEntity {
   })
   registrationRequestId: string | null;
 
-  @OneToOne(() => AlumniRegistrationRequestEntity, (request) => request.alumni, {
-    nullable: true,
-    onDelete: 'SET NULL',
-  })
+  @OneToOne(
+    () => AlumniRegistrationRequestEntity,
+    (request) => request.alumni,
+    { nullable: true, onDelete: 'SET NULL' },
+  )
   @JoinColumn({ name: 'registration_request_id' })
   registrationRequest: AlumniRegistrationRequestEntity | null;
-
-  @Index()
-  @Column({ name: 'registration_ref', type: 'varchar', length: 64, unique: true })
-  registrationRef: string;
 
   @Column({
     type: 'enum',
@@ -65,32 +63,54 @@ export class AlumniEntity {
   @Column({ type: 'varchar', length: 255 })
   email: string;
 
+  @Column({ name: 'date_of_birth', type: 'date', nullable: true })
+  dateOfBirth: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  gender: string | null;
+
+  @Column({ name: 'phone_number', type: 'varchar', length: 20, nullable: true })
+  phoneNumber: string | null;
+
+  @Column({ name: 'whatsapp_number', type: 'varchar', length: 20, nullable: true })
+  whatsappNumber: string | null;
+
+  @Column({ name: 'cnic_national_id', type: 'varchar', length: 15, unique: true })
+  cnicNationalId: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  address: string | null;
+
+  @Column({ name: 'secondry_address', type: 'varchar', length: 255, nullable: true })
+  secondryAddress: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  city: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  country: string | null;
+
+  @Column({ name: 'qr_code', type: 'text', default: '' })
+  qrCode: string;
+
+  @Column({ name: 'photo_url', type: 'text', nullable: true })
+  photoUrl: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 
-  @Column({ name: 'alumni_photo', type: 'varchar', length: 500, nullable: true })
-  alumniPhoto: string | null;
+  @OneToMany(() => AlumniAcademicInformationEntity, (academic) => academic.alumni)
+  academicRecords: AlumniAcademicInformationEntity[];
 
-  @Column({
-    name: 'alumni_qr_code',
-    type: 'varchar',
-    length: 500,
-    nullable: true,
-  })
-  alumniQrCode: string | null;
-
-  @OneToOne(() => AlumniAcademicInformationEntity, (academic) => academic.alumni)
-  academic: AlumniAcademicInformationEntity;
-
-  @OneToOne(
+  @OneToMany(
     () => AlumniProfessionalInformationEntity,
     (professional) => professional.alumni,
   )
-  professional: AlumniProfessionalInformationEntity | null;
+  professionalRecords: AlumniProfessionalInformationEntity[];
 
-  @OneToOne(() => AlumniPersonalInformationEntity, (personal) => personal.alumni)
-  personal: AlumniPersonalInformationEntity | null;
+  @OneToOne(() => AlumniVerificationEntity, (verification) => verification.alumni)
+  verification: AlumniVerificationEntity | null;
 }

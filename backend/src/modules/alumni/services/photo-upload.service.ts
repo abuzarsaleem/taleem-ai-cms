@@ -51,7 +51,7 @@ export class PhotoUploadService {
 
     return {
       upload_id: upload.id,
-      public_url: upload.publicUrl,
+      public_url: stored.downloadUrl,
       expires_at: upload.expiresAt,
     };
   }

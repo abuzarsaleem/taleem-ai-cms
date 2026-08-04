@@ -6,14 +6,15 @@ export class AlumniRegistrationRequest {
   email: string;
   phoneNumber: string | null;
   status: RegistrationStatus;
-  submittedAt: Date;
+  whatsappNumber: string | null;
+  cnicNationalId: string;
+  degreeProgramId: string;
+  registrationRollNumber: string;
+  graduationYear: string;
+  photoUrl: string | null;
   reviewedBy: string | null;
   reviewedAt: Date | null;
   rejectionReason: string | null;
   createdAt: Date;
-  campus: string;
-  degree: string;
-  rollNumber: string;
-  graduationYear: number;
-  cgpa: number | null;
+  updatedAt: Date;
 }

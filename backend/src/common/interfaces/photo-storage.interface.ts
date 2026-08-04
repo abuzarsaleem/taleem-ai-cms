@@ -1,6 +1,9 @@
 export interface StoredObject {
   storageKey: string;
+  /** Durable URL/path safe to store in DB (not a long-lived signed query string). */
   publicUrl: string;
+  /** Immediately usable URL (signed for private buckets). */
+  downloadUrl: string;
 }
 
 /**
@@ -16,6 +19,9 @@ export interface IObjectStorage {
   }): Promise<StoredObject>;
 
   delete(storageKey: string): Promise<void>;
+
+  /** Fresh download URL for a previously stored object key or durable publicUrl. */
+  resolveDownloadUrl(storageKeyOrUrl: string): Promise<string>;
 }
 
 /** @deprecated alias kept for photo upload call sites */

@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   ALUMNI_REPOSITORY,
   PHOTO_UPLOAD_REPOSITORY,
@@ -6,6 +7,15 @@ import {
   USER_REPOSITORY,
   VERIFICATION_TOKEN_REPOSITORY,
 } from '../../common/constants/tokens';
+import {
+  AccountEntity,
+  AlumniAcademicInformationEntity,
+  AlumniEntity,
+  AlumniProfessionalInformationEntity,
+  AlumniRegistrationRequestEntity,
+  AlumniVerificationEntity,
+  RoleEntity,
+} from '../../database/entities';
 import { AuthModule } from '../auth/auth.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { AlumniPortalController } from './controllers/alumni-portal.controller';
@@ -16,13 +26,35 @@ import {
   InMemoryVerificationTokenRepository,
 } from './repositories/in-memory-supporting.repository';
 import { InMemoryUserRepository } from './repositories/in-memory-user.repository';
+import { TypeOrmAlumniRepository } from './repositories/typeorm-alumni.repository';
+import { TypeOrmRegistrationRequestRepository } from './repositories/typeorm-registration-request.repository';
+import { TypeOrmUserRepository } from './repositories/typeorm-user.repository';
+import { TypeOrmVerificationTokenRepository } from './repositories/typeorm-verification-token.repository';
 import { ActivationService } from './services/activation.service';
 import { PhotoUploadService } from './services/photo-upload.service';
 import { ProfileService } from './services/profile.service';
 import { RegistrationService } from './services/registration.service';
 
+const dbEnabled = process.env.DB_ENABLED !== 'false';
+
 @Module({
-  imports: [IntegrationsModule, forwardRef(() => AuthModule)],
+  imports: [
+    IntegrationsModule,
+    forwardRef(() => AuthModule),
+    ...(dbEnabled
+      ? [
+          TypeOrmModule.forFeature([
+            AlumniRegistrationRequestEntity,
+            AlumniEntity,
+            AlumniAcademicInformationEntity,
+            AlumniProfessionalInformationEntity,
+            AlumniVerificationEntity,
+            AccountEntity,
+            RoleEntity,
+          ]),
+        ]
+      : []),
+  ],
   controllers: [AlumniPortalController],
   providers: [
     RegistrationService,
@@ -31,19 +63,25 @@ import { RegistrationService } from './services/registration.service';
     PhotoUploadService,
     {
       provide: REGISTRATION_REQUEST_REPOSITORY,
-      useClass: InMemoryRegistrationRequestRepository,
+      useClass: dbEnabled
+        ? TypeOrmRegistrationRequestRepository
+        : InMemoryRegistrationRequestRepository,
     },
     {
       provide: ALUMNI_REPOSITORY,
-      useClass: InMemoryAlumniRepository,
+      useClass: dbEnabled
+        ? TypeOrmAlumniRepository
+        : InMemoryAlumniRepository,
     },
     {
       provide: USER_REPOSITORY,
-      useClass: InMemoryUserRepository,
+      useClass: dbEnabled ? TypeOrmUserRepository : InMemoryUserRepository,
     },
     {
       provide: VERIFICATION_TOKEN_REPOSITORY,
-      useClass: InMemoryVerificationTokenRepository,
+      useClass: dbEnabled
+        ? TypeOrmVerificationTokenRepository
+        : InMemoryVerificationTokenRepository,
     },
     {
       provide: PHOTO_UPLOAD_REPOSITORY,

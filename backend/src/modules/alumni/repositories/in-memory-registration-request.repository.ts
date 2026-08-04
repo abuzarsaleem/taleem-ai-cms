@@ -23,18 +23,18 @@ export class InMemoryRegistrationRequestRepository
       email: input.email.toLowerCase(),
       phoneNumber: input.phoneNumber ?? null,
       status: RegistrationStatus.PENDING,
-      submittedAt: now,
+      whatsappNumber: input.whatsappNumber ?? null,
+      cnicNationalId: input.cnicNationalId,
+      degreeProgramId: input.degreeProgramId,
+      registrationRollNumber: input.registrationRollNumber,
+      graduationYear: input.graduationYear,
+      photoUrl: input.photoUrl ?? null,
       reviewedBy: null,
       reviewedAt: null,
       rejectionReason: null,
       createdAt: now,
-      campus: input.campus,
-      degree: input.degree,
-      rollNumber: input.rollNumber,
-      graduationYear: input.graduationYear,
-      cgpa: input.cgpa ?? null,
+      updatedAt: now,
     };
-
     this.store.set(entity.id, entity);
     return { ...entity };
   }
@@ -47,9 +47,14 @@ export class InMemoryRegistrationRequestRepository
   async findByEmail(email: string): Promise<AlumniRegistrationRequest | null> {
     const normalized = email.toLowerCase();
     for (const entity of this.store.values()) {
-      if (entity.email === normalized) {
-        return { ...entity };
-      }
+      if (entity.email === normalized) return { ...entity };
+    }
+    return null;
+  }
+
+  async findByCnic(cnic: string): Promise<AlumniRegistrationRequest | null> {
+    for (const entity of this.store.values()) {
+      if (entity.cnicNationalId === cnic) return { ...entity };
     }
     return null;
   }
@@ -69,10 +74,13 @@ export class InMemoryRegistrationRequestRepository
     patch: Partial<AlumniRegistrationRequest>,
   ): Promise<AlumniRegistrationRequest> {
     const existing = this.store.get(id);
-    if (!existing) {
-      throw new Error(`Registration request ${id} not found`);
-    }
-    const updated = { ...existing, ...patch, id: existing.id };
+    if (!existing) throw new Error(`Registration request ${id} not found`);
+    const updated = {
+      ...existing,
+      ...patch,
+      id: existing.id,
+      updatedAt: new Date(),
+    };
     this.store.set(id, updated);
     return { ...updated };
   }

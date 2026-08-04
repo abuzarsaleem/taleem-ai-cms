@@ -1,14 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
-  IsInt,
-  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
-  Max,
+  Matches,
   MaxLength,
-  Min,
   MinLength,
 } from 'class-validator';
 
@@ -41,37 +38,37 @@ export class RegisterDto {
   @MaxLength(20)
   phone_number?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  @MaxLength(100)
-  campus: string;
+  @MaxLength(20)
+  whatsapp_number?: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: '35202-1234567-1' })
   @IsString()
-  @MaxLength(100)
-  degree: string;
+  @Matches(/^\d{5}-\d{7}-\d$/, {
+    message: 'cnic_national_id must match #####-#######-#',
+  })
+  cnic_national_id: string;
+
+  @ApiProperty({
+    description: 'degree_programs.id for campus+degree+program combo',
+    example: '55555555-5555-4555-8555-555555555501',
+  })
+  @IsUUID()
+  degree_program_id: string;
 
   @ApiProperty()
   @IsString()
   @MaxLength(50)
-  roll_number: string;
+  registration_roll_number: string;
 
-  @ApiProperty()
-  @IsInt()
-  @Min(1950)
-  @Max(2100)
-  graduation_year: number;
+  @ApiProperty({ example: '2021' })
+  @IsString()
+  @MaxLength(20)
+  graduation_year: string;
 
   @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(4)
-  cgpa?: number;
-
-  @ApiPropertyOptional({
-    description: 'Photo upload_id from POST /upload-photo',
-  })
   @IsOptional()
   @IsUUID()
   upload_id?: string;
@@ -116,8 +113,20 @@ export class UpdateProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(20)
+  whatsapp_number?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   @MaxLength(255)
   address?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  secondry_address?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -162,8 +171,6 @@ export class UpdateProfileDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsInt()
-  @Min(0)
   years_of_experience?: number;
 
   @ApiPropertyOptional()
@@ -174,6 +181,6 @@ export class UpdateProfileDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
-  upload_id?: string;
+  @IsString()
+  start_date?: string;
 }

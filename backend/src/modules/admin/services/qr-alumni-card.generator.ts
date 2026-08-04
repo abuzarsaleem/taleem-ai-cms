@@ -18,29 +18,12 @@ export class QrAlumniCardGenerator implements IAlumniCardGenerator {
 
   async generate(
     profile: AlumniProfile,
-    options?: { photoUrl?: string },
+    _options?: { photoUrl?: string },
   ): Promise<AlumniCardGenerationResult> {
-    const photoUrl =
-      options?.photoUrl ??
-      profile.alumni.alumniPhoto ??
-      profile.personal?.photoUrl ??
-      null;
-
-    const payload = {
-      type: 'alumni_digital_card',
-      alumniId: profile.alumni.id,
-      registrationRef: profile.alumni.registrationRef,
-      fullName: profile.alumni.fullName,
-      email: profile.alumni.email,
-      campus: profile.academic.campus,
-      degree: profile.academic.degree,
-      graduationYear: String(profile.academic.graduationYear),
-    };
-
     const verifyBase =
       process.env.ALUMNI_CARD_VERIFY_URL ??
       `${process.env.PUBLIC_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`}/alumni/verify`;
-    const qrContent = `${verifyBase}/${encodeURIComponent(profile.alumni.registrationRef)}`;
+    const qrContent = `${verifyBase}/${encodeURIComponent(profile.alumni.id)}`;
 
     const pngBuffer = await QRCode.toBuffer(qrContent, {
       type: 'png',
@@ -53,7 +36,7 @@ export class QrAlumniCardGenerator implements IAlumniCardGenerator {
       buffer: pngBuffer,
       mimeType: 'image/png',
       folder: 'qr',
-      fileName: `${profile.alumni.registrationRef}.png`,
+      fileName: `${profile.alumni.id}.png`,
     });
 
     this.logger.log(
@@ -61,10 +44,15 @@ export class QrAlumniCardGenerator implements IAlumniCardGenerator {
     );
 
     return {
+      // Persist durable URL (short); signed download URLs exceed varchar and expire.
       qrCodeUrl: stored.publicUrl,
-      photoUrl,
+      downloadUrl: stored.downloadUrl,
+      photoUrl: null,
       payload: {
-        ...payload,
+        alumniId: profile.alumni.id,
+        cnic: profile.alumni.cnicNationalId,
+        fullName: profile.alumni.fullName,
+        email: profile.alumni.email,
         qrContent,
       },
     };

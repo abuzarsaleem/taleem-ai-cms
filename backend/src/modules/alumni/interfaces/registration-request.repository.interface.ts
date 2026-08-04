@@ -5,11 +5,12 @@ export interface CreateRegistrationRequestInput {
   fullName: string;
   email: string;
   phoneNumber?: string;
-  campus: string;
-  degree: string;
-  rollNumber: string;
-  graduationYear: number;
-  cgpa?: number;
+  whatsappNumber?: string;
+  cnicNationalId: string;
+  degreeProgramId: string;
+  registrationRollNumber: string;
+  graduationYear: string;
+  photoUrl?: string | null;
 }
 
 export interface IRegistrationRequestRepository {
@@ -18,6 +19,7 @@ export interface IRegistrationRequestRepository {
   ): Promise<AlumniRegistrationRequest>;
   findById(id: string): Promise<AlumniRegistrationRequest | null>;
   findByEmail(email: string): Promise<AlumniRegistrationRequest | null>;
+  findByCnic(cnic: string): Promise<AlumniRegistrationRequest | null>;
   findAll(status?: RegistrationStatus): Promise<AlumniRegistrationRequest[]>;
   update(
     id: string,

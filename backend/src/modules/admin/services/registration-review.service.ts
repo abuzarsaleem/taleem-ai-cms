@@ -1,10 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   ALUMNI_REPOSITORY,
+  PHOTO_STORAGE,
   REGISTRATION_REQUEST_REPOSITORY,
 } from '../../../common/constants/tokens';
 import { RegistrationStatus } from '../../../common/enums';
 import { ResourceNotFoundException } from '../../../common/exceptions';
+import type { IObjectStorage } from '../../../common/interfaces/photo-storage.interface';
 import { ActivationService } from '../../alumni/services/activation.service';
 import type { IAlumniRepository } from '../../alumni/interfaces/alumni.repository.interface';
 import type { IRegistrationRequestRepository } from '../../alumni/interfaces/registration-request.repository.interface';
@@ -17,6 +19,8 @@ export class RegistrationReviewService {
     private readonly registrationRepository: IRegistrationRequestRepository,
     @Inject(ALUMNI_REPOSITORY)
     private readonly alumniRepository: IAlumniRepository,
+    @Inject(PHOTO_STORAGE)
+    private readonly objectStorage: IObjectStorage,
     private readonly activationService: ActivationService,
   ) {}
 
@@ -36,18 +40,19 @@ export class RegistrationReviewService {
       approved_count: approved.length,
       rejected_count: rejected.length,
       alumni_count: alumni.length,
-      recent_pending: pending.slice(0, 5).map((r) => this.toListItem(r)),
+      recent_pending: await Promise.all(
+        pending.slice(0, 5).map((r) => this.toListItem(r)),
+      ),
     };
   }
 
   async list(status?: RegistrationStatus) {
     const items = await this.registrationRepository.findAll(status);
-    return items.map((item) => this.toListItem(item));
+    return Promise.all(items.map((item) => this.toListItem(item)));
   }
 
   async detail(registrationId: string) {
-    const request =
-      await this.registrationRepository.findById(registrationId);
+    const request = await this.registrationRepository.findById(registrationId);
     if (!request) {
       throw new ResourceNotFoundException('Registration', registrationId);
     }
@@ -55,25 +60,40 @@ export class RegistrationReviewService {
     const alumni =
       await this.alumniRepository.findByRegistrationRequestId(registrationId);
 
+    const base = await this.toListItem(request);
+    const qrDurable = alumni?.alumni.qrCode || null;
+    const photoDurable =
+      alumni?.alumni.photoUrl || request.photoUrl || null;
+
     return {
-      ...this.toListItem(request),
+      ...base,
+      whatsapp_number: request.whatsappNumber,
       rejection_reason: request.rejectionReason,
       reviewed_by: request.reviewedBy,
       reviewed_at: request.reviewedAt,
+      photo_url: photoDurable
+        ? await this.objectStorage.resolveDownloadUrl(photoDurable)
+        : null,
       alumni: alumni
         ? {
             alumni_id: alumni.alumni.id,
-            registration_ref: alumni.alumni.registrationRef,
             status: alumni.alumni.status,
             user_id: alumni.alumni.userId,
+            photo_url: alumni.alumni.photoUrl
+              ? await this.objectStorage.resolveDownloadUrl(
+                  alumni.alumni.photoUrl,
+                )
+              : null,
+            qr_code: qrDurable
+              ? await this.objectStorage.resolveDownloadUrl(qrDurable)
+              : null,
           }
         : null,
     };
   }
 
   async resendNotification(registrationId: string) {
-    const request =
-      await this.registrationRepository.findById(registrationId);
+    const request = await this.registrationRepository.findById(registrationId);
     if (!request) {
       throw new ResourceNotFoundException('Registration', registrationId);
     }
@@ -84,7 +104,10 @@ export class RegistrationReviewService {
           registrationId,
         );
       if (!alumni?.alumni.userId) {
-        throw new ResourceNotFoundException('Alumni for registration', registrationId);
+        throw new ResourceNotFoundException(
+          'Alumni for registration',
+          registrationId,
+        );
       }
       await this.activationService.issueActivationToken({
         userId: alumni.alumni.userId,
@@ -96,33 +119,27 @@ export class RegistrationReviewService {
       return { resent: true, type: 'approval_activation' };
     }
 
-    if (request.status === RegistrationStatus.REJECTED) {
-      // Rejection resend would go through NotificationSender; reuse RejectionService path simply:
-      return {
-        resent: false,
-        message: 'Use reject flow reason already stored; call notification manually if needed',
-      };
-    }
-
     throw new ResourceNotFoundException(
-      'Approved/rejected registration for resend',
+      'Approved registration for resend',
       registrationId,
     );
   }
 
-  private toListItem(request: AlumniRegistrationRequest) {
+  private async toListItem(request: AlumniRegistrationRequest) {
     return {
       registration_id: request.id,
       full_name: request.fullName,
       email: request.email,
       phone_number: request.phoneNumber,
       status: request.status,
-      submitted_at: request.submittedAt,
-      campus: request.campus,
-      degree: request.degree,
-      roll_number: request.rollNumber,
+      submitted_at: request.createdAt,
+      degree_program_id: request.degreeProgramId,
+      registration_roll_number: request.registrationRollNumber,
       graduation_year: request.graduationYear,
-      cgpa: request.cgpa,
+      cnic_national_id: request.cnicNationalId,
+      photo_url: request.photoUrl
+        ? await this.objectStorage.resolveDownloadUrl(request.photoUrl)
+        : null,
     };
   }
 }

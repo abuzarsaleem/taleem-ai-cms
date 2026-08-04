@@ -9,14 +9,12 @@ import {
   BusinessException,
   ResourceNotFoundException,
 } from '../../../common/exceptions';
-import {
-  generateRegistrationRef,
-  placeholderPasswordHash,
-} from '../../../common/utils';
+import { placeholderPasswordHash } from '../../../common/utils';
 import { ActivationService } from '../../alumni/services/activation.service';
 import type { IAlumniRepository } from '../../alumni/interfaces/alumni.repository.interface';
 import type { IRegistrationRequestRepository } from '../../alumni/interfaces/registration-request.repository.interface';
 import type { IUserRepository } from '../../alumni/interfaces/user.repository.interface';
+import { AlumniCardService } from './alumni-card.service';
 
 @Injectable()
 export class ApprovalService {
@@ -30,12 +28,9 @@ export class ApprovalService {
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     private readonly activationService: ActivationService,
+    private readonly alumniCardService: AlumniCardService,
   ) {}
 
-  /**
-   * FR-004–007: status update + account creation are one logical unit;
-   * notification runs after that succeeds (non-transactional).
-   */
   async approve(registrationId: string, adminUserId: string) {
     const request = await this.registrationRepository.findById(registrationId);
     if (!request) {
@@ -51,14 +46,14 @@ export class ApprovalService {
 
     let alumniId = '';
     let userId = '';
-    let registrationRef = '';
+    let qrCode: string | null = null;
+    let qrFailed = false;
 
     try {
-      const reviewedAt = new Date();
       await this.registrationRepository.update(registrationId, {
         status: RegistrationStatus.APPROVED,
         reviewedBy: adminUserId,
-        reviewedAt,
+        reviewedAt: new Date(),
         rejectionReason: null,
       });
 
@@ -80,21 +75,20 @@ export class ApprovalService {
         }));
 
       userId = user.id;
-      registrationRef = generateRegistrationRef();
 
       const profile = await this.alumniRepository.create({
         registrationRequestId: request.id,
-        registrationRef,
         fullName: request.fullName,
         email: request.email,
         userId: user.id,
         phoneNumber: request.phoneNumber,
+        whatsappNumber: request.whatsappNumber,
+        cnicNationalId: request.cnicNationalId,
+        photoUrl: request.photoUrl,
         academic: {
-          campus: request.campus,
-          degree: request.degree,
-          rollNumber: request.rollNumber,
+          degreeProgramId: request.degreeProgramId,
+          registrationRollNumber: request.registrationRollNumber,
           graduationYear: request.graduationYear,
-          cgpa: request.cgpa,
         },
       });
       alumniId = profile.alumni.id;
@@ -113,6 +107,21 @@ export class ApprovalService {
     }
 
     try {
+      const card = await this.alumniCardService.generate(alumniId, {
+        photoUrl: request.photoUrl ?? undefined,
+      });
+      qrCode = card.qrCode;
+      this.logger.log(`APPROVAL_QR_GENERATED alumniId=${alumniId}`);
+    } catch (error) {
+      qrFailed = true;
+      this.logger.error(
+        `APPROVAL_QR_FAILED alumniId=${alumniId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
+    try {
       await this.activationService.issueActivationToken({
         userId,
         alumniId,
@@ -125,8 +134,9 @@ export class ApprovalService {
         registration_id: registrationId,
         alumni_id: alumniId,
         user_id: userId,
-        registration_ref: registrationRef,
         status: RegistrationStatus.APPROVED,
+        qr_code: qrCode,
+        qr_failed: qrFailed,
         notification_failed: false,
       };
     } catch {
@@ -135,8 +145,9 @@ export class ApprovalService {
         registration_id: registrationId,
         alumni_id: alumniId,
         user_id: userId,
-        registration_ref: registrationRef,
         status: RegistrationStatus.APPROVED,
+        qr_code: qrCode,
+        qr_failed: qrFailed,
         notification_failed: true,
       };
     }

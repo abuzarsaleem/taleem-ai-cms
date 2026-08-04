@@ -1,8 +1,9 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -13,10 +14,10 @@ export class AlumniProfessionalInformationEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'alumni_id', type: 'uuid', unique: true })
+  @Column({ name: 'alumni_id', type: 'uuid' })
   alumniId: string;
 
-  @OneToOne(() => AlumniEntity, (alumni) => alumni.professional, {
+  @ManyToOne(() => AlumniEntity, (alumni) => alumni.professionalRecords, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'alumni_id' })
@@ -36,6 +37,15 @@ export class AlumniProfessionalInformationEntity {
 
   @Column({ name: 'linkedin_url', type: 'varchar', length: 255, nullable: true })
   linkedinUrl: string | null;
+
+  @Column({ name: 'start_date', type: 'date' })
+  startDate: string;
+
+  @Column({ name: 'end_date', type: 'date', nullable: true })
+  endDate: string | null;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;

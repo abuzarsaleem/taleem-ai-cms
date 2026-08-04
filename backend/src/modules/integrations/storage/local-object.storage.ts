@@ -34,9 +34,11 @@ export class LocalObjectStorage implements IObjectStorage, OnModuleInit {
       process.env.PUBLIC_BASE_URL ??
       `http://localhost:${process.env.PORT ?? 3000}`;
 
+    const publicUrl = `${baseUrl}/media/${storageKey.replace(/\\/g, '/')}`;
     return {
       storageKey,
-      publicUrl: `${baseUrl}/media/${storageKey.replace(/\\/g, '/')}`,
+      publicUrl,
+      downloadUrl: publicUrl,
     };
   }
 
@@ -46,5 +48,9 @@ export class LocalObjectStorage implements IObjectStorage, OnModuleInit {
     } catch {
       // ignore missing files
     }
+  }
+
+  async resolveDownloadUrl(storageKeyOrUrl: string): Promise<string> {
+    return storageKeyOrUrl;
   }
 }

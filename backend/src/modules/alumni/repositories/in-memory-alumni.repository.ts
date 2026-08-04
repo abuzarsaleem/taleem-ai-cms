@@ -4,7 +4,6 @@ import { generateId } from '../../../common/utils';
 import {
   Alumni,
   AlumniAcademicInformation,
-  AlumniPersonalInformation,
   AlumniProfessionalInformation,
   AlumniProfile,
 } from '../entities/alumni.entity';
@@ -16,12 +15,11 @@ import {
 @Injectable()
 export class InMemoryAlumniRepository implements IAlumniRepository {
   private readonly alumni = new Map<string, Alumni>();
-  private readonly academic = new Map<string, AlumniAcademicInformation>();
+  private readonly academic = new Map<string, AlumniAcademicInformation[]>();
   private readonly professional = new Map<
     string,
-    AlumniProfessionalInformation
+    AlumniProfessionalInformation[]
   >();
-  private readonly personal = new Map<string, AlumniPersonalInformation>();
 
   async create(input: CreateAlumniInput): Promise<AlumniProfile> {
     const now = new Date();
@@ -29,42 +27,38 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
       id: generateId(),
       userId: input.userId ?? null,
       registrationRequestId: input.registrationRequestId,
-      registrationRef: input.registrationRef,
       status: AlumniStatus.ACTIVE,
       fullName: input.fullName,
       email: input.email.toLowerCase(),
+      dateOfBirth: null,
+      gender: null,
+      phoneNumber: input.phoneNumber ?? null,
+      whatsappNumber: input.whatsappNumber ?? null,
+      cnicNationalId: input.cnicNationalId,
+      address: null,
+      secondryAddress: null,
+      city: null,
+      country: null,
+      qrCode: '',
+      photoUrl: input.photoUrl ?? null,
       createdAt: now,
       updatedAt: now,
-      alumniPhoto: input.alumniPhoto ?? null,
-      alumniQrCode: null,
     };
 
     const academic: AlumniAcademicInformation = {
       id: generateId(),
       alumniId: alumni.id,
-      campus: input.academic.campus,
-      degree: input.academic.degree,
-      rollNumber: input.academic.rollNumber,
+      degreeProgramId: input.academic.degreeProgramId,
+      registrationRollNumber: input.academic.registrationRollNumber,
       graduationYear: input.academic.graduationYear,
-      cgpa: input.academic.cgpa,
-    };
-
-    const personal: AlumniPersonalInformation = {
-      id: generateId(),
-      alumniId: alumni.id,
-      dateOfBirth: null,
-      gender: null,
-      phoneNumber: input.phoneNumber ?? null,
-      address: null,
-      city: null,
-      country: null,
-      photoUrl: input.alumniPhoto ?? null,
+      cgpa: input.academic.cgpa ?? null,
+      createdAt: now,
+      updatedAt: now,
     };
 
     this.alumni.set(alumni.id, alumni);
-    this.academic.set(alumni.id, academic);
-    this.personal.set(alumni.id, personal);
-
+    this.academic.set(alumni.id, [academic]);
+    this.professional.set(alumni.id, []);
     return this.toProfile(alumni.id)!;
   }
 
@@ -75,18 +69,14 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
   async findByEmail(email: string): Promise<AlumniProfile | null> {
     const normalized = email.toLowerCase();
     for (const alumni of this.alumni.values()) {
-      if (alumni.email === normalized) {
-        return this.toProfile(alumni.id);
-      }
+      if (alumni.email === normalized) return this.toProfile(alumni.id);
     }
     return null;
   }
 
   async findByUserId(userId: string): Promise<AlumniProfile | null> {
     for (const alumni of this.alumni.values()) {
-      if (alumni.userId === userId) {
-        return this.toProfile(alumni.id);
-      }
+      if (alumni.userId === userId) return this.toProfile(alumni.id);
     }
     return null;
   }
@@ -102,26 +92,15 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
     return null;
   }
 
-  async findByRegistrationRef(ref: string): Promise<AlumniProfile | null> {
-    for (const alumni of this.alumni.values()) {
-      if (alumni.registrationRef === ref) {
-        return this.toProfile(alumni.id);
-      }
-    }
-    return null;
-  }
-
   async findAll(): Promise<AlumniProfile[]> {
     return Array.from(this.alumni.keys())
       .map((id) => this.toProfile(id))
-      .filter((profile): profile is AlumniProfile => profile !== null);
+      .filter((p): p is AlumniProfile => p !== null);
   }
 
   async updateAlumni(id: string, patch: Partial<Alumni>): Promise<Alumni> {
     const existing = this.alumni.get(id);
-    if (!existing) {
-      throw new Error(`Alumni ${id} not found`);
-    }
+    if (!existing) throw new Error(`Alumni ${id} not found`);
     const updated: Alumni = {
       ...existing,
       ...patch,
@@ -132,24 +111,34 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
     return { ...updated };
   }
 
-  async updateAcademic(
+  async addAcademic(
     alumniId: string,
-    patch: Partial<AlumniAcademicInformation>,
+    data: Omit<
+      AlumniAcademicInformation,
+      'id' | 'alumniId' | 'createdAt' | 'updatedAt'
+    >,
   ): Promise<AlumniAcademicInformation> {
-    const existing = this.academic.get(alumniId);
-    if (!existing) {
-      throw new Error(`Academic info for alumni ${alumniId} not found`);
-    }
-    const updated = { ...existing, ...patch, id: existing.id, alumniId };
-    this.academic.set(alumniId, updated);
-    return { ...updated };
+    const now = new Date();
+    const row: AlumniAcademicInformation = {
+      id: generateId(),
+      alumniId,
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const list = this.academic.get(alumniId) ?? [];
+    list.push(row);
+    this.academic.set(alumniId, list);
+    return { ...row };
   }
 
   async upsertProfessional(
     alumniId: string,
-    data: Partial<AlumniProfessionalInformation>,
+    data: Partial<AlumniProfessionalInformation> & { startDate: Date },
   ): Promise<AlumniProfessionalInformation> {
-    const existing = this.professional.get(alumniId);
+    const list = this.professional.get(alumniId) ?? [];
+    const existing = list[0];
+    const now = new Date();
     const updated: AlumniProfessionalInformation = {
       id: existing?.id ?? generateId(),
       alumniId,
@@ -159,46 +148,22 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
       yearsOfExperience:
         data.yearsOfExperience ?? existing?.yearsOfExperience ?? null,
       linkedinUrl: data.linkedinUrl ?? existing?.linkedinUrl ?? null,
-      updatedAt: new Date(),
+      startDate: data.startDate ?? existing?.startDate ?? now,
+      endDate: data.endDate ?? existing?.endDate ?? null,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
     };
-    this.professional.set(alumniId, updated);
-    return { ...updated };
-  }
-
-  async upsertPersonal(
-    alumniId: string,
-    data: Partial<AlumniPersonalInformation>,
-  ): Promise<AlumniPersonalInformation> {
-    const existing = this.personal.get(alumniId);
-    const updated: AlumniPersonalInformation = {
-      id: existing?.id ?? generateId(),
-      alumniId,
-      dateOfBirth: data.dateOfBirth ?? existing?.dateOfBirth ?? null,
-      gender: data.gender ?? existing?.gender ?? null,
-      phoneNumber: data.phoneNumber ?? existing?.phoneNumber ?? null,
-      address: data.address ?? existing?.address ?? null,
-      city: data.city ?? existing?.city ?? null,
-      country: data.country ?? existing?.country ?? null,
-      photoUrl: data.photoUrl ?? existing?.photoUrl ?? null,
-    };
-    this.personal.set(alumniId, updated);
+    this.professional.set(alumniId, [updated, ...list.slice(1)]);
     return { ...updated };
   }
 
   private toProfile(id: string): AlumniProfile | null {
     const alumni = this.alumni.get(id);
-    const academic = this.academic.get(id);
-    if (!alumni || !academic) {
-      return null;
-    }
-
+    if (!alumni) return null;
     return {
       alumni: { ...alumni },
-      academic: { ...academic },
-      professional: this.professional.get(id)
-        ? { ...this.professional.get(id)! }
-        : null,
-      personal: this.personal.get(id) ? { ...this.personal.get(id)! } : null,
+      academic: (this.academic.get(id) ?? []).map((a) => ({ ...a })),
+      professional: (this.professional.get(id) ?? []).map((p) => ({ ...p })),
     };
   }
 }

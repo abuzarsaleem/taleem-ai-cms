@@ -12,7 +12,6 @@ import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
-import { AlumniCardResponseDto } from '../../alumni/dto/alumni-response.dto';
 import { GenerateAlumniCardDto } from '../dto/generate-alumni-card.dto';
 import { AlumniCardService } from '../services/alumni-card.service';
 
@@ -31,7 +30,7 @@ export class AdminAlumniCardController {
   async generateCard(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: GenerateAlumniCardDto,
-  ): Promise<ApiResponseDto<AlumniCardResponseDto>> {
+  ) {
     const data = await this.alumniCardService.generate(id, dto);
     return ApiResponseDto.of(data, 'Alumni card generated');
   }

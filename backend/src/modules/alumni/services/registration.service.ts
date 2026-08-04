@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
-  NOTIFICATION_SENDER,
   PHOTO_UPLOAD_REPOSITORY,
   REGISTRATION_REQUEST_REPOSITORY,
 } from '../../../common/constants/tokens';
@@ -26,15 +25,24 @@ export class RegistrationService {
   ) {}
 
   async register(dto: RegisterDto) {
-    // 1. Validate duplicate email (active/pending application)
-    const existing = await this.registrationRepository.findByEmail(dto.email);
-    if (existing && existing.status !== RegistrationStatus.REJECTED) {
+    const existingEmail = await this.registrationRepository.findByEmail(
+      dto.email,
+    );
+    if (existingEmail && existingEmail.status !== RegistrationStatus.REJECTED) {
       throw new ConflictException(
         'A registration request already exists for this email',
       );
     }
 
-    // 2. Attach photo if provided
+    const existingCnic = await this.registrationRepository.findByCnic(
+      dto.cnic_national_id,
+    );
+    if (existingCnic && existingCnic.status !== RegistrationStatus.REJECTED) {
+      throw new ConflictException(
+        'A registration request already exists for this CNIC',
+      );
+    }
+
     let photoUrl: string | null = null;
     if (dto.upload_id) {
       const upload = await this.photoUploadRepository.findById(dto.upload_id);
@@ -51,28 +59,27 @@ export class RegistrationService {
       photoUrl = upload.publicUrl;
     }
 
-    // 3. Create registration request (PENDING — awaits admin verification)
     const created = await this.registrationRepository.create({
       fullName: dto.full_name,
       email: dto.email,
       phoneNumber: dto.phone_number,
-      campus: dto.campus,
-      degree: dto.degree,
-      rollNumber: dto.roll_number,
+      whatsappNumber: dto.whatsapp_number,
+      cnicNationalId: dto.cnic_national_id,
+      degreeProgramId: dto.degree_program_id,
+      registrationRollNumber: dto.registration_roll_number,
       graduationYear: dto.graduation_year,
-      cgpa: dto.cgpa,
+      photoUrl,
     });
 
     this.logger.log(
-      `ALUMNI_REGISTER_SUBMITTED requestId=${created.id} email=${created.email} photoAttached=${Boolean(photoUrl)}`,
+      `ALUMNI_REGISTER_SUBMITTED requestId=${created.id} email=${created.email}`,
     );
 
-    // 4. Acknowledge (institutional verification is async / admin-driven)
     return {
       registration_id: created.id,
       status: created.status,
-      submitted_at: created.submittedAt,
-      photo_url: photoUrl,
+      submitted_at: created.createdAt,
+      photo_url: created.photoUrl,
       message:
         'Registration submitted and pending institutional verification',
     };

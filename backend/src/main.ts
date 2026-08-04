@@ -46,6 +46,7 @@ async function bootstrap() {
     .addBearerAuth()
     .addTag('Alumni Portal')
     .addTag('Admin Portal')
+    .addTag('Catalog')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

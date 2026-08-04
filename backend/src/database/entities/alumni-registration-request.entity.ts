@@ -7,13 +7,15 @@ import {
   ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import {
   REGISTRATION_STATUS_ENUM,
   RegistrationStatus,
 } from '../../common/enums';
+import { AccountEntity } from './account.entity';
 import { AlumniEntity } from './alumni.entity';
-import { UserEntity } from './user.entity';
+import { DegreeProgramEntity } from './degree-program.entity';
 
 @Entity({ name: 'alumni_registration_request' })
 export class AlumniRegistrationRequestEntity {
@@ -38,22 +40,39 @@ export class AlumniRegistrationRequestEntity {
   })
   status: RegistrationStatus;
 
-  @Column({
-    name: 'submitted_at',
-    type: 'timestamptz',
-    default: () => 'CURRENT_TIMESTAMP',
+  @Column({ name: 'whatsapp_number', type: 'varchar', length: 20, nullable: true })
+  whatsappNumber: string | null;
+
+  @Column({ name: 'cnic_national_id', type: 'varchar', length: 15, unique: true })
+  cnicNationalId: string;
+
+  @Column({ name: 'degree_program_id', type: 'uuid' })
+  degreeProgramId: string;
+
+  @ManyToOne(() => DegreeProgramEntity, (dp) => dp.registrationRequests, {
+    onDelete: 'RESTRICT',
   })
-  submittedAt: Date;
+  @JoinColumn({ name: 'degree_program_id' })
+  degreeProgram: DegreeProgramEntity;
+
+  @Column({ name: 'registration_roll_number', type: 'varchar', length: 50 })
+  registrationRollNumber: string;
+
+  @Column({ name: 'graduation_year', type: 'varchar', length: 20 })
+  graduationYear: string;
+
+  @Column({ name: 'photo_url', type: 'text', nullable: true })
+  photoUrl: string | null;
 
   @Column({ name: 'reviewed_by', type: 'uuid', nullable: true })
   reviewedBy: string | null;
 
-  @ManyToOne(() => UserEntity, (user) => user.reviewedRequests, {
+  @ManyToOne(() => AccountEntity, (account) => account.reviewedRequests, {
     nullable: true,
     onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'reviewed_by' })
-  reviewedByUser: UserEntity | null;
+  reviewedByAccount: AccountEntity | null;
 
   @Column({ name: 'reviewed_at', type: 'timestamptz', nullable: true })
   reviewedAt: Date | null;
@@ -64,21 +83,8 @@ export class AlumniRegistrationRequestEntity {
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  /** Application snapshot fields captured at submission time. */
-  @Column({ type: 'varchar', length: 100 })
-  campus: string;
-
-  @Column({ type: 'varchar', length: 100 })
-  degree: string;
-
-  @Column({ name: 'roll_number', type: 'varchar', length: 50 })
-  rollNumber: string;
-
-  @Column({ name: 'graduation_year', type: 'int' })
-  graduationYear: number;
-
-  @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
-  cgpa: string | null;
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  updatedAt: Date;
 
   @OneToOne(() => AlumniEntity, (alumni) => alumni.registrationRequest)
   alumni: AlumniEntity | null;

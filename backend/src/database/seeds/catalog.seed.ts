@@ -1,0 +1,95 @@
+/** Seed IDs aligned with ResetInitialSchemaTaleemAi migration. */
+export const SEED_CATALOG = {
+  campuses: [
+    {
+      id: '22222222-2222-4222-8222-222222222201',
+      code: 'ISB_CHAK_SHAHZAD',
+      name: 'Chak Shahzad Campus, Islamabad',
+      city: 'Islamabad',
+    },
+    {
+      id: '22222222-2222-4222-8222-222222222202',
+      code: 'ISB_MAIN',
+      name: 'Main Campus, Islamabad',
+      city: 'Islamabad',
+    },
+    {
+      id: '22222222-2222-4222-8222-222222222203',
+      code: 'LHR_CAMPUS',
+      name: 'Lahore Campus',
+      city: 'Lahore',
+    },
+    {
+      id: '22222222-2222-4222-8222-222222222204',
+      code: 'KHI_CAMPUS',
+      name: 'Karachi Campus',
+      city: 'Karachi',
+    },
+  ],
+  degrees: [
+    { id: '33333333-3333-4333-8333-333333333301', code: 'BS', name: 'Bachelor of Science', level: 1 },
+    { id: '33333333-3333-4333-8333-333333333302', code: 'MS', name: 'Master of Science', level: 2 },
+    { id: '33333333-3333-4333-8333-333333333303', code: 'MBA', name: 'Master of Business Administration', level: 2 },
+    { id: '33333333-3333-4333-8333-333333333304', code: 'PHD', name: 'Doctor of Philosophy', level: 3 },
+    { id: '33333333-3333-4333-8333-333333333305', code: 'BBA', name: 'Bachelor of Business Administration', level: 1 },
+  ],
+  programs: [
+    { id: '44444444-4444-4444-8444-444444444401', code: 'CS', name: 'Computer Science', department: 'Faculty of Computing' },
+    { id: '44444444-4444-4444-8444-444444444402', code: 'SE', name: 'Software Engineering', department: 'Faculty of Computing' },
+    { id: '44444444-4444-4444-8444-444444444403', code: 'AI', name: 'Artificial Intelligence', department: 'Faculty of Computing' },
+    { id: '44444444-4444-4444-8444-444444444404', code: 'EE', name: 'Electrical Engineering', department: 'Faculty of Engineering' },
+    { id: '44444444-4444-4444-8444-444444444405', code: 'BBA', name: 'Business Administration', department: 'Faculty of Management Sciences' },
+    { id: '44444444-4444-4444-8444-444444444406', code: 'DS', name: 'Data Science', department: 'Faculty of Computing' },
+  ],
+  degree_programs: [
+    {
+      id: '55555555-5555-4555-8555-555555555501',
+      degree_id: '33333333-3333-4333-8333-333333333301',
+      program_id: '44444444-4444-4444-8444-444444444401',
+      campus_id: '22222222-2222-4222-8222-222222222201',
+      label: 'BS Computer Science — Chak Shahzad',
+    },
+    {
+      id: '55555555-5555-4555-8555-555555555502',
+      degree_id: '33333333-3333-4333-8333-333333333301',
+      program_id: '44444444-4444-4444-8444-444444444402',
+      campus_id: '22222222-2222-4222-8222-222222222201',
+      label: 'BS Software Engineering — Chak Shahzad',
+    },
+    {
+      id: '55555555-5555-4555-8555-555555555503',
+      degree_id: '33333333-3333-4333-8333-333333333301',
+      program_id: '44444444-4444-4444-8444-444444444403',
+      campus_id: '22222222-2222-4222-8222-222222222201',
+      label: 'BS Artificial Intelligence — Chak Shahzad',
+    },
+    {
+      id: '55555555-5555-4555-8555-555555555504',
+      degree_id: '33333333-3333-4333-8333-333333333301',
+      program_id: '44444444-4444-4444-8444-444444444406',
+      campus_id: '22222222-2222-4222-8222-222222222201',
+      label: 'BS Data Science — Chak Shahzad',
+    },
+    {
+      id: '55555555-5555-4555-8555-555555555505',
+      degree_id: '33333333-3333-4333-8333-333333333302',
+      program_id: '44444444-4444-4444-8444-444444444401',
+      campus_id: '22222222-2222-4222-8222-222222222201',
+      label: 'MS Computer Science — Chak Shahzad',
+    },
+    {
+      id: '55555555-5555-4555-8555-555555555507',
+      degree_id: '33333333-3333-4333-8333-333333333305',
+      program_id: '44444444-4444-4444-8444-444444444405',
+      campus_id: '22222222-2222-4222-8222-222222222201',
+      label: 'BBA Business Administration — Chak Shahzad',
+    },
+    {
+      id: '55555555-5555-4555-8555-555555555508',
+      degree_id: '33333333-3333-4333-8333-333333333303',
+      program_id: '44444444-4444-4444-8444-444444444405',
+      campus_id: '22222222-2222-4222-8222-222222222201',
+      label: 'MBA — Chak Shahzad',
+    },
+  ],
+};

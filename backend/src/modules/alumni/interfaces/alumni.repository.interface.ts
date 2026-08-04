@@ -1,26 +1,25 @@
 import {
   Alumni,
   AlumniAcademicInformation,
-  AlumniPersonalInformation,
   AlumniProfessionalInformation,
   AlumniProfile,
 } from '../entities/alumni.entity';
 
 export interface CreateAlumniInput {
   registrationRequestId: string;
-  registrationRef: string;
   fullName: string;
   email: string;
   userId?: string | null;
-  alumniPhoto?: string | null;
-  academic: {
-    campus: string;
-    degree: string;
-    rollNumber: string;
-    graduationYear: number;
-    cgpa: number | null;
-  };
   phoneNumber?: string | null;
+  whatsappNumber?: string | null;
+  cnicNationalId: string;
+  photoUrl?: string | null;
+  academic: {
+    degreeProgramId: string;
+    registrationRollNumber: string;
+    graduationYear: string;
+    cgpa?: number | null;
+  };
 }
 
 export interface IAlumniRepository {
@@ -31,19 +30,14 @@ export interface IAlumniRepository {
   findByRegistrationRequestId(
     registrationRequestId: string,
   ): Promise<AlumniProfile | null>;
-  findByRegistrationRef(ref: string): Promise<AlumniProfile | null>;
   findAll(): Promise<AlumniProfile[]>;
   updateAlumni(id: string, patch: Partial<Alumni>): Promise<Alumni>;
-  updateAcademic(
+  addAcademic(
     alumniId: string,
-    patch: Partial<AlumniAcademicInformation>,
+    data: Omit<AlumniAcademicInformation, 'id' | 'alumniId' | 'createdAt' | 'updatedAt'>,
   ): Promise<AlumniAcademicInformation>;
   upsertProfessional(
     alumniId: string,
-    data: Partial<AlumniProfessionalInformation>,
+    data: Partial<AlumniProfessionalInformation> & { startDate: Date },
   ): Promise<AlumniProfessionalInformation>;
-  upsertPersonal(
-    alumniId: string,
-    data: Partial<AlumniPersonalInformation>,
-  ): Promise<AlumniPersonalInformation>;
 }
