@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { AlumniModule } from '../alumni/alumni.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { AdminAlumniCardController } from './controllers/admin-alumni-card.controller';
+import { AdminContactRequestController } from './controllers/admin-contact-request.controller';
 import { AdminPortalController } from './controllers/admin-portal.controller';
 import { AlumniCardService } from './services/alumni-card.service';
 import { ApprovalService } from './services/approval.service';
@@ -13,7 +14,11 @@ import { QrAlumniCardGenerator } from './services/qr-alumni-card.generator';
 
 @Module({
   imports: [AlumniModule, AuthModule, IntegrationsModule],
-  controllers: [AdminPortalController, AdminAlumniCardController],
+  controllers: [
+    AdminPortalController,
+    AdminAlumniCardController,
+    AdminContactRequestController,
+  ],
   providers: [
     RegistrationReviewService,
     ApprovalService,

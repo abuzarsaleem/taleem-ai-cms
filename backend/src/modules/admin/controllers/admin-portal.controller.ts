@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -22,7 +23,10 @@ import { RegistrationStatus, UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { AuthService } from '../../auth/auth.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
-import { AdminLoginDto, RejectRegistrationDto } from '../dto/admin.dto';
+import {
+  AdminLoginDto,
+  ReviewRegistrationDto,
+} from '../dto/admin.dto';
 import { ApprovalService } from '../services/approval.service';
 import { RegistrationReviewService } from '../services/registration-review.service';
 import { RejectionService } from '../services/rejection.service';
@@ -85,46 +89,38 @@ export class AdminPortalController {
     return ApiResponseDto.of(data);
   }
 
-  @Post('registrations/:id/approve')
+  @Patch('registrations/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Approve registration and send activation email',
+    summary: 'Approve or reject registration via status body',
   })
-  async approve(
+  async review(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: AuthUser,
+    @Body() dto: ReviewRegistrationDto,
   ) {
-    const data = await this.approvalService.approve(id, admin.userId);
-    return ApiResponseDto.of(data, 'Registration approved');
-  }
+    if (dto.status === RegistrationStatus.APPROVED) {
+      const data = await this.approvalService.approve(id, admin.userId);
+      return ApiResponseDto.of(data, 'Registration approved');
+    }
 
-  @Post('registrations/:id/reject')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Reject registration with reason' })
-  async reject(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() admin: AuthUser,
-    @Body() dto: RejectRegistrationDto,
-  ) {
     const data = await this.rejectionService.reject(
       id,
       admin.userId,
-      dto.reason,
+      dto.rejection_reason ?? '',
     );
     return ApiResponseDto.of(data, 'Registration rejected');
   }
 
-  @Post('registrations/:id/resend-notification')
+  @Post('registrations/:id/resend-activation')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Resend approval activation notification' })
   async resend(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.reviewService.resendNotification(id);
-    return ApiResponseDto.of(data, 'Notification resent');
+    return ApiResponseDto.of(data, 'Activation notification resent');
   }
 }
