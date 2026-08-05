@@ -22,6 +22,25 @@ export interface CreateAlumniInput {
   };
 }
 
+export interface AlumniDirectoryFilters {
+  name?: string;
+  graduationYear?: string;
+  degreeProgramId?: string;
+  industry?: string;
+  city?: string;
+  country?: string;
+  excludeAlumniId?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AlumniDirectoryPage {
+  items: AlumniProfile[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface IAlumniRepository {
   create(input: CreateAlumniInput): Promise<AlumniProfile>;
   findById(id: string): Promise<AlumniProfile | null>;
@@ -31,6 +50,7 @@ export interface IAlumniRepository {
     registrationRequestId: string,
   ): Promise<AlumniProfile | null>;
   findAll(): Promise<AlumniProfile[]>;
+  searchDirectory(filters: AlumniDirectoryFilters): Promise<AlumniDirectoryPage>;
   updateAlumni(id: string, patch: Partial<Alumni>): Promise<Alumni>;
   addAcademic(
     alumniId: string,

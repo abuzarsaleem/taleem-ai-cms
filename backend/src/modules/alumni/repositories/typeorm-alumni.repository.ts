@@ -15,6 +15,8 @@ import {
 } from '../entities/alumni.entity';
 import {
   CreateAlumniInput,
+  AlumniDirectoryFilters,
+  AlumniDirectoryPage,
   IAlumniRepository,
 } from '../interfaces/alumni.repository.interface';
 
@@ -111,6 +113,69 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
     return rows
       .map((row) => this.toProfile(row))
       .filter((p): p is AlumniProfile => p !== null);
+  }
+
+  async searchDirectory(
+    filters: AlumniDirectoryFilters,
+  ): Promise<AlumniDirectoryPage> {
+    const page = Math.max(1, filters.page ?? 1);
+    const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 20));
+
+    const qb = this.alumniRepo
+      .createQueryBuilder('alumni')
+      .leftJoinAndSelect('alumni.academicRecords', 'academic')
+      .leftJoinAndSelect('alumni.professionalRecords', 'professional')
+      .where('alumni.status = :status', { status: AlumniStatus.ACTIVE });
+
+    if (filters.excludeAlumniId) {
+      qb.andWhere('alumni.id != :excludeId', {
+        excludeId: filters.excludeAlumniId,
+      });
+    }
+    if (filters.name?.trim()) {
+      qb.andWhere('LOWER(alumni.fullName) LIKE :name', {
+        name: `%${filters.name.trim().toLowerCase()}%`,
+      });
+    }
+    if (filters.city?.trim()) {
+      qb.andWhere('LOWER(alumni.city) LIKE :city', {
+        city: `%${filters.city.trim().toLowerCase()}%`,
+      });
+    }
+    if (filters.country?.trim()) {
+      qb.andWhere('LOWER(alumni.country) LIKE :country', {
+        country: `%${filters.country.trim().toLowerCase()}%`,
+      });
+    }
+    if (filters.graduationYear?.trim()) {
+      qb.andWhere('academic.graduationYear = :graduationYear', {
+        graduationYear: filters.graduationYear.trim(),
+      });
+    }
+    if (filters.degreeProgramId) {
+      qb.andWhere('academic.degreeProgramId = :degreeProgramId', {
+        degreeProgramId: filters.degreeProgramId,
+      });
+    }
+    if (filters.industry?.trim()) {
+      qb.andWhere('LOWER(professional.industry) LIKE :industry', {
+        industry: `%${filters.industry.trim().toLowerCase()}%`,
+      });
+    }
+
+    qb.orderBy('alumni.fullName', 'ASC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize);
+
+    const [rows, total] = await qb.getManyAndCount();
+    return {
+      items: rows
+        .map((row) => this.toProfile(row))
+        .filter((p): p is AlumniProfile => p !== null),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async updateAlumni(id: string, patch: Partial<Alumni>): Promise<Alumni> {

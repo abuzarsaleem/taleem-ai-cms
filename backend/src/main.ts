@@ -44,8 +44,11 @@ async function bootstrap() {
     .setDescription('Alumni and Admin Portal APIs')
     .setVersion('1.0')
     .addBearerAuth()
-    .addTag('Alumni Portal')
+    .addTag('Authentication & Onboarding')
+    .addTag('Alumni Self-Service')
+    .addTag('Alumni Directory & Contact Requests')
     .addTag('Admin Portal')
+    .addTag('Admin Contact Requests')
     .addTag('Catalog')
     .build();
 

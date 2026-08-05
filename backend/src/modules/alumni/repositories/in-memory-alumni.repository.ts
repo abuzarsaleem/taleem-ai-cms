@@ -9,6 +9,8 @@ import {
 } from '../entities/alumni.entity';
 import {
   CreateAlumniInput,
+  AlumniDirectoryFilters,
+  AlumniDirectoryPage,
   IAlumniRepository,
 } from '../interfaces/alumni.repository.interface';
 
@@ -96,6 +98,60 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
     return Array.from(this.alumni.keys())
       .map((id) => this.toProfile(id))
       .filter((p): p is AlumniProfile => p !== null);
+  }
+
+  async searchDirectory(
+    filters: AlumniDirectoryFilters,
+  ): Promise<AlumniDirectoryPage> {
+    const page = Math.max(1, filters.page ?? 1);
+    const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 20));
+    let items = (await this.findAll()).filter(
+      (p) => p.alumni.status === AlumniStatus.ACTIVE,
+    );
+
+    if (filters.excludeAlumniId) {
+      items = items.filter((p) => p.alumni.id !== filters.excludeAlumniId);
+    }
+    if (filters.name?.trim()) {
+      const q = filters.name.trim().toLowerCase();
+      items = items.filter((p) => p.alumni.fullName.toLowerCase().includes(q));
+    }
+    if (filters.city?.trim()) {
+      const q = filters.city.trim().toLowerCase();
+      items = items.filter((p) => p.alumni.city?.toLowerCase().includes(q));
+    }
+    if (filters.country?.trim()) {
+      const q = filters.country.trim().toLowerCase();
+      items = items.filter((p) => p.alumni.country?.toLowerCase().includes(q));
+    }
+    if (filters.graduationYear?.trim()) {
+      items = items.filter((p) =>
+        p.academic.some(
+          (a) => a.graduationYear === filters.graduationYear!.trim(),
+        ),
+      );
+    }
+    if (filters.degreeProgramId) {
+      items = items.filter((p) =>
+        p.academic.some((a) => a.degreeProgramId === filters.degreeProgramId),
+      );
+    }
+    if (filters.industry?.trim()) {
+      const q = filters.industry.trim().toLowerCase();
+      items = items.filter((p) =>
+        p.professional.some((pr) => pr.industry?.toLowerCase().includes(q)),
+      );
+    }
+
+    items.sort((a, b) => a.alumni.fullName.localeCompare(b.alumni.fullName));
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return {
+      items: items.slice(start, start + pageSize),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async updateAlumni(id: string, patch: Partial<Alumni>): Promise<Alumni> {

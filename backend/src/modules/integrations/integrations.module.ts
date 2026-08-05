@@ -4,6 +4,7 @@ import {
   NOTIFICATION_SENDER,
   PHOTO_STORAGE,
 } from '../../common/constants/tokens';
+import { BrevoNotificationSender } from './notifications/brevo-notification.sender';
 import { LoggingNotificationSender } from './notifications/logging-notification.sender';
 import { ResendNotificationSender } from './notifications/resend-notification.sender';
 import { LocalObjectStorage } from './storage/local-object.storage';
@@ -12,16 +13,20 @@ import { S3MinioObjectStorage } from './storage/s3-minio-object.storage';
 const storageDriver = (process.env.STORAGE_DRIVER ?? 'local').toLowerCase();
 const notificationDriver = (
   process.env.NOTIFICATION_DRIVER ?? 'log'
-).toLowerCase();
+).toLowerCase(); // log | resend | brevo
+
+const notificationSender =
+  notificationDriver === 'brevo'
+    ? BrevoNotificationSender
+    : notificationDriver === 'resend'
+      ? ResendNotificationSender
+      : LoggingNotificationSender;
 
 @Module({
   providers: [
     {
       provide: NOTIFICATION_SENDER,
-      useClass:
-        notificationDriver === 'resend'
-          ? ResendNotificationSender
-          : LoggingNotificationSender,
+      useClass: notificationSender,
     },
     {
       provide: PHOTO_STORAGE,

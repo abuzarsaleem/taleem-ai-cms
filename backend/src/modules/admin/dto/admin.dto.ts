@@ -1,12 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
+import { RegistrationStatus } from '../../../common/enums';
 
 export class AdminLoginDto {
   @ApiProperty({ example: 'admin@taleem.local' })
@@ -19,12 +22,23 @@ export class AdminLoginDto {
   password: string;
 }
 
-export class RejectRegistrationDto {
-  @ApiProperty({ description: 'Required rejection reason' })
+export class ReviewRegistrationDto {
+  @ApiProperty({
+    enum: [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED],
+  })
+  @IsEnum([RegistrationStatus.APPROVED, RegistrationStatus.REJECTED])
+  status: RegistrationStatus.APPROVED | RegistrationStatus.REJECTED;
+
+  @ApiPropertyOptional({
+    description: 'Required when status is REJECTED',
+  })
+  @ValidateIf(
+    (o: ReviewRegistrationDto) => o.status === RegistrationStatus.REJECTED,
+  )
   @IsString()
   @IsNotEmpty()
   @MaxLength(1000)
-  reason: string;
+  rejection_reason?: string;
 }
 
 export class GenerateAlumniCardDto {
