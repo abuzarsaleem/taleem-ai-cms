@@ -5,9 +5,12 @@ import { AlumniProfessionalInformationEntity } from './alumni-professional-infor
 import { AlumniRegistrationRequestEntity } from './alumni-registration-request.entity';
 import { AlumniVerificationEntity } from './alumni-verification.entity';
 import { AlumniEntity } from './alumni.entity';
+import { AnnouncementEntity } from './announcement.entity';
 import { CampusEntity } from './campus.entity';
 import { DegreeProgramEntity } from './degree-program.entity';
 import { DegreeEntity } from './degree.entity';
+import { EventRsvpEntity } from './event-rsvp.entity';
+import { EventEntity } from './event.entity';
 import { ProgramEntity } from './program.entity';
 import { RoleEntity } from './role.entity';
 
@@ -24,6 +27,9 @@ export const databaseEntities = [
   AlumniProfessionalInformationEntity,
   AlumniVerificationEntity,
   AlumniContactRequestEntity,
+  EventEntity,
+  EventRsvpEntity,
+  AnnouncementEntity,
 ];
 
 export {
@@ -39,4 +45,7 @@ export {
   AlumniProfessionalInformationEntity,
   AlumniVerificationEntity,
   AlumniContactRequestEntity,
+  EventEntity,
+  EventRsvpEntity,
+  AnnouncementEntity,
 };

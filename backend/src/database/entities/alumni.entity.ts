@@ -111,6 +111,6 @@ export class AlumniEntity {
   )
   professionalRecords: AlumniProfessionalInformationEntity[];
 
-  @OneToOne(() => AlumniVerificationEntity, (verification) => verification.alumni)
-  verification: AlumniVerificationEntity | null;
+  @OneToMany(() => AlumniVerificationEntity, (verification) => verification.alumni)
+  verifications: AlumniVerificationEntity[];
 }

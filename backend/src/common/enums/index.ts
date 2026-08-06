@@ -3,3 +3,6 @@ export * from './alumni-status.enum';
 export * from './user-role.enum';
 export * from './verification.enum';
 export * from './contact-request-status.enum';
+export * from './event-type.enum';
+export * from './rsvp-status.enum';
+export * from './announcement-category.enum';

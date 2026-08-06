@@ -4,9 +4,13 @@ import {
   Entity,
   Index,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import {
+  VERIFICATION_TOKEN_TYPE_ENUM,
+  VerificationTokenType,
+} from '../../common/enums';
 import { AlumniEntity } from './alumni.entity';
 
 @Entity({ name: 'alumni_verification' })
@@ -14,14 +18,23 @@ export class AlumniVerificationEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'alumni_id', type: 'uuid', unique: true })
+  @Column({ name: 'alumni_id', type: 'uuid' })
   alumniId: string;
 
-  @OneToOne(() => AlumniEntity, (alumni) => alumni.verification, {
+  @ManyToOne(() => AlumniEntity, (alumni) => alumni.verifications, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'alumni_id' })
   alumni: AlumniEntity;
+
+  @Column({
+    name: 'token_type',
+    type: 'enum',
+    enum: VerificationTokenType,
+    enumName: VERIFICATION_TOKEN_TYPE_ENUM,
+    default: VerificationTokenType.ACTIVATION,
+  })
+  tokenType: VerificationTokenType;
 
   @Index()
   @Column({ name: 'token_hash', type: 'varchar', length: 255, unique: true })

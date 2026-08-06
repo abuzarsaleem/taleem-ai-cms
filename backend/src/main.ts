@@ -13,7 +13,10 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const logger = new Logger('Bootstrap');
   const port = Number(process.env.PORT ?? 3000);
+  const apiPrefix = 'api/v1';
   const swaggerPath = 'api/docs';
+
+  app.setGlobalPrefix(apiPrefix);
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/media/',
@@ -49,6 +52,8 @@ async function bootstrap() {
     .addTag('Alumni Directory & Contact Requests')
     .addTag('Admin Portal')
     .addTag('Admin Contact Requests')
+    .addTag('Events & RSVP')
+    .addTag('Announcements')
     .addTag('Catalog')
     .build();
 
@@ -65,7 +70,7 @@ async function bootstrap() {
   await app.listen(port);
 
   const swaggerUrl = `http://localhost:${port}/${swaggerPath}`;
-  logger.log(`Server running on http://localhost:${port}`);
+  logger.log(`Server running on http://localhost:${port}/${apiPrefix}`);
   logger.log(`Swagger UI: ${swaggerUrl}`);
   logger.log(
     `Storage driver: ${(process.env.STORAGE_DRIVER ?? 'local').toLowerCase()}`,

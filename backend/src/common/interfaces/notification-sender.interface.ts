@@ -5,7 +5,10 @@ export type NotificationTemplateId =
   | 'rejection_with_reason'
   | 'contact_request_forwarded'
   | 'contact_request_approved'
-  | 'contact_request_rejected';
+  | 'contact_request_rejected'
+  | 'event_published'
+  | 'announcement_published'
+  | 'password_reset';
 
 export interface NotificationPayload {
   to: string;
