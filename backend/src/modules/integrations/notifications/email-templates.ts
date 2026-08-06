@@ -46,6 +46,7 @@ export function renderNotificationEmail(
   const announcementTitle = v.announcementTitle ?? 'an announcement';
   const category = v.category ?? '';
   const content = v.content ?? '';
+  const imageUrl = v.imageUrl ?? '';
   const portalUrl =
     process.env.ALUMNI_PORTAL_URL ??
     process.env.FRONTEND_URL ??
@@ -73,7 +74,13 @@ export function renderNotificationEmail(
         portalUrl,
       });
     case 'announcement_published':
-      return announcementPublished(name, announcementTitle, category, content);
+      return announcementPublished(
+        name,
+        announcementTitle,
+        category,
+        content,
+        imageUrl,
+      );
     case 'contact_request_forwarded':
       return contactForwarded(name, requesterName, reason, portalUrl);
     case 'contact_request_approved':
@@ -256,7 +263,20 @@ function announcementPublished(
   title: string,
   category: string,
   content: string,
+  imageUrl: string,
 ): RenderedEmail {
+  const imageBlock = imageUrl
+    ? `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+          <tr>
+            <td style="border-radius:12px;overflow:hidden;border:1px solid ${BRAND.line};">
+              <img src="${escapeAttr(imageUrl)}" alt="${escapeAttr(title)}" width="504" style="display:block;width:100%;max-width:504px;height:auto;border:0;" />
+            </td>
+          </tr>
+        </table>
+      `
+    : '';
+
   return {
     subject: `Announcement: ${title}`,
     text: [
@@ -265,15 +285,19 @@ function announcementPublished(
       `${title}${category ? ` (${category})` : ''}`,
       '',
       content,
+      imageUrl ? `\nImage: ${imageUrl}` : '',
       '',
       `— ${BRAND.name}`,
-    ].join('\n'),
+    ]
+      .filter((line) => line !== '')
+      .join('\n'),
     html: layout({
       preheader: title,
       eyebrow: category ? formatLabel(category) : 'Announcement',
       title: escapeHtml(title),
       bodyHtml: `
         <p style="${pStyle}">Hi ${escapeHtml(name)},</p>
+        ${imageBlock}
         <p style="${pStyle}">${escapeHtml(content)}</p>
       `,
     }),

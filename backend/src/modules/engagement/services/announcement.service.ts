@@ -319,6 +319,10 @@ export class AnnouncementService {
         (p) => p.alumni.status === AlumniStatus.ACTIVE && p.alumni.email,
       );
 
+      const imageUrl = announcement.imageUrl
+        ? await this.objectStorage.resolveDownloadUrl(announcement.imageUrl)
+        : '';
+
       const results = await Promise.allSettled(
         active.map((profile) =>
           this.notificationSender.send({
@@ -329,6 +333,7 @@ export class AnnouncementService {
               announcementTitle: announcement.title,
               category: announcement.category,
               content: announcement.content,
+              imageUrl,
             },
           }),
         ),
