@@ -6,6 +6,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AlumniModule } from './modules/alumni/alumni.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { EngagementModule } from './modules/engagement/engagement.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 
 const dbEnabled = process.env.DB_ENABLED !== 'false';
@@ -22,6 +23,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
     AlumniModule,
     AdminModule,
     CatalogModule,
+    EngagementModule,
   ],
 })
 export class AppModule {}

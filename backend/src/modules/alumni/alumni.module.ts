@@ -39,6 +39,7 @@ import { TypeOrmVerificationTokenRepository } from './repositories/typeorm-verif
 import { ActivationService } from './services/activation.service';
 import { AlumniDirectoryService } from './services/alumni-directory.service';
 import { ContactRequestService } from './services/contact-request.service';
+import { PasswordResetService } from './services/password-reset.service';
 import { PhotoUploadService } from './services/photo-upload.service';
 import { ProfileService } from './services/profile.service';
 import { RegistrationService } from './services/registration.service';
@@ -72,6 +73,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
   providers: [
     RegistrationService,
     ActivationService,
+    PasswordResetService,
     ProfileService,
     PhotoUploadService,
     AlumniDirectoryService,
@@ -112,6 +114,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
   exports: [
     RegistrationService,
     ActivationService,
+    PasswordResetService,
     ProfileService,
     PhotoUploadService,
     AlumniDirectoryService,

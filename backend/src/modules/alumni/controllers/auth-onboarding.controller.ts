@@ -17,11 +17,14 @@ import { UserRole } from '../../../common/enums';
 import { AuthService } from '../../auth/auth.service';
 import {
   ActivateDto,
+  ForgotPasswordDto,
   LoginDto,
   RegisterDto,
   ResendActivationDto,
+  ResetPasswordDto,
 } from '../dto/f001.dto';
 import { ActivationService } from '../services/activation.service';
+import { PasswordResetService } from '../services/password-reset.service';
 import { PhotoUploadService } from '../services/photo-upload.service';
 import { RegistrationService } from '../services/registration.service';
 
@@ -32,6 +35,7 @@ export class AuthOnboardingController {
     private readonly photoUploadService: PhotoUploadService,
     private readonly registrationService: RegistrationService,
     private readonly activationService: ActivationService,
+    private readonly passwordResetService: PasswordResetService,
     private readonly authService: AuthService,
   ) {}
 
@@ -93,5 +97,22 @@ export class AuthOnboardingController {
       },
       'Login successful',
     );
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Request password reset email (always generic OK)' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    const data = await this.passwordResetService.forgotPassword(dto.email);
+    return ApiResponseDto.of(data);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Reset password with token from email' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    const data = await this.passwordResetService.resetPassword(
+      dto.token,
+      dto.password,
+    );
+    return ApiResponseDto.of(data, 'Password reset successful');
   }
 }

@@ -103,6 +103,25 @@ export class ResendActivationDto {
   email: string;
 }
 
+export class ForgotPasswordDto {
+  @ApiProperty()
+  @IsEmail()
+  @MaxLength(255)
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty()
+  @IsString()
+  token: string;
+
+  @ApiProperty({ minLength: 8 })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  password: string;
+}
+
 export class UpdateProfileDto {
   @ApiPropertyOptional()
   @IsOptional()

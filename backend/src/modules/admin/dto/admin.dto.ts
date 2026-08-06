@@ -25,8 +25,9 @@ export class AdminLoginDto {
 export class ReviewRegistrationDto {
   @ApiProperty({
     enum: [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED],
+    enumName: 'ReviewRegistrationStatus',
   })
-  @IsEnum([RegistrationStatus.APPROVED, RegistrationStatus.REJECTED])
+  @IsEnum([RegistrationStatus.APPROVED, RegistrationStatus.REJECTED] as const)
   status: RegistrationStatus.APPROVED | RegistrationStatus.REJECTED;
 
   @ApiPropertyOptional({

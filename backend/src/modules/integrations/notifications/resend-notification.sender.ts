@@ -3,8 +3,8 @@ import { Resend } from 'resend';
 import {
   INotificationSender,
   NotificationPayload,
-  NotificationTemplateId,
 } from '../../../common/interfaces/notification-sender.interface';
+import { renderNotificationEmail } from './email-templates';
 
 @Injectable()
 export class ResendNotificationSender implements INotificationSender {
@@ -24,7 +24,7 @@ export class ResendNotificationSender implements INotificationSender {
   }
 
   async send(payload: NotificationPayload): Promise<void> {
-    const { subject, html, text } = this.render(payload);
+    const { subject, html, text } = renderNotificationEmail(payload);
 
     const { data, error } = await this.client.emails.send({
       from: this.from,
@@ -45,75 +45,4 @@ export class ResendNotificationSender implements INotificationSender {
       `Resend sent template=${payload.templateId} to=${payload.to} id=${data?.id ?? 'n/a'}`,
     );
   }
-
-  private render(payload: NotificationPayload): {
-    subject: string;
-    html: string;
-    text: string;
-  } {
-    const name = payload.variables.fullName ?? 'Alumni';
-    const link = payload.variables.activationLink ?? '';
-    const reason = payload.variables.reason ?? '';
-    const requesterName = payload.variables.requesterName ?? 'An alumnus';
-    const targetName = payload.variables.targetName ?? 'an alumnus';
-    const rejectionReason = payload.variables.rejectionReason ?? '';
-
-    switch (payload.templateId as NotificationTemplateId) {
-      case 'approval_with_activation_link':
-      case 'activation_link':
-        return {
-          subject: 'Your Taleem AI alumni account is approved',
-          text: `Hi ${name},\n\nYour registration has been approved. Activate your account:\n${link}\n\nThis link expires in 48 hours.`,
-          html: `<p>Hi ${escapeHtml(name)},</p><p>Your registration has been approved. Activate your account:</p><p><a href="${escapeAttr(link)}">Activate account</a></p><p>This link expires in 48 hours.</p>`,
-        };
-      case 'resend_activation':
-        return {
-          subject: 'Your Taleem AI activation link',
-          text: `Hi ${name},\n\nHere is a new activation link:\n${link}\n\nThis link expires in 48 hours.`,
-          html: `<p>Hi ${escapeHtml(name)},</p><p>Here is a new activation link:</p><p><a href="${escapeAttr(link)}">Activate account</a></p><p>This link expires in 48 hours.</p>`,
-        };
-      case 'rejection_with_reason':
-        return {
-          subject: 'Taleem AI registration update',
-          text: `Hi ${name},\n\nYour registration was not approved.\n\nReason: ${reason}\n\nYou may submit a new registration if needed.`,
-          html: `<p>Hi ${escapeHtml(name)},</p><p>Your registration was not approved.</p><p><strong>Reason:</strong> ${escapeHtml(reason)}</p><p>You may submit a new registration if needed.</p>`,
-        };
-      case 'contact_request_forwarded':
-        return {
-          subject: 'New alumni contact request',
-          text: `Hi ${name},\n\n${requesterName} requested your contact details.\n\nReason: ${reason}\n\nPlease review this in the alumni portal.`,
-          html: `<p>Hi ${escapeHtml(name)},</p><p>${escapeHtml(requesterName)} requested your contact details.</p><p><strong>Reason:</strong> ${escapeHtml(reason)}</p><p>Please review this in the alumni portal.</p>`,
-        };
-      case 'contact_request_approved':
-        return {
-          subject: 'Contact request approved',
-          text: `Hi ${name},\n\n${targetName} approved your contact request. You can now view their contact details in the directory.`,
-          html: `<p>Hi ${escapeHtml(name)},</p><p>${escapeHtml(targetName)} approved your contact request. You can now view their contact details in the directory.</p>`,
-        };
-      case 'contact_request_rejected':
-        return {
-          subject: 'Contact request update',
-          text: `Hi ${name},\n\nYour contact request to ${targetName} was not approved.${rejectionReason ? `\n\nReason: ${rejectionReason}` : ''}`,
-          html: `<p>Hi ${escapeHtml(name)},</p><p>Your contact request to ${escapeHtml(targetName)} was not approved.</p>${rejectionReason ? `<p><strong>Reason:</strong> ${escapeHtml(rejectionReason)}</p>` : ''}`,
-        };
-      default:
-        return {
-          subject: 'Taleem AI notification',
-          text: `Hi ${name}`,
-          html: `<p>Hi ${escapeHtml(name)}</p>`,
-        };
-    }
-  }
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function escapeAttr(value: string): string {
-  return escapeHtml(value).replace(/'/g, '&#39;');
 }

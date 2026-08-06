@@ -11,10 +11,6 @@ import {
   VerificationToken,
 } from '../interfaces/supporting.repository.interface';
 
-/**
- * Maps activation tokens onto alumni_verification (1 row per alumni).
- * tokenType is not stored in schema — activation is the only persisted type.
- */
 @Injectable()
 export class TypeOrmVerificationTokenRepository
   implements IVerificationTokenRepository
@@ -37,11 +33,19 @@ export class TypeOrmVerificationTokenRepository
       throw new Error('alumniId is required to persist verification tokens');
     }
 
-    await this.tokens.delete({ alumniId: input.alumniId });
+    await this.tokens
+      .createQueryBuilder()
+      .delete()
+      .from(AlumniVerificationEntity)
+      .where('alumni_id = :alumniId', { alumniId: input.alumniId })
+      .andWhere('token_type = :tokenType', { tokenType: input.tokenType })
+      .andWhere('used_at IS NULL')
+      .execute();
 
     const saved = await this.tokens.save(
       this.tokens.create({
         alumniId: input.alumniId,
+        tokenType: input.tokenType,
         tokenHash: input.tokenHash,
         expiresAt: input.expiresAt,
         usedAt: null,
@@ -55,13 +59,10 @@ export class TypeOrmVerificationTokenRepository
     tokenHash: string,
     tokenType: VerificationTokenType,
   ): Promise<VerificationToken | null> {
-    if (tokenType !== VerificationTokenType.ACTIVATION) {
-      return null;
-    }
-
     const entity = await this.tokens.findOne({
       where: {
         tokenHash,
+        tokenType,
         usedAt: IsNull(),
         expiresAt: MoreThan(new Date()),
       },
@@ -72,7 +73,7 @@ export class TypeOrmVerificationTokenRepository
     return this.toDomain(
       entity,
       entity.alumni?.userId ?? '',
-      VerificationTokenType.ACTIVATION,
+      entity.tokenType,
     );
   }
 
@@ -82,12 +83,12 @@ export class TypeOrmVerificationTokenRepository
 
   async invalidateActiveForUser(
     userId: string,
-    _tokenType: VerificationTokenType,
+    tokenType: VerificationTokenType,
   ): Promise<void> {
     const profile = await this.alumni.findOne({ where: { userId } });
     if (!profile) return;
     await this.tokens.update(
-      { alumniId: profile.id, usedAt: IsNull() },
+      { alumniId: profile.id, tokenType, usedAt: IsNull() },
       { usedAt: new Date() },
     );
   }
