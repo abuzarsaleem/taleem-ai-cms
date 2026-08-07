@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiExcludeEndpoint,
   ApiOperation,
   ApiQuery,
   ApiTags,
@@ -118,6 +119,7 @@ export class AdminPortalController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Resend approval activation notification' })
   async resend(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.reviewService.resendNotification(id);

@@ -43,17 +43,6 @@ export class ProfileService {
       dateOfBirth: dto.date_of_birth ? new Date(dto.date_of_birth) : undefined,
     });
 
-    if (dto.current_company || dto.job_title || dto.start_date) {
-      await this.alumniRepository.upsertProfessional(profile.alumni.id, {
-        currentCompany: dto.current_company,
-        jobTitle: dto.job_title,
-        industry: dto.industry,
-        yearsOfExperience: dto.years_of_experience,
-        linkedinUrl: dto.linkedin_url,
-        startDate: dto.start_date ? new Date(dto.start_date) : new Date(),
-      });
-    }
-
     this.logger.log(`ALUMNI_PROFILE_UPDATED alumniId=${profile.alumni.id}`);
     const updated = await this.alumniRepository.findById(profile.alumni.id);
     return this.toResponse(updated!);
@@ -86,22 +75,44 @@ export class ProfileService {
       date_of_birth: a.dateOfBirth,
       photo_url: photoUrl,
       qr_code: qrCode,
-      academic: profile.academic.map((row) => ({
-        degree_program_id: row.degreeProgramId,
-        registration_roll_number: row.registrationRollNumber,
-        graduation_year: row.graduationYear,
-        cgpa: row.cgpa,
-        read_only: true,
-      })),
-      professional: profile.professional.map((row) => ({
-        current_company: row.currentCompany,
-        job_title: row.jobTitle,
-        industry: row.industry,
-        years_of_experience: row.yearsOfExperience,
-        linkedin_url: row.linkedinUrl,
-        start_date: row.startDate,
-        end_date: row.endDate,
-      })),
+      academic: this.mapAcademic(profile.academic),
+      professional: this.mapProfessional(profile.professional),
     };
+  }
+
+  private mapAcademic(
+    rows: NonNullable<
+      Awaited<ReturnType<IAlumniRepository['findById']>>
+    >['academic'],
+  ) {
+    const verificationId = [...rows].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    )[0]?.id;
+
+    return rows.map((row) => ({
+      id: row.id,
+      degree_program_id: row.degreeProgramId,
+      registration_roll_number: row.registrationRollNumber,
+      graduation_year: row.graduationYear,
+      cgpa: row.cgpa,
+      is_verification: row.id === verificationId,
+    }));
+  }
+
+  private mapProfessional(
+    rows: NonNullable<
+      Awaited<ReturnType<IAlumniRepository['findById']>>
+    >['professional'],
+  ) {
+    return rows.map((row) => ({
+      id: row.id,
+      current_company: row.currentCompany,
+      job_title: row.jobTitle,
+      industry: row.industry,
+      years_of_experience: row.yearsOfExperience,
+      linkedin_url: row.linkedinUrl,
+      start_date: row.startDate,
+      end_date: row.endDate,
+    }));
   }
 }

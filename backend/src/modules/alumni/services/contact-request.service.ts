@@ -12,10 +12,7 @@ import {
 import type { INotificationSender } from '../../../common/interfaces/notification-sender.interface';
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
 import type { IContactRequestRepository } from '../interfaces/contact-request.repository.interface';
-import {
-  AdminContactReviewAction,
-  AlumniContactRespondAction,
-} from '../dto/contact-request.dto';
+import { AdminContactReviewAction } from '../dto/contact-request.dto';
 
 @Injectable()
 export class ContactRequestService {
@@ -74,83 +71,6 @@ export class ContactRequestService {
     return rows.map((r) => this.toResponse(r));
   }
 
-  async listReceived(viewerUserId: string) {
-    const target = await this.requireAlumniByUser(viewerUserId);
-    const rows = await this.contactRequestRepository.findReceivedByTarget(
-      target.alumni.id,
-      ContactRequestStatus.PENDING_ALUMNI,
-    );
-    return rows.map((r) => this.toResponse(r));
-  }
-
-  async respondAsTarget(
-    viewerUserId: string,
-    requestId: string,
-    action: AlumniContactRespondAction,
-    rejectionReason?: string,
-  ) {
-    const target = await this.requireAlumniByUser(viewerUserId);
-    const request = await this.contactRequestRepository.findById(requestId);
-    if (!request) {
-      throw new ResourceNotFoundException('Contact request', requestId);
-    }
-    if (request.targetAlumniId !== target.alumni.id) {
-      throw new BusinessException(
-        'Not authorized for this contact request',
-        HttpStatus.FORBIDDEN,
-        'FORBIDDEN',
-      );
-    }
-    if (request.status !== ContactRequestStatus.PENDING_ALUMNI) {
-      throw new BusinessException(
-        `Request is not awaiting alumni response (status=${request.status})`,
-        HttpStatus.CONFLICT,
-      );
-    }
-
-    if (action === 'REJECT' && !rejectionReason?.trim()) {
-      throw new BusinessException('Rejection reason is required');
-    }
-
-    const updated = await this.contactRequestRepository.update(requestId, {
-      status:
-        action === 'APPROVE'
-          ? ContactRequestStatus.APPROVED
-          : ContactRequestStatus.REJECTED_BY_ALUMNI,
-      rejectionReason:
-        action === 'REJECT' ? (rejectionReason?.trim() ?? null) : null,
-    });
-
-    const requester = await this.alumniRepository.findById(
-      request.requesterAlumniId,
-    );
-    if (requester) {
-      try {
-        await this.notificationSender.send({
-          to: requester.alumni.email,
-          templateId:
-            action === 'APPROVE'
-              ? 'contact_request_approved'
-              : 'contact_request_rejected',
-          variables: {
-            fullName: requester.alumni.fullName,
-            targetName: target.alumni.fullName,
-            reason: request.requestReason,
-            rejectionReason: rejectionReason?.trim() ?? '',
-          },
-        });
-      } catch (error) {
-        this.logger.error(
-          `CONTACT_REQUEST_NOTIFY_FAILED id=${requestId}: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-    }
-
-    return this.toResponse(updated);
-  }
-
   async listForAdmin(status?: ContactRequestStatus) {
     const rows = await this.contactRequestRepository.findAll(status);
     return rows.map((r) => this.toResponse(r));
@@ -173,47 +93,51 @@ export class ContactRequestService {
       );
     }
 
-    if (action === 'REJECT' && !rejectionReason?.trim()) {
+    if (action === AdminContactReviewAction.REJECT && !rejectionReason?.trim()) {
       throw new BusinessException('Rejection reason is required');
     }
 
+    const approved = action === AdminContactReviewAction.APPROVE;
     const updated = await this.contactRequestRepository.update(requestId, {
-      status:
-        action === 'FORWARD'
-          ? ContactRequestStatus.PENDING_ALUMNI
-          : ContactRequestStatus.REJECTED_BY_ADMIN,
+      status: approved
+        ? ContactRequestStatus.APPROVED
+        : ContactRequestStatus.REJECTED_BY_ADMIN,
       adminId: adminUserId,
-      rejectionReason:
-        action === 'REJECT' ? (rejectionReason?.trim() ?? null) : null,
+      rejectionReason: approved
+        ? null
+        : (rejectionReason?.trim() ?? null),
     });
 
-    if (action === 'FORWARD') {
-      const target = await this.alumniRepository.findById(
-        request.targetAlumniId,
-      );
-      const requester = await this.alumniRepository.findById(
-        request.requesterAlumniId,
-      );
-      if (target) {
-        try {
-          await this.notificationSender.send({
-            to: target.alumni.email,
-            templateId: 'contact_request_forwarded',
-            variables: {
-              fullName: target.alumni.fullName,
-              requesterName: requester?.alumni.fullName ?? 'An alumnus',
-              reason: request.requestReason,
-            },
-          });
-        } catch (error) {
-          this.logger.error(
-            `CONTACT_REQUEST_FORWARD_NOTIFY_FAILED id=${requestId}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
-        }
+    const requester = await this.alumniRepository.findById(
+      request.requesterAlumniId,
+    );
+    const target = await this.alumniRepository.findById(request.targetAlumniId);
+    if (requester && target) {
+      try {
+        await this.notificationSender.send({
+          to: requester.alumni.email,
+          templateId: approved
+            ? 'contact_request_approved'
+            : 'contact_request_rejected',
+          variables: {
+            fullName: requester.alumni.fullName,
+            targetName: target.alumni.fullName,
+            reason: request.requestReason,
+            rejectionReason: rejectionReason?.trim() ?? '',
+          },
+        });
+      } catch (error) {
+        this.logger.error(
+          `CONTACT_REQUEST_NOTIFY_FAILED id=${requestId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       }
     }
+
+    this.logger.log(
+      `CONTACT_REQUEST_ADMIN_${approved ? 'APPROVED' : 'REJECTED'} id=${requestId}`,
+    );
 
     return this.toResponse(updated);
   }

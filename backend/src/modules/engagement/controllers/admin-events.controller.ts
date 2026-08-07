@@ -49,7 +49,7 @@ export class AdminEventsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create and publish an event (emails all alumni)' })
+  @ApiOperation({ summary: 'Create and publish an event' })
   async create(@CurrentUser() admin: AuthUser, @Body() dto: CreateEventDto) {
     const data = await this.eventService.create(admin.userId, dto);
     return ApiResponseDto.of(data, 'Event published');

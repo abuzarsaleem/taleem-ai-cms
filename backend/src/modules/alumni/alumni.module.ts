@@ -42,6 +42,7 @@ import { ContactRequestService } from './services/contact-request.service';
 import { PasswordResetService } from './services/password-reset.service';
 import { PhotoUploadService } from './services/photo-upload.service';
 import { ProfileService } from './services/profile.service';
+import { MeCareerService } from './services/me-career.service';
 import { RegistrationService } from './services/registration.service';
 
 const dbEnabled = process.env.DB_ENABLED !== 'false';
@@ -75,6 +76,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
     ActivationService,
     PasswordResetService,
     ProfileService,
+    MeCareerService,
     PhotoUploadService,
     AlumniDirectoryService,
     ContactRequestService,
@@ -116,6 +118,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
     ActivationService,
     PasswordResetService,
     ProfileService,
+    MeCareerService,
     PhotoUploadService,
     AlumniDirectoryService,
     ContactRequestService,

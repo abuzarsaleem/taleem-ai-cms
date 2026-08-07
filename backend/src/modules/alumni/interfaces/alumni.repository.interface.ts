@@ -56,8 +56,37 @@ export interface IAlumniRepository {
     alumniId: string,
     data: Omit<AlumniAcademicInformation, 'id' | 'alumniId' | 'createdAt' | 'updatedAt'>,
   ): Promise<AlumniAcademicInformation>;
-  upsertProfessional(
+  listAcademic(alumniId: string): Promise<AlumniAcademicInformation[]>;
+  findAcademicById(id: string): Promise<AlumniAcademicInformation | null>;
+  updateAcademic(
+    id: string,
+    patch: Partial<
+      Omit<AlumniAcademicInformation, 'id' | 'alumniId' | 'createdAt' | 'updatedAt'>
+    >,
+  ): Promise<AlumniAcademicInformation>;
+  deleteAcademic(id: string): Promise<void>;
+  listProfessional(alumniId: string): Promise<AlumniProfessionalInformation[]>;
+  findProfessionalById(
+    id: string,
+  ): Promise<AlumniProfessionalInformation | null>;
+  findCurrentProfessional(
     alumniId: string,
-    data: Partial<AlumniProfessionalInformation> & { startDate: Date },
+  ): Promise<AlumniProfessionalInformation | null>;
+  createProfessional(
+    alumniId: string,
+    data: Omit<
+      AlumniProfessionalInformation,
+      'id' | 'alumniId' | 'createdAt' | 'updatedAt'
+    >,
   ): Promise<AlumniProfessionalInformation>;
+  updateProfessional(
+    id: string,
+    patch: Partial<
+      Omit<
+        AlumniProfessionalInformation,
+        'id' | 'alumniId' | 'createdAt' | 'updatedAt'
+      >
+    >,
+  ): Promise<AlumniProfessionalInformation>;
+  deleteProfessional(id: string): Promise<void>;
 }

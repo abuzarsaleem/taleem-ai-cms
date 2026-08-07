@@ -25,7 +25,7 @@ export class CatalogController {
   }
 
   @Get('degree-programs')
-  @ApiOperation({ summary: 'List degree+program(+campus) offerings' })
+  @ApiOperation({ summary: 'List degree program offerings' })
   @ApiQuery({ name: 'campus_id', required: false })
   listDegreePrograms(@Query('campus_id') campusId?: string) {
     const items = campusId

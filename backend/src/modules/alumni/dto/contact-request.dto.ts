@@ -77,14 +77,6 @@ export class CreateContactRequestDto {
   request_reason: string;
 }
 
-export class RespondContactRequestDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  rejection_reason?: string;
-}
-
 export class AdminReviewContactRequestDto {
   @ApiPropertyOptional()
   @IsOptional()
@@ -94,11 +86,6 @@ export class AdminReviewContactRequestDto {
 }
 
 export enum AdminContactReviewAction {
-  FORWARD = 'FORWARD',
-  REJECT = 'REJECT',
-}
-
-export enum AlumniContactRespondAction {
   APPROVE = 'APPROVE',
   REJECT = 'REJECT',
 }

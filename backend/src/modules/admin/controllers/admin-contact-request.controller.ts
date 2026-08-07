@@ -45,7 +45,7 @@ export class AdminContactRequestController {
   }
 
   @Patch(':id/:action')
-  @ApiOperation({ summary: 'Admin forward or reject contact request' })
+  @ApiOperation({ summary: 'Admin approve or reject contact request' })
   @ApiParam({ name: 'action', enum: AdminContactReviewAction })
   async review(
     @CurrentUser() admin: AuthUser,

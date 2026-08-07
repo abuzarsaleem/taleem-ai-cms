@@ -188,29 +188,151 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
     return { ...row };
   }
 
-  async upsertProfessional(
+  async listAcademic(alumniId: string): Promise<AlumniAcademicInformation[]> {
+    return [...(this.academic.get(alumniId) ?? [])]
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .map((row) => ({ ...row }));
+  }
+
+  async findAcademicById(
+    id: string,
+  ): Promise<AlumniAcademicInformation | null> {
+    for (const list of this.academic.values()) {
+      const row = list.find((item) => item.id === id);
+      if (row) return { ...row };
+    }
+    return null;
+  }
+
+  async updateAcademic(
+    id: string,
+    patch: Partial<
+      Omit<AlumniAcademicInformation, 'id' | 'alumniId' | 'createdAt' | 'updatedAt'>
+    >,
+  ): Promise<AlumniAcademicInformation> {
+    for (const [alumniId, list] of this.academic.entries()) {
+      const index = list.findIndex((item) => item.id === id);
+      if (index < 0) continue;
+      const updated: AlumniAcademicInformation = {
+        ...list[index],
+        ...patch,
+        id: list[index].id,
+        alumniId: list[index].alumniId,
+        updatedAt: new Date(),
+      };
+      list[index] = updated;
+      this.academic.set(alumniId, list);
+      return { ...updated };
+    }
+    throw new Error(`Academic ${id} not found`);
+  }
+
+  async deleteAcademic(id: string): Promise<void> {
+    for (const [alumniId, list] of this.academic.entries()) {
+      const next = list.filter((item) => item.id !== id);
+      if (next.length !== list.length) {
+        this.academic.set(alumniId, next);
+        return;
+      }
+    }
+  }
+
+  async listProfessional(
     alumniId: string,
-    data: Partial<AlumniProfessionalInformation> & { startDate: Date },
+  ): Promise<AlumniProfessionalInformation[]> {
+    return [...(this.professional.get(alumniId) ?? [])]
+      .sort((a, b) => {
+        const startDiff = b.startDate.getTime() - a.startDate.getTime();
+        if (startDiff !== 0) return startDiff;
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      })
+      .map((row) => ({ ...row }));
+  }
+
+  async findProfessionalById(
+    id: string,
+  ): Promise<AlumniProfessionalInformation | null> {
+    for (const list of this.professional.values()) {
+      const row = list.find((item) => item.id === id);
+      if (row) return { ...row };
+    }
+    return null;
+  }
+
+  async findCurrentProfessional(
+    alumniId: string,
+  ): Promise<AlumniProfessionalInformation | null> {
+    const current = (this.professional.get(alumniId) ?? [])
+      .filter((row) => row.endDate === null)
+      .sort((a, b) => {
+        const startDiff = b.startDate.getTime() - a.startDate.getTime();
+        if (startDiff !== 0) return startDiff;
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      })[0];
+    return current ? { ...current } : null;
+  }
+
+  async createProfessional(
+    alumniId: string,
+    data: Omit<
+      AlumniProfessionalInformation,
+      'id' | 'alumniId' | 'createdAt' | 'updatedAt'
+    >,
   ): Promise<AlumniProfessionalInformation> {
-    const list = this.professional.get(alumniId) ?? [];
-    const existing = list[0];
     const now = new Date();
-    const updated: AlumniProfessionalInformation = {
-      id: existing?.id ?? generateId(),
+    const row: AlumniProfessionalInformation = {
+      id: generateId(),
       alumniId,
-      currentCompany: data.currentCompany ?? existing?.currentCompany ?? null,
-      jobTitle: data.jobTitle ?? existing?.jobTitle ?? null,
-      industry: data.industry ?? existing?.industry ?? null,
-      yearsOfExperience:
-        data.yearsOfExperience ?? existing?.yearsOfExperience ?? null,
-      linkedinUrl: data.linkedinUrl ?? existing?.linkedinUrl ?? null,
-      startDate: data.startDate ?? existing?.startDate ?? now,
-      endDate: data.endDate ?? existing?.endDate ?? null,
-      createdAt: existing?.createdAt ?? now,
+      currentCompany: data.currentCompany ?? null,
+      jobTitle: data.jobTitle ?? null,
+      industry: data.industry ?? null,
+      yearsOfExperience: data.yearsOfExperience ?? null,
+      linkedinUrl: data.linkedinUrl ?? null,
+      startDate: data.startDate,
+      endDate: data.endDate ?? null,
+      createdAt: now,
       updatedAt: now,
     };
-    this.professional.set(alumniId, [updated, ...list.slice(1)]);
-    return { ...updated };
+    const list = this.professional.get(alumniId) ?? [];
+    list.push(row);
+    this.professional.set(alumniId, list);
+    return { ...row };
+  }
+
+  async updateProfessional(
+    id: string,
+    patch: Partial<
+      Omit<
+        AlumniProfessionalInformation,
+        'id' | 'alumniId' | 'createdAt' | 'updatedAt'
+      >
+    >,
+  ): Promise<AlumniProfessionalInformation> {
+    for (const [alumniId, list] of this.professional.entries()) {
+      const index = list.findIndex((item) => item.id === id);
+      if (index < 0) continue;
+      const updated: AlumniProfessionalInformation = {
+        ...list[index],
+        ...patch,
+        id: list[index].id,
+        alumniId: list[index].alumniId,
+        updatedAt: new Date(),
+      };
+      list[index] = updated;
+      this.professional.set(alumniId, list);
+      return { ...updated };
+    }
+    throw new Error(`Professional ${id} not found`);
+  }
+
+  async deleteProfessional(id: string): Promise<void> {
+    for (const [alumniId, list] of this.professional.entries()) {
+      const next = list.filter((item) => item.id !== id);
+      if (next.length !== list.length) {
+        this.professional.set(alumniId, next);
+        return;
+      }
+    }
   }
 
   private toProfile(id: string): AlumniProfile | null {

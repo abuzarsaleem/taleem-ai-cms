@@ -43,7 +43,7 @@ export class AdminAnnouncementsController {
   constructor(private readonly announcementService: AnnouncementService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Admin announcements feed (paginated; may include drafts)' })
+  @ApiOperation({ summary: 'Admin announcements feed' })
   async list(
     @CurrentUser() user: AuthUser,
     @Query() query: AnnouncementListQueryDto,
@@ -54,7 +54,7 @@ export class AdminAnnouncementsController {
 
   @Post('upload-image')
   @ApiOperation({
-    summary: 'Upload announcement image (returns durable image_url for create/update)',
+    summary: 'Upload announcement image',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -81,7 +81,7 @@ export class AdminAnnouncementsController {
   @Post()
   @ApiOperation({
     summary:
-      'Create announcement or alumni spotlight (emails alumni when published)',
+      'Create announcement or alumni spotlight',
   })
   async create(
     @CurrentUser() admin: AuthUser,
@@ -103,7 +103,7 @@ export class AdminAnnouncementsController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Update announcement; emails alumni when newly published',
+    summary: 'Update announcement',
   })
   async update(
     @Param('id', ParseUUIDPipe) id: string,

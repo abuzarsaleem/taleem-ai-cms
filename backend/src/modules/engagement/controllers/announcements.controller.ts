@@ -26,7 +26,7 @@ export class AnnouncementsController {
 
   @Get()
   @Roles(UserRole.ALUMNI, UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Published announcements feed (paginated)' })
+  @ApiOperation({ summary: 'Published announcements feed' })
   async list(
     @CurrentUser() user: AuthUser,
     @Query() query: AnnouncementListQueryDto,

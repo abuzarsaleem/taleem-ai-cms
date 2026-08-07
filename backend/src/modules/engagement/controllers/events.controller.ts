@@ -32,7 +32,7 @@ export class EventsController {
   @Get()
   @Roles(UserRole.ALUMNI, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({
-    summary: 'List events (paginated; scope=upcoming|past|all; includes RSVP counts)',
+    summary: 'List events',
   })
   async list(@CurrentUser() user: AuthUser, @Query() query: EventListQueryDto) {
     const data = await this.eventService.list(user, query);
@@ -53,7 +53,7 @@ export class EventsController {
 
   @Get(':id')
   @Roles(UserRole.ALUMNI, UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Get event by id (RSVP counts + my status)' })
+  @ApiOperation({ summary: 'Get event by id' })
   async getOne(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

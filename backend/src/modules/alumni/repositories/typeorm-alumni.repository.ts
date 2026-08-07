@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { AlumniStatus } from '../../../common/enums';
 import {
   AlumniAcademicInformationEntity,
@@ -230,38 +230,133 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
     return this.toAcademicDomain(saved);
   }
 
-  async upsertProfessional(
-    alumniId: string,
-    data: Partial<AlumniProfessionalInformation> & { startDate: Date },
-  ): Promise<AlumniProfessionalInformation> {
-    const existing = await this.professionalRepo.findOne({
+  async listAcademic(alumniId: string): Promise<AlumniAcademicInformation[]> {
+    const rows = await this.academicRepo.find({
       where: { alumniId },
       order: { createdAt: 'ASC' },
     });
+    return rows.map((row) => this.toAcademicDomain(row));
+  }
 
-    const payload = {
+  async findAcademicById(
+    id: string,
+  ): Promise<AlumniAcademicInformation | null> {
+    const row = await this.academicRepo.findOne({ where: { id } });
+    return row ? this.toAcademicDomain(row) : null;
+  }
+
+  async updateAcademic(
+    id: string,
+    patch: Partial<
+      Omit<AlumniAcademicInformation, 'id' | 'alumniId' | 'createdAt' | 'updatedAt'>
+    >,
+  ): Promise<AlumniAcademicInformation> {
+    const existing = await this.academicRepo.findOne({ where: { id } });
+    if (!existing) throw new Error(`Academic ${id} not found`);
+
+    if (patch.degreeProgramId !== undefined)
+      existing.degreeProgramId = patch.degreeProgramId;
+    if (patch.registrationRollNumber !== undefined)
+      existing.registrationRollNumber = patch.registrationRollNumber;
+    if (patch.graduationYear !== undefined)
+      existing.graduationYear = patch.graduationYear;
+    if (patch.cgpa !== undefined) {
+      existing.cgpa =
+        patch.cgpa !== null && patch.cgpa !== undefined
+          ? String(patch.cgpa)
+          : null;
+    }
+
+    const saved = await this.academicRepo.save(existing);
+    return this.toAcademicDomain(saved);
+  }
+
+  async deleteAcademic(id: string): Promise<void> {
+    await this.academicRepo.delete({ id });
+  }
+
+  async listProfessional(
+    alumniId: string,
+  ): Promise<AlumniProfessionalInformation[]> {
+    const rows = await this.professionalRepo.find({
+      where: { alumniId },
+      order: { startDate: 'DESC', createdAt: 'DESC' },
+    });
+    return rows.map((row) => this.toProfessionalDomain(row));
+  }
+
+  async findProfessionalById(
+    id: string,
+  ): Promise<AlumniProfessionalInformation | null> {
+    const row = await this.professionalRepo.findOne({ where: { id } });
+    return row ? this.toProfessionalDomain(row) : null;
+  }
+
+  async findCurrentProfessional(
+    alumniId: string,
+  ): Promise<AlumniProfessionalInformation | null> {
+    const row = await this.professionalRepo.findOne({
+      where: { alumniId, endDate: IsNull() },
+      order: { startDate: 'DESC', createdAt: 'DESC' },
+    });
+    return row ? this.toProfessionalDomain(row) : null;
+  }
+
+  async createProfessional(
+    alumniId: string,
+    data: Omit<
+      AlumniProfessionalInformation,
+      'id' | 'alumniId' | 'createdAt' | 'updatedAt'
+    >,
+  ): Promise<AlumniProfessionalInformation> {
+    const row = this.professionalRepo.create({
       alumniId,
-      currentCompany:
-        data.currentCompany ?? existing?.currentCompany ?? null,
-      jobTitle: data.jobTitle ?? existing?.jobTitle ?? null,
-      industry: data.industry ?? existing?.industry ?? null,
-      yearsOfExperience:
-        data.yearsOfExperience ?? existing?.yearsOfExperience ?? null,
-      linkedinUrl: data.linkedinUrl ?? existing?.linkedinUrl ?? null,
+      currentCompany: data.currentCompany ?? null,
+      jobTitle: data.jobTitle ?? null,
+      industry: data.industry ?? null,
+      yearsOfExperience: data.yearsOfExperience ?? null,
+      linkedinUrl: data.linkedinUrl ?? null,
       startDate: this.toDateString(data.startDate),
-      endDate:
-        data.endDate !== undefined
-          ? data.endDate
-            ? this.toDateString(data.endDate)
-            : null
-          : (existing?.endDate ?? null),
-    };
-
-    const saved = existing
-      ? await this.professionalRepo.save({ ...existing, ...payload })
-      : await this.professionalRepo.save(this.professionalRepo.create(payload));
-
+      endDate: data.endDate ? this.toDateString(data.endDate) : null,
+    });
+    const saved = await this.professionalRepo.save(row);
     return this.toProfessionalDomain(saved);
+  }
+
+  async updateProfessional(
+    id: string,
+    patch: Partial<
+      Omit<
+        AlumniProfessionalInformation,
+        'id' | 'alumniId' | 'createdAt' | 'updatedAt'
+      >
+    >,
+  ): Promise<AlumniProfessionalInformation> {
+    const existing = await this.professionalRepo.findOne({ where: { id } });
+    if (!existing) throw new Error(`Professional ${id} not found`);
+
+    if (patch.currentCompany !== undefined)
+      existing.currentCompany = patch.currentCompany;
+    if (patch.jobTitle !== undefined) existing.jobTitle = patch.jobTitle;
+    if (patch.industry !== undefined) existing.industry = patch.industry;
+    if (patch.yearsOfExperience !== undefined)
+      existing.yearsOfExperience = patch.yearsOfExperience;
+    if (patch.linkedinUrl !== undefined)
+      existing.linkedinUrl = patch.linkedinUrl;
+    if (patch.startDate !== undefined)
+      existing.startDate = this.toDateString(patch.startDate);
+    if (patch.endDate !== undefined) {
+      existing.endDate = patch.endDate
+        ? this.toDateString(patch.endDate)
+        : null;
+    }
+
+    const saved = await this.professionalRepo.save(existing);
+    return this.toProfessionalDomain(saved);
+  }
+
+  async deleteProfessional(id: string): Promise<void> {
+    await this.professionalRepo.delete({ id });
   }
 
   private toProfile(entity: AlumniEntity | null): AlumniProfile | null {

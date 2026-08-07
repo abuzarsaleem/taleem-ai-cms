@@ -100,7 +100,7 @@ export class AuthOnboardingController {
   }
 
   @Post('forgot-password')
-  @ApiOperation({ summary: 'Request password reset email (always generic OK)' })
+  @ApiOperation({ summary: 'Request password reset email' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const data = await this.passwordResetService.forgotPassword(dto.email);
     return ApiResponseDto.of(data);

@@ -169,37 +169,4 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   date_of_birth?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(150)
-  current_company?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(150)
-  job_title?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  industry?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  years_of_experience?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  linkedin_url?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  start_date?: string;
 }

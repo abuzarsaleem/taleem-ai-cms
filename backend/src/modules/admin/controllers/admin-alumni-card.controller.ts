@@ -6,7 +6,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
@@ -24,6 +24,7 @@ export class AdminAlumniCardController {
   constructor(private readonly alumniCardService: AlumniCardService) {}
 
   @Post(':id/card')
+  @ApiExcludeEndpoint()
   @ApiOperation({
     summary: 'Generate digital alumni card',
   })
