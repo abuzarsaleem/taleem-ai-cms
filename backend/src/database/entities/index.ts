@@ -49,3 +49,5 @@ export {
   EventRsvpEntity,
   AnnouncementEntity,
 };
+
+export type { EventTargetCriteria } from './event.entity';

@@ -13,6 +13,13 @@ import { EVENT_TYPE_ENUM, EventType } from '../../common/enums';
 import { AccountEntity } from './account.entity';
 import { EventRsvpEntity } from './event-rsvp.entity';
 
+export type EventTargetCriteria = {
+  campus_ids?: string[];
+  degree_program_ids?: string[];
+  graduation_years?: number[];
+  cities?: string[];
+};
+
 @Entity({ name: 'events' })
 export class EventEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -48,6 +55,9 @@ export class EventEntity {
 
   @Column({ name: 'guest_speaker', type: 'varchar', length: 200, nullable: true })
   guestSpeaker: string | null;
+
+  @Column({ name: 'target_criteria', type: 'jsonb', nullable: true, default: null })
+  targetCriteria: EventTargetCriteria | null;
 
   @Column({ name: 'created_by', type: 'uuid' })
   createdBy: string;

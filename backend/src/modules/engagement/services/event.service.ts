@@ -1,26 +1,41 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   ALUMNI_REPOSITORY,
   NOTIFICATION_SENDER,
 } from '../../../common/constants/tokens';
 import { AlumniStatus, RsvpStatus, UserRole } from '../../../common/enums';
-import { ResourceNotFoundException } from '../../../common/exceptions';
+import {
+  BusinessException,
+  ResourceNotFoundException,
+} from '../../../common/exceptions';
 import type { INotificationSender } from '../../../common/interfaces/notification-sender.interface';
 import {
   AlumniAcademicInformationEntity,
+  CampusEntity,
+  DegreeProgramEntity,
   EventEntity,
   EventRsvpEntity,
+  type EventTargetCriteria,
 } from '../../../database/entities';
+import type { AlumniProfile } from '../../alumni/entities/alumni.entity';
 import type { IAlumniRepository } from '../../alumni/interfaces/alumni.repository.interface';
 import {
   CreateEventDto,
   EventListQueryDto,
   EventListScope,
+  EventTargetCriteriaDto,
   RsvpEventDto,
   UpdateEventDto,
 } from '../dto/event.dto';
+
+type AlumniAudienceAttrs = {
+  campusId: string | null;
+  degreeProgramId: string | null;
+  graduationYear: number | null;
+  city: string | null;
+};
 
 @Injectable()
 export class EventService {
@@ -33,6 +48,10 @@ export class EventService {
     private readonly rsvpRepo: Repository<EventRsvpEntity>,
     @InjectRepository(AlumniAcademicInformationEntity)
     private readonly academicRepo: Repository<AlumniAcademicInformationEntity>,
+    @InjectRepository(DegreeProgramEntity)
+    private readonly degreeProgramRepo: Repository<DegreeProgramEntity>,
+    @InjectRepository(CampusEntity)
+    private readonly campusRepo: Repository<CampusEntity>,
     @Inject(ALUMNI_REPOSITORY)
     private readonly alumniRepository: IAlumniRepository,
     @Inject(NOTIFICATION_SENDER)
@@ -51,6 +70,7 @@ export class EventService {
       (isAlumni ? EventListScope.UPCOMING : EventListScope.ALL);
 
     let alumniId: string | null = null;
+    let audience: AlumniAudienceAttrs | null = null;
     if (isAlumni) {
       const viewer = await this.alumniRepository.findByUserId(user.userId);
       if (!viewer) {
@@ -60,6 +80,7 @@ export class EventService {
         );
       }
       alumniId = viewer.alumni.id;
+      audience = await this.resolveAudienceAttrs(viewer);
     } else {
       const profile = await this.alumniRepository.findByUserId(user.userId);
       alumniId = profile?.alumni.id ?? null;
@@ -71,6 +92,10 @@ export class EventService {
       qb.where('event.eventDate >= :today', { today });
     } else if (scope === EventListScope.PAST) {
       qb.where('event.eventDate < :today', { today });
+    }
+
+    if (isAlumni && audience) {
+      this.applyAudienceFilter(qb, audience);
     }
 
     if (scope === EventListScope.PAST) {
@@ -100,11 +125,27 @@ export class EventService {
     const profile = await this.alumniRepository.findByUserId(user.userId);
     alumniId = profile?.alumni.id ?? null;
 
+    if (user.role === UserRole.ALUMNI) {
+      if (!profile) {
+        throw new ResourceNotFoundException(
+          'Alumni profile for user',
+          user.userId,
+        );
+      }
+      const audience = await this.resolveAudienceAttrs(profile);
+      if (!this.matchesTargetCriteria(event.targetCriteria, audience)) {
+        throw new ResourceNotFoundException('Event', eventId);
+      }
+    }
+
     const [item] = await this.enrichEvents([event], alumniId);
     return item;
   }
 
   async create(adminUserId: string, dto: CreateEventDto) {
+    const targetCriteria = await this.normalizeAndValidateTargetCriteria(
+      dto.target_criteria,
+    );
     const event = this.eventRepo.create({
       title: dto.title.trim(),
       description: dto.description?.trim() ?? null,
@@ -114,6 +155,7 @@ export class EventService {
       endTime: dto.end_time ? normalizeTime(dto.end_time) : null,
       venue: dto.venue.trim(),
       guestSpeaker: dto.guest_speaker?.trim() ?? null,
+      targetCriteria,
       createdBy: adminUserId,
     });
     const saved = await this.eventRepo.save(event);
@@ -145,6 +187,11 @@ export class EventService {
     if (dto.guest_speaker !== undefined) {
       event.guestSpeaker = dto.guest_speaker?.trim() ?? null;
     }
+    if (dto.target_criteria !== undefined) {
+      event.targetCriteria = await this.normalizeAndValidateTargetCriteria(
+        dto.target_criteria,
+      );
+    }
 
     return this.toEventResponse(await this.eventRepo.save(event));
   }
@@ -166,6 +213,11 @@ export class EventService {
 
     const event = await this.eventRepo.findOne({ where: { id: eventId } });
     if (!event) {
+      throw new ResourceNotFoundException('Event', eventId);
+    }
+
+    const audience = await this.resolveAudienceAttrs(viewer);
+    if (!this.matchesTargetCriteria(event.targetCriteria, audience)) {
       throw new ResourceNotFoundException('Event', eventId);
     }
 
@@ -254,6 +306,193 @@ export class EventService {
     return `${lines.join('\n')}\n`;
   }
 
+  private applyAudienceFilter(
+    qb: ReturnType<Repository<EventEntity>['createQueryBuilder']>,
+    audience: AlumniAudienceAttrs,
+  ) {
+    qb.andWhere(
+      `(
+        event.target_criteria IS NULL
+        OR event.target_criteria = '{}'::jsonb
+        OR (
+          (
+            NOT (event.target_criteria ? 'campus_ids')
+            OR jsonb_typeof(event.target_criteria->'campus_ids') <> 'array'
+            OR jsonb_array_length(event.target_criteria->'campus_ids') = 0
+            OR (
+              CAST(:campusId AS text) IS NOT NULL
+              AND event.target_criteria->'campus_ids' ? CAST(:campusId AS text)
+            )
+          )
+          AND (
+            NOT (event.target_criteria ? 'degree_program_ids')
+            OR jsonb_typeof(event.target_criteria->'degree_program_ids') <> 'array'
+            OR jsonb_array_length(event.target_criteria->'degree_program_ids') = 0
+            OR (
+              CAST(:degreeProgramId AS text) IS NOT NULL
+              AND event.target_criteria->'degree_program_ids' ? CAST(:degreeProgramId AS text)
+            )
+          )
+          AND (
+            NOT (event.target_criteria ? 'graduation_years')
+            OR jsonb_typeof(event.target_criteria->'graduation_years') <> 'array'
+            OR jsonb_array_length(event.target_criteria->'graduation_years') = 0
+            OR (
+              CAST(:graduationYear AS integer) IS NOT NULL
+              AND event.target_criteria->'graduation_years' @> to_jsonb(CAST(:graduationYear AS integer))
+            )
+          )
+          AND (
+            NOT (event.target_criteria ? 'cities')
+            OR jsonb_typeof(event.target_criteria->'cities') <> 'array'
+            OR jsonb_array_length(event.target_criteria->'cities') = 0
+            OR (
+              CAST(:city AS text) IS NOT NULL
+              AND EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements_text(event.target_criteria->'cities') AS city_el(value)
+                WHERE lower(city_el.value) = lower(CAST(:city AS text))
+              )
+            )
+          )
+        )
+      )`,
+      {
+        campusId: audience.campusId,
+        degreeProgramId: audience.degreeProgramId,
+        graduationYear: audience.graduationYear,
+        city: audience.city,
+      },
+    );
+  }
+
+  private async resolveAudienceAttrs(
+    profile: AlumniProfile,
+  ): Promise<AlumniAudienceAttrs> {
+    const primary = [...profile.academic].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    )[0];
+
+    let campusId: string | null = null;
+    if (primary?.degreeProgramId) {
+      const dp = await this.degreeProgramRepo.findOne({
+        where: { id: primary.degreeProgramId },
+      });
+      campusId = dp?.campusId ?? null;
+    }
+
+    const graduationYear = primary?.graduationYear
+      ? Number.parseInt(primary.graduationYear, 10)
+      : null;
+
+    return {
+      campusId,
+      degreeProgramId: primary?.degreeProgramId ?? null,
+      graduationYear:
+        graduationYear !== null && Number.isFinite(graduationYear)
+          ? graduationYear
+          : null,
+      city: profile.alumni.city?.trim() || null,
+    };
+  }
+
+  private matchesTargetCriteria(
+    criteria: EventTargetCriteria | null | undefined,
+    audience: AlumniAudienceAttrs,
+  ): boolean {
+    if (!criteria || Object.keys(criteria).length === 0) {
+      return true;
+    }
+
+    if (hasValues(criteria.campus_ids)) {
+      if (
+        !audience.campusId ||
+        !criteria.campus_ids!.includes(audience.campusId)
+      ) {
+        return false;
+      }
+    }
+
+    if (hasValues(criteria.degree_program_ids)) {
+      if (
+        !audience.degreeProgramId ||
+        !criteria.degree_program_ids!.includes(audience.degreeProgramId)
+      ) {
+        return false;
+      }
+    }
+
+    if (hasValues(criteria.graduation_years)) {
+      if (
+        audience.graduationYear === null ||
+        !criteria.graduation_years!.includes(audience.graduationYear)
+      ) {
+        return false;
+      }
+    }
+
+    if (hasValues(criteria.cities)) {
+      if (!audience.city) {
+        return false;
+      }
+      const cityLower = audience.city.toLowerCase();
+      if (
+        !criteria.cities!.some((city) => city.trim().toLowerCase() === cityLower)
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private async normalizeAndValidateTargetCriteria(
+    input: EventTargetCriteriaDto | null | undefined,
+  ): Promise<EventTargetCriteria | null> {
+    if (input === undefined || input === null) {
+      return null;
+    }
+
+    const campusIds = uniqueStrings(input.campus_ids);
+    const degreeProgramIds = uniqueStrings(input.degree_program_ids);
+    const graduationYears = uniqueNumbers(input.graduation_years);
+    const cities = uniqueStrings(input.cities, { preserveCase: true });
+
+    if (campusIds.length > 0) {
+      const found = await this.campusRepo.count({
+        where: { id: In(campusIds) },
+      });
+      if (found !== campusIds.length) {
+        throw new BusinessException(
+          'One or more campus_ids do not exist',
+        );
+      }
+    }
+
+    if (degreeProgramIds.length > 0) {
+      const found = await this.degreeProgramRepo.count({
+        where: { id: In(degreeProgramIds) },
+      });
+      if (found !== degreeProgramIds.length) {
+        throw new BusinessException(
+          'One or more degree_program_ids do not exist',
+        );
+      }
+    }
+
+    const normalized: EventTargetCriteria = {};
+    if (campusIds.length > 0) normalized.campus_ids = campusIds;
+    if (degreeProgramIds.length > 0) {
+      normalized.degree_program_ids = degreeProgramIds;
+    }
+    if (graduationYears.length > 0) {
+      normalized.graduation_years = graduationYears;
+    }
+    if (cities.length > 0) normalized.cities = cities;
+
+    return Object.keys(normalized).length === 0 ? null : normalized;
+  }
+
   private async enrichEvents(events: EventEntity[], alumniId: string | null) {
     if (events.length === 0) return [];
 
@@ -307,8 +546,16 @@ export class EventService {
         (p) => p.alumni.status === AlumniStatus.ACTIVE && p.alumni.email,
       );
 
+      const eligible: AlumniProfile[] = [];
+      for (const profile of active) {
+        const audience = await this.resolveAudienceAttrs(profile);
+        if (this.matchesTargetCriteria(event.targetCriteria, audience)) {
+          eligible.push(profile);
+        }
+      }
+
       const results = await Promise.allSettled(
-        active.map((profile) =>
+        eligible.map((profile) =>
           this.notificationSender.send({
             to: profile.alumni.email,
             templateId: 'event_published',
@@ -353,11 +600,39 @@ export class EventService {
       end_time: event.endTime ? String(event.endTime).slice(0, 8) : null,
       venue: event.venue,
       guest_speaker: event.guestSpeaker,
+      target_criteria: event.targetCriteria ?? null,
       created_by: event.createdBy,
       created_at: event.createdAt,
       updated_at: event.updatedAt,
     };
   }
+}
+
+function hasValues<T>(value: T[] | undefined | null): value is T[] {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function uniqueStrings(
+  values: string[] | undefined,
+  opts?: { preserveCase?: boolean },
+): string[] {
+  if (!values?.length) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of values) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const key = opts?.preserveCase ? trimmed.toLowerCase() : trimmed;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(trimmed);
+  }
+  return result;
+}
+
+function uniqueNumbers(values: number[] | undefined): number[] {
+  if (!values?.length) return [];
+  return [...new Set(values.filter((n) => Number.isFinite(n)))];
 }
 
 function normalizeTime(value: string): string {

@@ -1,18 +1,55 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import {
+  IsArray,
   IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   Max,
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EventType, RsvpStatus } from '../../../common/enums';
+
+export class EventTargetCriteriaDto {
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['22222222-2222-4222-8222-222222222201'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  campus_ids?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['55555555-5555-4555-8555-555555555501'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  degree_program_ids?: string[];
+
+  @ApiPropertyOptional({ type: [Number], example: [2018, 2019, 2020] })
+  @IsOptional()
+  @IsArray()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  graduation_years?: number[];
+
+  @ApiPropertyOptional({ type: [String], example: ['Islamabad', 'Lahore'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(100, { each: true })
+  cities?: string[];
+}
 
 export class CreateEventDto {
   @ApiProperty({ example: 'Annual Alumni Reunion 2026' })
@@ -60,6 +97,12 @@ export class CreateEventDto {
   @IsString()
   @MaxLength(200)
   guest_speaker?: string;
+
+  @ApiPropertyOptional({ type: EventTargetCriteriaDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => EventTargetCriteriaDto)
+  target_criteria?: EventTargetCriteriaDto | null;
 }
 
 export class UpdateEventDto extends PartialType(CreateEventDto) {}

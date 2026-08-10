@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   AlumniAcademicInformationEntity,
   AnnouncementEntity,
+  CampusEntity,
   DegreeProgramEntity,
   EventEntity,
   EventRsvpEntity,
@@ -32,6 +33,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
             AnnouncementEntity,
             AlumniAcademicInformationEntity,
             DegreeProgramEntity,
+            CampusEntity,
           ]),
         ]
       : []),
