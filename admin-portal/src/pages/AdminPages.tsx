@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { ApiError, apiRequest } from '../lib/api'
 
@@ -24,78 +24,6 @@ type RegistrationItem = {
     registration_ref: string
     status: string
   } | null
-}
-
-export function LoginPage() {
-  const { setSession, token } = useAuth()
-  const navigate = useNavigate()
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  if (token) return <Navigate to="/" replace />
-
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError('')
-    setLoading(true)
-    const form = new FormData(event.currentTarget)
-    try {
-      const data = await apiRequest<{
-        access_token: string
-        user_id: string
-        role: string
-      }>('/admin/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: form.get('email'),
-          password: form.get('password'),
-        }),
-      })
-      setSession({
-        token: data.access_token,
-        userId: data.user_id,
-        role: data.role,
-      })
-      navigate('/')
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Login failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="auth-screen">
-      <div className="auth-panel">
-        <h1>Admin Portal</h1>
-        <p className="muted">Sign in to review alumni registrations.</p>
-        <form className="form" onSubmit={onSubmit} style={{ marginTop: '1rem' }}>
-          <label>
-            Email
-            <input
-              name="email"
-              type="email"
-              defaultValue="admin@taleem.local"
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              name="password"
-              type="password"
-              defaultValue="Admin@123"
-              required
-            />
-          </label>
-          {error ? <p className="error">{error}</p> : null}
-          <button className="btn" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-      </div>
-    </div>
-  )
 }
 
 export function DashboardPage() {

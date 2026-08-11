@@ -2,10 +2,11 @@ import { NavLink, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import {
   DashboardPage,
-  LoginPage,
   RegistrationDetailPage,
   RegistrationsPage,
 } from './pages/AdminPages'
+import LoginPage from './pages/LoginPage'
+import { ThemeProvider } from './theme/ThemeProvider'
 
 function RequireAuth() {
   const { token, clearSession, role } = useAuth()
@@ -34,18 +35,20 @@ function RequireAuth() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route element={<RequireAuth />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="registrations" element={<RegistrationsPage />} />
-          <Route
-            path="registrations/:id"
-            element={<RegistrationDetailPage />}
-          />
-        </Route>
-      </Routes>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route element={<RequireAuth />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="registrations" element={<RegistrationsPage />} />
+            <Route
+              path="registrations/:id"
+              element={<RegistrationDetailPage />}
+            />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }

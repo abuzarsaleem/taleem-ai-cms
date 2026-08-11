@@ -13,6 +13,22 @@
     <title>Taleem Admin Portal</title>
   </head>
   <body>
+    <script>
+      (() => {
+        try {
+          const key = "taleem-admin-theme"
+          const stored = localStorage.getItem(key)
+          const theme =
+            stored === "light" || stored === "dark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+          document.documentElement.classList.toggle("dark", theme === "dark")
+          document.documentElement.style.colorScheme = theme
+        } catch {}
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
