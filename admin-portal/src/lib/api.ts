@@ -1,38 +1,39 @@
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
+import { apiClient, ApiError } from "@/lib/api-client"
+import type { ApiResponse } from "@/types/api"
 
-export class ApiError extends Error {
-  status: number
-  code?: string
-
-  constructor(status: number, message: string, code?: string) {
-    super(message)
-    this.status = status
-    this.code = code
-  }
-}
+export { ApiError }
 
 export async function apiRequest<T>(
   path: string,
-  options: RequestInit & { token?: string | null } = {},
+  options: {
+    method?: string
+    body?: BodyInit | null
+    token?: string | null
+    headers?: Record<string, string>
+  } = {},
 ): Promise<T> {
-  const { token, headers, ...rest } = options
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...rest,
+  const { token, headers, body, method = "GET" } = options
+
+  let data: unknown = undefined
+  if (body instanceof FormData) {
+    data = body
+  } else if (typeof body === "string" && body.length > 0) {
+    data = JSON.parse(body)
+  }
+
+  const response = await apiClient.request({
+    url: path,
+    method: method.toUpperCase(),
+    data,
     headers: {
-      ...(rest.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
   })
 
-  const payload = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    const message = Array.isArray(payload?.message)
-      ? payload.message.join(', ')
-      : payload?.message ?? 'Request failed'
-    throw new ApiError(response.status, message, payload?.code)
+  const payload = response.data as ApiResponse<T> | T
+  if (payload && typeof payload === "object" && "data" in payload) {
+    return payload.data as T
   }
-
-  return (payload?.data ?? payload) as T
+  return payload as T
 }

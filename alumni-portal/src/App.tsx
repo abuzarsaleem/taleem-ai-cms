@@ -1,6 +1,7 @@
 import { NavLink, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { ThemeToggle } from './components/theme-toggle'
+import { Toaster } from './components/ui/sonner'
 import {
   ActivatePage,
   HomePage,
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="profile" element={<ProfilePage />} />
           </Route>
         </Routes>
+        <Toaster position="top-center" richColors closeButton />
       </AuthProvider>
     </ThemeProvider>
   )

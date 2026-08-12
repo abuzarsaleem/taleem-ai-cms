@@ -1,16 +1,30 @@
 import { useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
+import type { Value as E164Number } from "react-phone-number-input"
+import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
+import { ApiError } from "@/lib/api"
+import {
+  formatCnicInput,
+  MAX_GRADUATION_YEAR,
+  MIN_GRADUATION_YEAR,
+  validatePhotoFile,
+  validateRegistration,
+  type RegistrationErrors,
+} from "@/lib/registration-validation"
+import { authService } from "@/services/auth.service"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PhoneInput } from "@/components/ui/phone-input"
 import {
   Select,
   SelectContent,
@@ -18,60 +32,176 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { YearPicker } from "@/components/ui/year-picker"
 
 const DEGREE_PROGRAMS = [
-  { id: "prog-bs-cs-isb", label: "BS Computer Science — Islamabad" },
-  { id: "prog-bs-se-isb", label: "BS Software Engineering — Islamabad" },
-  { id: "prog-bs-ai-lhr", label: "BS Artificial Intelligence — Lahore" },
-  { id: "prog-bs-ds-khi", label: "BS Data Science — Karachi" },
-  { id: "prog-ms-cs-isb", label: "MS Computer Science — Islamabad" },
-  { id: "prog-mba-isb", label: "MBA — Islamabad" },
-  { id: "prog-bba-lhr", label: "BBA Business Administration — Lahore" },
-  { id: "prog-bs-ee-khi", label: "BS Electrical Engineering — Karachi" },
+  {
+    id: "55555555-5555-4555-8555-555555555501",
+    label: "BS Computer Science — Chak Shahzad",
+  },
+  {
+    id: "55555555-5555-4555-8555-555555555502",
+    label: "BS Software Engineering — Chak Shahzad",
+  },
+  {
+    id: "55555555-5555-4555-8555-555555555503",
+    label: "BS Artificial Intelligence — Chak Shahzad",
+  },
+  {
+    id: "55555555-5555-4555-8555-555555555504",
+    label: "BS Data Science — Chak Shahzad",
+  },
+  {
+    id: "55555555-5555-4555-8555-555555555505",
+    label: "MS Computer Science — Chak Shahzad",
+  },
+  {
+    id: "55555555-5555-4555-8555-555555555507",
+    label: "BBA Business Administration — Chak Shahzad",
+  },
+  {
+    id: "55555555-5555-4555-8555-555555555508",
+    label: "MBA — Chak Shahzad",
+  },
 ]
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
-  const [photoName, setPhotoName] = useState("")
-  const [degreeProgramId, setDegreeProgramId] = useState("")
+  const [apiError, setApiError] = useState("")
+  const [errors, setErrors] = useState<RegistrationErrors>({})
 
-  function onPhotoChange(file: File | null) {
-    setError("")
-    setPhotoName(file?.name ?? "")
+  const [fullName, setFullName] = useState("")
+  const [email, setEmail] = useState("")
+  const [cnic, setCnic] = useState("")
+  const [rollNumber, setRollNumber] = useState("")
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [degreeProgramId, setDegreeProgramId] = useState("")
+  const [graduationYear, setGraduationYear] = useState("")
+  const [phoneNumber, setPhoneNumber] = useState<E164Number | undefined>()
+  const [whatsappNumber, setWhatsappNumber] = useState<E164Number | undefined>()
+
+  const selectedProgramLabel =
+    DEGREE_PROGRAMS.find((program) => program.id === degreeProgramId)?.label ??
+    null
+
+  function clearFieldError(field: keyof RegistrationErrors) {
+    setErrors((current) => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError("")
-    setSuccess("")
-
-    if (!degreeProgramId) {
-      setError("Please select a degree program")
+  function onPhotoChange(file: File | null) {
+    setApiError("")
+    if (!file) {
+      setPhoto(null)
+      clearFieldError("photo")
       return
     }
 
+    const photoError = validatePhotoFile(file)
+    if (photoError) {
+      setPhoto(null)
+      setErrors((current) => ({ ...current, photo: photoError }))
+      return
+    }
+
+    setPhoto(file)
+    clearFieldError("photo")
+  }
+
+  function resetForm() {
+    setFullName("")
+    setEmail("")
+    setCnic("")
+    setRollNumber("")
+    setDegreeProgramId("")
+    setGraduationYear("")
+    setPhoneNumber(undefined)
+    setWhatsappNumber(undefined)
+    setPhoto(null)
+    setErrors({})
+    setApiError("")
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setApiError("")
+
+    const nextErrors = validateRegistration({
+      full_name: fullName,
+      email,
+      phone_number: phoneNumber,
+      whatsapp_number: whatsappNumber,
+      cnic_national_id: cnic,
+      degree_program_id: degreeProgramId,
+      registration_roll_number: rollNumber,
+      graduation_year: graduationYear,
+      photo,
+    })
+
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) return
+
     setLoading(true)
 
-    // UI-only for now — API wiring comes later
-    window.setTimeout(() => {
-      setSuccess("Registration details captured. API submission is disabled for now.")
+    try {
+      let uploadId: string | undefined
+      if (photo) {
+        try {
+          const upload = await authService.uploadPhoto(photo)
+          uploadId = upload.upload_id
+        } catch (err) {
+          setErrors({
+            photo:
+              err instanceof ApiError ? err.message : "Photo upload failed",
+          })
+          return
+        }
+      }
+
+      const result = await authService.register({
+        full_name: fullName.trim(),
+        email: email.trim(),
+        phone_number: phoneNumber || undefined,
+        whatsapp_number: whatsappNumber || undefined,
+        cnic_national_id: cnic.trim(),
+        degree_program_id: degreeProgramId,
+        registration_roll_number: rollNumber.trim(),
+        graduation_year: graduationYear,
+        upload_id: uploadId,
+      })
+
+      toast.success("Registration submitted", {
+        description:
+          result.message ||
+          "Your registration is pending approval. You will be notified once it is reviewed.",
+        duration: 6000,
+      })
+      resetForm()
       event.currentTarget.reset()
-      setDegreeProgramId("")
-      setPhotoName("")
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : "Registration failed"
+      setApiError(message)
+      toast.error("Registration failed", {
+        description: message,
+      })
+    } finally {
       setLoading(false)
-    }, 400)
+    }
   }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8" onSubmit={onSubmit}>
+          <form className="p-6 md:p-8" onSubmit={onSubmit} noValidate>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Create an account</h1>
@@ -81,67 +211,122 @@ export function SignupForm({
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field className="sm:col-span-2">
+                <Field
+                  className="sm:col-span-2"
+                  data-invalid={!!errors.full_name || undefined}
+                >
                   <FieldLabel htmlFor="full_name">Full name</FieldLabel>
                   <Input
                     id="full_name"
                     name="full_name"
                     placeholder="Ali Khan"
-                    required
+                    value={fullName}
+                    maxLength={150}
+                    aria-invalid={!!errors.full_name}
+                    onChange={(event) => {
+                      setFullName(event.target.value)
+                      clearFieldError("full_name")
+                    }}
                   />
+                  <FieldError>{errors.full_name}</FieldError>
                 </Field>
 
-                <Field className="sm:col-span-2">
+                <Field
+                  className="sm:col-span-2"
+                  data-invalid={!!errors.email || undefined}
+                >
                   <FieldLabel htmlFor="email">Email</FieldLabel>
                   <Input
                     id="email"
                     name="email"
                     type="email"
                     placeholder="m@example.com"
-                    required
+                    value={email}
+                    maxLength={255}
+                    aria-invalid={!!errors.email}
+                    onChange={(event) => {
+                      setEmail(event.target.value)
+                      clearFieldError("email")
+                    }}
                   />
+                  <FieldError>{errors.email}</FieldError>
                 </Field>
 
-                <Field>
+                <Field data-invalid={!!errors.phone_number || undefined}>
                   <FieldLabel htmlFor="phone_number">Phone number</FieldLabel>
-                  <Input
+                  <PhoneInput
                     id="phone_number"
-                    name="phone_number"
-                    type="tel"
-                    placeholder="03XXXXXXXXX"
+                    international
+                    defaultCountry="PK"
+                    placeholder="300 1234567"
+                    value={phoneNumber}
+                    aria-invalid={!!errors.phone_number}
+                    onChange={(value) => {
+                      setPhoneNumber(value)
+                      clearFieldError("phone_number")
+                    }}
                   />
+                  <FieldError>{errors.phone_number}</FieldError>
                 </Field>
 
-                <Field>
+                <Field data-invalid={!!errors.whatsapp_number || undefined}>
                   <FieldLabel htmlFor="whatsapp_number">WhatsApp number</FieldLabel>
-                  <Input
+                  <PhoneInput
                     id="whatsapp_number"
-                    name="whatsapp_number"
-                    type="tel"
-                    placeholder="03XXXXXXXXX"
+                    international
+                    defaultCountry="PK"
+                    placeholder="300 1234567"
+                    value={whatsappNumber}
+                    aria-invalid={!!errors.whatsapp_number}
+                    onChange={(value) => {
+                      setWhatsappNumber(value)
+                      clearFieldError("whatsapp_number")
+                    }}
                   />
+                  <FieldError>{errors.whatsapp_number}</FieldError>
                 </Field>
 
-                <Field className="sm:col-span-2">
+                <Field
+                  className="sm:col-span-2"
+                  data-invalid={!!errors.cnic_national_id || undefined}
+                >
                   <FieldLabel htmlFor="cnic_national_id">CNIC / National ID</FieldLabel>
                   <Input
                     id="cnic_national_id"
                     name="cnic_national_id"
                     placeholder="35202-1234567-1"
-                    pattern="\d{5}-\d{7}-\d"
-                    title="Format: #####-#######-#"
-                    required
+                    inputMode="numeric"
+                    value={cnic}
+                    maxLength={15}
+                    aria-invalid={!!errors.cnic_national_id}
+                    onChange={(event) => {
+                      setCnic(formatCnicInput(event.target.value))
+                      clearFieldError("cnic_national_id")
+                    }}
                   />
+                  <FieldError>{errors.cnic_national_id}</FieldError>
                 </Field>
 
-                <Field className="sm:col-span-2">
+                <Field
+                  className="sm:col-span-2"
+                  data-invalid={!!errors.degree_program_id || undefined}
+                >
                   <FieldLabel htmlFor="degree_program_id">Degree program</FieldLabel>
                   <Select
                     value={degreeProgramId}
-                    onValueChange={(value) => setDegreeProgramId(value ?? "")}
+                    onValueChange={(value) => {
+                      setDegreeProgramId(value ?? "")
+                      clearFieldError("degree_program_id")
+                    }}
                   >
-                    <SelectTrigger id="degree_program_id" className="w-full">
-                      <SelectValue placeholder="Select your program" />
+                    <SelectTrigger
+                      id="degree_program_id"
+                      className="w-full"
+                      aria-invalid={!!errors.degree_program_id}
+                    >
+                      <SelectValue placeholder="Select your program">
+                        {selectedProgramLabel}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {DEGREE_PROGRAMS.map((program) => (
@@ -151,57 +336,65 @@ export function SignupForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FieldError>{errors.degree_program_id}</FieldError>
                 </Field>
 
-                <Field>
+                <Field data-invalid={!!errors.registration_roll_number || undefined}>
                   <FieldLabel htmlFor="registration_roll_number">
                     Registration / Roll number
                   </FieldLabel>
                   <Input
                     id="registration_roll_number"
                     name="registration_roll_number"
-                    required
+                    value={rollNumber}
+                    maxLength={50}
+                    aria-invalid={!!errors.registration_roll_number}
+                    onChange={(event) => {
+                      setRollNumber(event.target.value)
+                      clearFieldError("registration_roll_number")
+                    }}
                   />
+                  <FieldError>{errors.registration_roll_number}</FieldError>
                 </Field>
 
-                <Field>
+                <Field data-invalid={!!errors.graduation_year || undefined}>
                   <FieldLabel htmlFor="graduation_year">Graduation year</FieldLabel>
-                  <Input
+                  <YearPicker
                     id="graduation_year"
-                    name="graduation_year"
-                    placeholder="2021"
-                    inputMode="numeric"
-                    pattern="\d{4}"
-                    required
+                    value={graduationYear}
+                    minYear={MIN_GRADUATION_YEAR}
+                    maxYear={MAX_GRADUATION_YEAR}
+                    placeholder="Select year"
+                    aria-invalid={!!errors.graduation_year}
+                    onChange={(year) => {
+                      setGraduationYear(year)
+                      clearFieldError("graduation_year")
+                    }}
                   />
+                  <FieldError>{errors.graduation_year}</FieldError>
                 </Field>
 
-                <Field className="sm:col-span-2">
+                <Field
+                  className="sm:col-span-2"
+                  data-invalid={!!errors.photo || undefined}
+                >
                   <FieldLabel htmlFor="photo">Profile photo</FieldLabel>
                   <Input
                     id="photo"
                     type="file"
                     accept="image/*"
+                    aria-invalid={!!errors.photo}
                     onChange={(event) =>
                       onPhotoChange(event.target.files?.[0] ?? null)
                     }
                   />
-                  <FieldDescription>
-                    {photoName
-                      ? `Selected: ${photoName}`
-                      : "Optional. JPG or PNG preferred."}
-                  </FieldDescription>
+                  <FieldError>{errors.photo}</FieldError>
                 </Field>
               </div>
 
-              {error ? (
+              {apiError ? (
                 <p className="text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              ) : null}
-              {success ? (
-                <p className="text-sm text-primary" role="status">
-                  {success}
+                  {apiError}
                 </p>
               ) : null}
 

@@ -3,7 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthContext"
 import { cn } from "@/lib/utils"
-import { ApiError, apiRequest } from "@/lib/api"
+import { ApiError } from "@/lib/api"
+import { authService } from "@/services/auth.service"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -31,16 +32,9 @@ export function LoginForm({
 
     const form = new FormData(event.currentTarget)
     try {
-      const data = await apiRequest<{
-        access_token: string
-        user_id: string
-        role: string
-      }>("/admin/auth/login", {
-        method: "POST",
-        body: JSON.stringify({
-          email: form.get("email"),
-          password: form.get("password"),
-        }),
+      const data = await authService.login({
+        email: String(form.get("email")),
+        password: String(form.get("password")),
       })
 
       setSession({
