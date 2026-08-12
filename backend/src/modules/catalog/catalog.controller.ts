@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { SWAGGER_TAGS } from '../../common/swagger/swagger-tags';
 import { ApiWrappedOkResponse } from '../../common/swagger/api-wrapped-response.decorator';
 import { SEED_CATALOG } from '../../database/seeds/catalog.seed';
 import {
@@ -10,7 +11,7 @@ import {
   ProgramResponseDto,
 } from './dto/catalog-response.dto';
 
-@ApiTags('Alumni / Catalog')
+@ApiTags(SWAGGER_TAGS.CATALOG)
 @Controller('catalog')
 export class CatalogController {
   @Get('campuses')

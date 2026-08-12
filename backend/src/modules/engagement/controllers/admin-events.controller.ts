@@ -29,6 +29,7 @@ import type { AuthUser } from '../../../common/decorators/current-user.decorator
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
+import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import {
@@ -51,7 +52,7 @@ import {
 } from '../dto/event-response.dto';
 import { EventService } from '../services/event.service';
 
-@ApiTags('Admin / Events')
+@ApiTags(SWAGGER_TAGS.EVENTS)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)

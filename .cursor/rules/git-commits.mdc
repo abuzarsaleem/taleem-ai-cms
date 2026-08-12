@@ -1,0 +1,10 @@
+---
+description: Git commit and push conventions for this repo
+alwaysApply: true
+---
+
+# Git commits
+
+- Never add `Co-authored-by: Cursor` or any Cursor co-author trailer to commit messages.
+- Commit messages should list only the user's authorship (no AI co-author lines).
+- Do not use `--trailer` or HEREDOC tricks that inject Cursor attribution.

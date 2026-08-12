@@ -12,6 +12,8 @@ import {
 } from './common/dto/api-error-response.dto';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { applyStandardSwaggerResponses } from './common/swagger/apply-standard-responses';
+import { sortSwaggerDocument } from './common/swagger/sort-swagger-document';
+import { SWAGGER_TAGS } from './common/swagger/swagger-tags';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -48,28 +50,48 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Taleem AI CMS API')
-    .setDescription('Alumni APIs first, then Admin APIs — grouped by functionality')
+    .setDescription(
+      'Grouped by functionality — admin endpoints appear before alumni within each tag',
+    )
     .setVersion('1.0')
     .addBearerAuth()
-    // Alumni (functionality order)
-    .addTag('Alumni / Auth & Onboarding', 'Registration, activation, login, password reset')
-    .addTag('Alumni / Profile & Career', 'Profile, professional, and academic self-service')
-    .addTag('Alumni / Directory & Contacts', 'Alumni directory and contact requests')
-    .addTag('Alumni / Events & RSVP', 'Browse events and manage RSVPs')
-    .addTag('Alumni / Announcements', 'Published announcements feed')
-    .addTag('Alumni / Catalog', 'Campuses, degrees, programs, and degree offerings')
-    // Admin (functionality order)
-    .addTag('Admin / Auth, Dashboard & Registrations', 'Admin login, dashboard stats, registration review')
-    .addTag('Admin / Contact Requests', 'Approve or reject alumni contact requests')
-    .addTag('Admin / Events', 'Create and manage events')
-    .addTag('Admin / Announcements', 'Create and manage announcements')
-    .addTag('Admin / Alumni Analytics', 'Alumni search, filters, and outreach export')
+    .addTag(
+      SWAGGER_TAGS.AUTH_REGISTRATION,
+      'Login, registration, activation, and password reset (admin & alumni)',
+    )
+    .addTag(SWAGGER_TAGS.DASHBOARD, 'Admin dashboard statistics')
+    .addTag(
+      SWAGGER_TAGS.EVENTS,
+      'Event management and alumni RSVP (admin & alumni)',
+    )
+    .addTag(
+      SWAGGER_TAGS.ANNOUNCEMENTS,
+      'Announcement publishing and feed (admin & alumni)',
+    )
+    .addTag(
+      SWAGGER_TAGS.CONTACT_REQUESTS,
+      'Contact request review and submission (admin & alumni)',
+    )
+    .addTag(
+      SWAGGER_TAGS.ALUMNI,
+      'Alumni directory, cards, and analytics (admin & alumni)',
+    )
+    .addTag(
+      SWAGGER_TAGS.PROFILE_CAREER,
+      'Alumni profile, professional, and academic self-service',
+    )
+    .addTag(
+      SWAGGER_TAGS.CATALOG,
+      'Campuses, degrees, programs, and degree offerings',
+    )
     .build();
 
-  const document = applyStandardSwaggerResponses(
-    SwaggerModule.createDocument(app, swaggerConfig, {
-      extraModels: [ApiErrorResponseDto],
-    }),
+  const document = sortSwaggerDocument(
+    applyStandardSwaggerResponses(
+      SwaggerModule.createDocument(app, swaggerConfig, {
+        extraModels: [ApiErrorResponseDto],
+      }),
+    ),
   );
   SwaggerModule.setup(swaggerPath, app, document);
 

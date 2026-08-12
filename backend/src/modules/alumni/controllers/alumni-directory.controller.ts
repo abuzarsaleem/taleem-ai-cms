@@ -13,6 +13,7 @@ import type { AuthUser } from '../../../common/decorators/current-user.decorator
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
+import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import {
@@ -32,7 +33,6 @@ import {
 import { AlumniDirectoryService } from '../services/alumni-directory.service';
 import { ContactRequestService } from '../services/contact-request.service';
 
-@ApiTags('Alumni / Directory & Contacts')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ALUMNI)
@@ -44,6 +44,7 @@ export class AlumniDirectoryController {
   ) {}
 
   @Get('directory')
+  @ApiTags(SWAGGER_TAGS.ALUMNI)
   @ApiOperation({ summary: 'Paginated alumni directory with masked contacts' })
   @ApiWrappedPaginatedResponse(DirectoryAlumniCardDto)
   async listDirectory(
@@ -55,6 +56,7 @@ export class AlumniDirectoryController {
   }
 
   @Get('directory/:alumniId')
+  @ApiTags(SWAGGER_TAGS.ALUMNI)
   @ApiOperation({ summary: 'Alumni directory profile' })
   @ApiWrappedOkResponse(DirectoryAlumniCardDto)
   async getDirectoryProfile(
@@ -66,6 +68,7 @@ export class AlumniDirectoryController {
   }
 
   @Post('contact-requests')
+  @ApiTags(SWAGGER_TAGS.CONTACT_REQUESTS)
   @ApiOperation({ summary: 'Submit contact request' })
   @ApiWrappedCreatedResponse(ContactRequestResponseDto)
   async createContactRequest(
@@ -81,6 +84,7 @@ export class AlumniDirectoryController {
   }
 
   @Get('contact-requests/sent')
+  @ApiTags(SWAGGER_TAGS.CONTACT_REQUESTS)
   @ApiOperation({ summary: 'Contact requests sent by current alumnus' })
   @ApiWrappedOkResponse(ContactRequestResponseDto, { isArray: true })
   async listSent(@CurrentUser() user: AuthUser) {

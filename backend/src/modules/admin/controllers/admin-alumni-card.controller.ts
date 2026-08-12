@@ -9,13 +9,14 @@ import {
 import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
+import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GenerateAlumniCardDto } from '../dto/generate-alumni-card.dto';
 import { AlumniCardService } from '../services/alumni-card.service';
 
-@ApiTags('Admin / Alumni Cards')
+@ApiTags(SWAGGER_TAGS.ALUMNI)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)

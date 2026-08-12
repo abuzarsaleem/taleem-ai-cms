@@ -26,44 +26,73 @@ export function HomePage() {
 export function ActivatePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [resetToken, setResetToken] = useState('')
   const params = new URLSearchParams(window.location.search)
   const tokenFromQuery = params.get('token') ?? ''
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onActivate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setSuccess('')
     const form = new FormData(event.currentTarget)
     try {
-      await apiRequest('/activate', {
+      const data = await apiRequest<{ reset_token: string }>('/auth/activate', {
         method: 'POST',
         body: JSON.stringify({
           token: form.get('token'),
+        }),
+      })
+      setResetToken(data.reset_token)
+      setSuccess('Account activated. Set your password to finish.')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Activation failed')
+    }
+  }
+
+  async function onSetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setSuccess('')
+    const form = new FormData(event.currentTarget)
+    try {
+      await apiRequest('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          token: resetToken,
           password: form.get('password'),
         }),
       })
-      setSuccess('Account activated. You can sign in now.')
+      setSuccess('Password set. You can sign in now.')
+      setResetToken('')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Activation failed')
+      setError(err instanceof ApiError ? err.message : 'Password reset failed')
     }
   }
 
   return (
     <section className="panel" style={{ margin: '1.5rem 0 3rem', maxWidth: 480 }}>
       <h2>Activate account</h2>
-      <form className="form" onSubmit={onSubmit} style={{ marginTop: '1rem' }}>
-        <label>
-          Activation token
-          <input name="token" defaultValue={tokenFromQuery} required />
-        </label>
-        <label>
-          New password
-          <input name="password" type="password" minLength={8} required />
-        </label>
-        {error ? <p className="error">{error}</p> : null}
-        {success ? <p className="success">{success}</p> : null}
-        <button className="btn btn-primary">Activate</button>
-      </form>
+      {!resetToken ? (
+        <form className="form" onSubmit={onActivate} style={{ marginTop: '1rem' }}>
+          <label>
+            Activation token
+            <input name="token" defaultValue={tokenFromQuery} required />
+          </label>
+          {error ? <p className="error">{error}</p> : null}
+          {success ? <p className="success">{success}</p> : null}
+          <button className="btn btn-primary">Activate</button>
+        </form>
+      ) : (
+        <form className="form" onSubmit={onSetPassword} style={{ marginTop: '1rem' }}>
+          <label>
+            New password
+            <input name="password" type="password" minLength={8} required />
+          </label>
+          {error ? <p className="error">{error}</p> : null}
+          {success ? <p className="success">{success}</p> : null}
+          <button className="btn btn-primary">Set password</button>
+        </form>
+      )}
     </section>
   )
 }

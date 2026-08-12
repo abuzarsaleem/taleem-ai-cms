@@ -29,6 +29,7 @@ import {
   ApiWrappedOkOneOfResponse,
   ApiWrappedOkResponse,
 } from '../../../common/swagger/api-wrapped-response.decorator';
+import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
 import { AuthService } from '../../auth/auth.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { AuthTokenResponseDto } from '../../alumni/dto/auth-response.dto';
@@ -48,7 +49,6 @@ import { ApprovalService } from '../services/approval.service';
 import { RegistrationReviewService } from '../services/registration-review.service';
 import { RejectionService } from '../services/rejection.service';
 
-@ApiTags('Admin / Auth, Dashboard & Registrations')
 @Controller('admin')
 export class AdminPortalController {
   constructor(
@@ -62,6 +62,7 @@ export class AdminPortalController {
   ) {}
 
   @Post('auth/login')
+  @ApiTags(SWAGGER_TAGS.AUTH_REGISTRATION)
   @ApiOperation({ summary: 'Admin login' })
   @ApiWrappedCreatedResponse(AuthTokenResponseDto)
   async login(@Body() dto: AdminLoginDto) {
@@ -80,6 +81,7 @@ export class AdminPortalController {
   }
 
   @Get('dashboard')
+  @ApiTags(SWAGGER_TAGS.DASHBOARD)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
@@ -93,6 +95,7 @@ export class AdminPortalController {
   }
 
   @Get('registrations')
+  @ApiTags(SWAGGER_TAGS.AUTH_REGISTRATION)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
@@ -105,6 +108,7 @@ export class AdminPortalController {
   }
 
   @Get('registrations/:id')
+  @ApiTags(SWAGGER_TAGS.AUTH_REGISTRATION)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
@@ -116,6 +120,7 @@ export class AdminPortalController {
   }
 
   @Patch('registrations/:id')
+  @ApiTags(SWAGGER_TAGS.AUTH_REGISTRATION)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
@@ -150,6 +155,7 @@ export class AdminPortalController {
   }
 
   @Post('registrations/:id/resend-activation')
+  @ApiTags(SWAGGER_TAGS.AUTH_REGISTRATION)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()

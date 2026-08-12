@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
+import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
 import type { AuthUser } from '../../../common/decorators/current-user.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { UserRole } from '../../../common/enums';
@@ -37,7 +38,7 @@ import {
 import { MeCareerService } from '../services/me-career.service';
 import { ProfileService } from '../services/profile.service';
 
-@ApiTags('Alumni / Profile & Career')
+@ApiTags(SWAGGER_TAGS.PROFILE_CAREER)
 @Controller('me')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ALUMNI)

@@ -13,6 +13,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
+import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
 import { UserRole } from '../../../common/enums';
 import { ApiWrappedCreatedResponse } from '../../../common/swagger/api-wrapped-response.decorator';
 import { AuthService } from '../../auth/auth.service';
@@ -38,7 +39,7 @@ import { PasswordResetService } from '../services/password-reset.service';
 import { PhotoUploadService } from '../services/photo-upload.service';
 import { RegistrationService } from '../services/registration.service';
 
-@ApiTags('Alumni / Auth & Onboarding')
+@ApiTags(SWAGGER_TAGS.AUTH_REGISTRATION)
 @Controller('auth')
 export class AuthOnboardingController {
   constructor(
@@ -90,17 +91,11 @@ export class AuthOnboardingController {
   }
 
   @Post('activate')
-  @ApiOperation({
-    summary:
-      'Activate account with email token; returns a reset_token for setting password',
-  })
+  @ApiOperation({ summary: 'Return a reset token for setting password' })
   @ApiWrappedCreatedResponse(ActivateAccountResponseDto)
   async activate(@Body() dto: ActivateDto) {
     const data = await this.activationService.activate(dto.token);
-    return ApiResponseDto.of(
-      data,
-      'Account activated — use reset_token with /auth/reset-password to set a password',
-    );
+    return ApiResponseDto.of(data, 'Account activated');
   }
 
   @Post('login')

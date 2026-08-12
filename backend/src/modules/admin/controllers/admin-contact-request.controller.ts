@@ -19,6 +19,7 @@ import type { AuthUser } from '../../../common/decorators/current-user.decorator
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
+import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import {
@@ -33,7 +34,7 @@ import {
 } from '../../alumni/dto/contact-request.dto';
 import { ContactRequestResponseDto } from '../../alumni/dto/directory-response.dto';
 
-@ApiTags('Admin / Contact Requests')
+@ApiTags(SWAGGER_TAGS.CONTACT_REQUESTS)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)

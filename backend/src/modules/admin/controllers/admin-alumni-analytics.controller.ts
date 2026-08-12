@@ -16,6 +16,7 @@ import {
 import type { Response } from 'express';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
+import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { ApiWrappedOkResponse } from '../../../common/swagger/api-wrapped-response.decorator';
@@ -27,7 +28,7 @@ import {
 import { AdminAlumniListResponseDto } from '../dto/admin-response.dto';
 import { AdminAlumniAnalyticsService } from '../services/admin-alumni-analytics.service';
 
-@ApiTags('Admin / Alumni Analytics')
+@ApiTags(SWAGGER_TAGS.ALUMNI)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
