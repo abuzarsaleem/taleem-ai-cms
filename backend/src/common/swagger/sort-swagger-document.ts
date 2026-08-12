@@ -1,5 +1,10 @@
 import type { OpenAPIObject } from '@nestjs/swagger';
-import { isAdminSwaggerPath, SWAGGER_TAG_ORDER } from './swagger-tags';
+import {
+  authRegistrationSortKey,
+  isAdminSwaggerPath,
+  SWAGGER_TAG_ORDER,
+  SWAGGER_TAGS,
+} from './swagger-tags';
 
 const METHOD_ORDER = [
   'get',
@@ -61,6 +66,15 @@ export function sortSwaggerDocument(document: OpenAPIObject): OpenAPIObject {
     const adminB = isAdminSwaggerPath(b.path);
     if (adminA !== adminB) {
       return adminA ? -1 : 1;
+    }
+
+    if (tagA === SWAGGER_TAGS.AUTH_REGISTRATION) {
+      const byFlow =
+        authRegistrationSortKey(a.path, a.method) -
+        authRegistrationSortKey(b.path, b.method);
+      if (byFlow !== 0) {
+        return byFlow;
+      }
     }
 
     const byMethod =

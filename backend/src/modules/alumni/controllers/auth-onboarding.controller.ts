@@ -98,6 +98,17 @@ export class AuthOnboardingController {
     return ApiResponseDto.of(data, 'Account activated');
   }
 
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Reset password with token from email' })
+  @ApiWrappedCreatedResponse(ResetPasswordResponseDto)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    const data = await this.passwordResetService.resetPassword(
+      dto.token,
+      dto.password,
+    );
+    return ApiResponseDto.of(data, 'Password reset successful');
+  }
+
   @Post('login')
   @ApiOperation({ summary: 'Alumni login' })
   @ApiWrappedCreatedResponse(AuthTokenResponseDto)
@@ -121,16 +132,5 @@ export class AuthOnboardingController {
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const data = await this.passwordResetService.forgotPassword(dto.email);
     return ApiResponseDto.of(data);
-  }
-
-  @Post('reset-password')
-  @ApiOperation({ summary: 'Reset password with token from email' })
-  @ApiWrappedCreatedResponse(ResetPasswordResponseDto)
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    const data = await this.passwordResetService.resetPassword(
-      dto.token,
-      dto.password,
-    );
-    return ApiResponseDto.of(data, 'Password reset successful');
   }
 }
