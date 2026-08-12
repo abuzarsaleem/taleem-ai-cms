@@ -81,7 +81,7 @@ export class LoginDto {
 
   @ApiProperty({
     description:
-      'Base64 RSA-OAEP encrypted password using GET /auth/password-public-key',
+      'Base64 RSA-OAEP-SHA256 encrypted password (frontend uses PASSWORD_PUBLIC_KEY)',
   })
   @IsString()
   @MinLength(1)
@@ -109,7 +109,7 @@ export class ResetPasswordDto {
   @ApiProperty({
     minLength: 8,
     description:
-      'Base64 RSA-OAEP encrypted new password using GET /auth/password-public-key',
+      'Base64 RSA-OAEP-SHA256 encrypted new password (frontend uses PASSWORD_PUBLIC_KEY)',
   })
   @IsString()
   @MinLength(8)

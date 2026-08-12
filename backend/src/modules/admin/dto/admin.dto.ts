@@ -23,7 +23,7 @@ export class AdminLoginDto {
   @ApiProperty({
     example: 'base64-rsa-oaep-encrypted-password',
     description:
-      'Base64 RSA-OAEP encrypted password using GET /admin/auth/password-public-key',
+      'Base64 RSA-OAEP-SHA256 encrypted password (frontend uses PASSWORD_PUBLIC_KEY)',
   })
   @IsString()
   @MinLength(1)

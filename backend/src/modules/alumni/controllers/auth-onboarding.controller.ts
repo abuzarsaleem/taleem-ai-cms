@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Get,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -15,16 +14,12 @@ import {
 } from '@nestjs/swagger';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
-import {
-  ApiWrappedCreatedResponse,
-  ApiWrappedOkResponse,
-} from '../../../common/swagger/api-wrapped-response.decorator';
+import { ApiWrappedCreatedResponse } from '../../../common/swagger/api-wrapped-response.decorator';
 import { AuthService } from '../../auth/auth.service';
 import {
   ActivateAccountResponseDto,
   AuthTokenResponseDto,
   ForgotPasswordResponseDto,
-  PasswordPublicKeyResponseDto,
   RegisterResponseDto,
   ResendActivationResponseDto,
   ResetPasswordResponseDto,
@@ -42,7 +37,6 @@ import { ActivationService } from '../services/activation.service';
 import { PasswordResetService } from '../services/password-reset.service';
 import { PhotoUploadService } from '../services/photo-upload.service';
 import { RegistrationService } from '../services/registration.service';
-import { PasswordCryptoService } from '../../auth/password-crypto.service';
 
 @ApiTags('Alumni / Auth & Onboarding')
 @Controller('auth')
@@ -53,18 +47,7 @@ export class AuthOnboardingController {
     private readonly activationService: ActivationService,
     private readonly passwordResetService: PasswordResetService,
     private readonly authService: AuthService,
-    private readonly passwordCryptoService: PasswordCryptoService,
   ) {}
-
-  @Get('password-public-key')
-  @ApiOperation({
-    summary: 'Get RSA public key for frontend password encryption',
-  })
-  @ApiWrappedOkResponse(PasswordPublicKeyResponseDto)
-  getPasswordPublicKey() {
-    const data = this.passwordCryptoService.getPublicKeyPayload();
-    return ApiResponseDto.of(data);
-  }
 
   @Post('upload-photo')
   @ApiOperation({ summary: 'Upload alumni registration photo' })

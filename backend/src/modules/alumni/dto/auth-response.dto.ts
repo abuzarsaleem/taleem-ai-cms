@@ -66,14 +66,3 @@ export class ResetPasswordResponseDto {
   @ApiProperty({ example: true })
   reset: boolean;
 }
-
-export class PasswordPublicKeyResponseDto {
-  @ApiProperty({ example: 'RSA-OAEP-256' })
-  algorithm: string;
-
-  @ApiProperty({
-    description:
-      'Single-line PEM public key (no newlines). Strip BEGIN/END headers before Web Crypto import.',
-  })
-  public_key: string;
-}

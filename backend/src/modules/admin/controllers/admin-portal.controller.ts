@@ -30,12 +30,8 @@ import {
   ApiWrappedOkResponse,
 } from '../../../common/swagger/api-wrapped-response.decorator';
 import { AuthService } from '../../auth/auth.service';
-import { PasswordCryptoService } from '../../auth/password-crypto.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
-import {
-  AuthTokenResponseDto,
-  PasswordPublicKeyResponseDto,
-} from '../../alumni/dto/auth-response.dto';
+import { AuthTokenResponseDto } from '../../alumni/dto/auth-response.dto';
 import {
   AdminDashboardResponseDto,
   AdminLoginDto,
@@ -57,7 +53,6 @@ import { RejectionService } from '../services/rejection.service';
 export class AdminPortalController {
   constructor(
     private readonly authService: AuthService,
-    private readonly passwordCryptoService: PasswordCryptoService,
     private readonly reviewService: RegistrationReviewService,
     private readonly approvalService: ApprovalService,
     private readonly rejectionService: RejectionService,
@@ -65,15 +60,6 @@ export class AdminPortalController {
     @Inject(AdminDashboardService)
     private readonly dashboardService?: AdminDashboardService,
   ) {}
-
-  @Get('auth/password-public-key')
-  @ApiOperation({
-    summary: 'Get RSA public key for frontend password encryption',
-  })
-  @ApiWrappedOkResponse(PasswordPublicKeyResponseDto)
-  getPasswordPublicKey() {
-    return ApiResponseDto.of(this.passwordCryptoService.getPublicKeyPayload());
-  }
 
   @Post('auth/login')
   @ApiOperation({ summary: 'Admin login' })

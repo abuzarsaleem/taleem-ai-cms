@@ -17,13 +17,6 @@ type KeyPair = {
 export class PasswordCryptoService {
   private readonly keyPair: KeyPair = this.loadOrGenerateKeyPair();
 
-  getPublicKeyPayload() {
-    return {
-      algorithm: 'RSA-OAEP-256',
-      public_key: this.toSingleLinePem(this.keyPair.publicKeyPem),
-    };
-  }
-
   decryptPassword(ciphertext: string): string {
     try {
       const decrypted = privateDecrypt(
@@ -76,16 +69,6 @@ export class PasswordCryptoService {
     const trimmed = value?.trim();
     if (!trimmed) return undefined;
     return trimmed.replace(/\\n/g, '\n');
-  }
-
-  /** JSON cannot show real line breaks, so return PEM without newline characters. */
-  private toSingleLinePem(pem: string): string {
-    const normalized = this.normalizePem(pem) ?? pem;
-    const body = normalized
-      .replace(/-----BEGIN [^-]+-----/g, '')
-      .replace(/-----END [^-]+-----/g, '')
-      .replace(/\s+/g, '');
-    return `-----BEGIN PUBLIC KEY-----${body}-----END PUBLIC KEY-----`;
   }
 }
 
