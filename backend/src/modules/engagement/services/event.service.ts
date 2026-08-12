@@ -4,13 +4,16 @@ import { In, Repository } from 'typeorm';
 import {
   ALUMNI_REPOSITORY,
   NOTIFICATION_SENDER,
+  PHOTO_STORAGE,
 } from '../../../common/constants/tokens';
-import { AlumniStatus, RsvpStatus, UserRole } from '../../../common/enums';
+import { AlumniStatus, PortalMediaType, RsvpStatus, UserRole } from '../../../common/enums';
 import {
   BusinessException,
+  ConflictException,
   ResourceNotFoundException,
 } from '../../../common/exceptions';
 import type { INotificationSender } from '../../../common/interfaces/notification-sender.interface';
+import type { IObjectStorage } from '../../../common/interfaces/photo-storage.interface';
 import {
   AlumniAcademicInformationEntity,
   CampusEntity,
@@ -21,6 +24,7 @@ import {
 } from '../../../database/entities';
 import type { AlumniProfile } from '../../alumni/entities/alumni.entity';
 import type { IAlumniRepository } from '../../alumni/interfaces/alumni.repository.interface';
+import { PortalMediaService } from '../../media/portal-media.service';
 import {
   CreateEventDto,
   EventListQueryDto,
@@ -52,11 +56,27 @@ export class EventService {
     private readonly degreeProgramRepo: Repository<DegreeProgramEntity>,
     @InjectRepository(CampusEntity)
     private readonly campusRepo: Repository<CampusEntity>,
+    private readonly portalMediaService: PortalMediaService,
     @Inject(ALUMNI_REPOSITORY)
     private readonly alumniRepository: IAlumniRepository,
     @Inject(NOTIFICATION_SENDER)
     private readonly notificationSender: INotificationSender,
+    @Inject(PHOTO_STORAGE)
+    private readonly objectStorage: IObjectStorage,
   ) {}
+
+  async uploadImage(file?: {
+    buffer: Buffer;
+    mimetype: string;
+    originalname: string;
+    size: number;
+  }) {
+    return this.portalMediaService.uploadImage(
+      file,
+      PortalMediaType.EVENT_IMAGE,
+      'events',
+    );
+  }
 
   async list(
     user: { userId: string; role: string },
@@ -86,12 +106,19 @@ export class EventService {
       alumniId = profile?.alumni.id ?? null;
     }
 
-    const qb = this.eventRepo.createQueryBuilder('event');
+    const qb = this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.imageMedia', 'imageMedia');
     const today = new Date().toISOString().slice(0, 10);
+
+    if (isAlumni) {
+      qb.where('event.isDraft = :isDraft', { isDraft: false });
+    }
+
     if (scope === EventListScope.UPCOMING) {
-      qb.where('event.eventDate >= :today', { today });
+      qb.andWhere('event.eventDate >= :today', { today });
     } else if (scope === EventListScope.PAST) {
-      qb.where('event.eventDate < :today', { today });
+      qb.andWhere('event.eventDate < :today', { today });
     }
 
     if (isAlumni && audience) {
@@ -116,8 +143,15 @@ export class EventService {
   }
 
   async getById(eventId: string, user: { userId: string; role: string }) {
-    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    const event = await this.eventRepo.findOne({
+      where: { id: eventId },
+      relations: { imageMedia: true },
+    });
     if (!event) {
+      throw new ResourceNotFoundException('Event', eventId);
+    }
+
+    if (user.role === UserRole.ALUMNI && event.isDraft) {
       throw new ResourceNotFoundException('Event', eventId);
     }
 
@@ -146,6 +180,14 @@ export class EventService {
     const targetCriteria = await this.normalizeAndValidateTargetCriteria(
       dto.target_criteria,
     );
+    const isDraft = dto.is_draft === true;
+    if (dto.media_id) {
+      await this.portalMediaService.requireById(
+        dto.media_id,
+        PortalMediaType.EVENT_IMAGE,
+      );
+    }
+
     const event = this.eventRepo.create({
       title: dto.title.trim(),
       description: dto.description?.trim() ?? null,
@@ -155,12 +197,21 @@ export class EventService {
       endTime: dto.end_time ? normalizeTime(dto.end_time) : null,
       venue: dto.venue.trim(),
       guestSpeaker: dto.guest_speaker?.trim() ?? null,
+      imageMediaId: dto.media_id ?? null,
+      isDraft,
       targetCriteria,
       createdBy: adminUserId,
     });
+
     const saved = await this.eventRepo.save(event);
-    void this.notifyAlumniAboutEvent(saved);
-    return this.toEventResponse(saved);
+    const withMedia = await this.eventRepo.findOne({
+      where: { id: saved.id },
+      relations: { imageMedia: true },
+    });
+    if (!isDraft) {
+      void this.notifyAlumniAboutEvent(withMedia ?? saved);
+    }
+    return this.toEventResponse(withMedia ?? saved);
   }
 
   async update(eventId: string, dto: UpdateEventDto) {
@@ -168,6 +219,8 @@ export class EventService {
     if (!event) {
       throw new ResourceNotFoundException('Event', eventId);
     }
+
+    const wasDraft = event.isDraft;
 
     if (dto.title !== undefined) event.title = dto.title.trim();
     if (dto.description !== undefined) {
@@ -187,13 +240,31 @@ export class EventService {
     if (dto.guest_speaker !== undefined) {
       event.guestSpeaker = dto.guest_speaker?.trim() ?? null;
     }
+    if (dto.media_id !== undefined) {
+      if (dto.media_id) {
+        await this.portalMediaService.requireById(
+          dto.media_id,
+          PortalMediaType.EVENT_IMAGE,
+        );
+      }
+      event.imageMediaId = dto.media_id ?? null;
+    }
+    if (dto.is_draft !== undefined) event.isDraft = dto.is_draft;
     if (dto.target_criteria !== undefined) {
       event.targetCriteria = await this.normalizeAndValidateTargetCriteria(
         dto.target_criteria,
       );
     }
 
-    return this.toEventResponse(await this.eventRepo.save(event));
+    const saved = await this.eventRepo.save(event);
+    const withMedia = await this.eventRepo.findOne({
+      where: { id: saved.id },
+      relations: { imageMedia: true },
+    });
+    if (wasDraft && !saved.isDraft) {
+      void this.notifyAlumniAboutEvent(withMedia ?? saved);
+    }
+    return this.toEventResponse(withMedia ?? saved);
   }
 
   async remove(eventId: string) {
@@ -205,14 +276,61 @@ export class EventService {
     return { id: eventId, deleted: true };
   }
 
-  async upsertRsvp(viewerUserId: string, eventId: string, dto: RsvpEventDto) {
+  async createRsvp(viewerUserId: string, eventId: string, dto: RsvpEventDto) {
+    const { viewer, event } = await this.requireAlumniEventAccess(
+      viewerUserId,
+      eventId,
+    );
+
+    const existing = await this.rsvpRepo.findOne({
+      where: { eventId, alumniId: viewer.alumni.id },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'RSVP already exists for this event — use PATCH to change status',
+      );
+    }
+
+    const rsvp = await this.rsvpRepo.save(
+      this.rsvpRepo.create({
+        eventId,
+        alumniId: viewer.alumni.id,
+        status: dto.status,
+      }),
+    );
+
+    return this.toRsvpResponse(rsvp);
+  }
+
+  async updateMyRsvp(viewerUserId: string, eventId: string, dto: RsvpEventDto) {
+    const { viewer, event } = await this.requireAlumniEventAccess(
+      viewerUserId,
+      eventId,
+    );
+    void event;
+
+    const rsvp = await this.rsvpRepo.findOne({
+      where: { eventId, alumniId: viewer.alumni.id },
+    });
+    if (!rsvp) {
+      throw new ResourceNotFoundException('RSVP for event', eventId);
+    }
+
+    rsvp.status = dto.status;
+    return this.toRsvpResponse(await this.rsvpRepo.save(rsvp));
+  }
+
+  private async requireAlumniEventAccess(
+    viewerUserId: string,
+    eventId: string,
+  ) {
     const viewer = await this.alumniRepository.findByUserId(viewerUserId);
     if (!viewer) {
       throw new ResourceNotFoundException('Alumni profile for user', viewerUserId);
     }
 
     const event = await this.eventRepo.findOne({ where: { id: eventId } });
-    if (!event) {
+    if (!event || event.isDraft) {
       throw new ResourceNotFoundException('Event', eventId);
     }
 
@@ -221,23 +339,10 @@ export class EventService {
       throw new ResourceNotFoundException('Event', eventId);
     }
 
-    let rsvp = await this.rsvpRepo.findOne({
-      where: { eventId, alumniId: viewer.alumni.id },
-    });
+    return { viewer, event };
+  }
 
-    if (rsvp) {
-      rsvp.status = dto.status;
-      rsvp = await this.rsvpRepo.save(rsvp);
-    } else {
-      rsvp = await this.rsvpRepo.save(
-        this.rsvpRepo.create({
-          eventId,
-          alumniId: viewer.alumni.id,
-          status: dto.status,
-        }),
-      );
-    }
-
+  private toRsvpResponse(rsvp: EventRsvpEntity) {
     return {
       id: rsvp.id,
       event_id: rsvp.eventId,
@@ -532,11 +637,13 @@ export class EventService {
       }
     }
 
-    return events.map((event) => ({
-      ...this.toEventResponse(event),
-      my_rsvp_status: myRsvpByEvent.get(event.id) ?? null,
-      rsvp_counts: countMap.get(event.id)!,
-    }));
+    return Promise.all(
+      events.map(async (event) => ({
+        ...(await this.toEventResponse(event)),
+        my_rsvp_status: myRsvpByEvent.get(event.id) ?? null,
+        rsvp_counts: countMap.get(event.id)!,
+      })),
+    );
   }
 
   private async notifyAlumniAboutEvent(event: EventEntity): Promise<void> {
@@ -589,7 +696,35 @@ export class EventService {
     }
   }
 
-  private toEventResponse(event: EventEntity) {
+  async listRsvps(eventId: string) {
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event) {
+      throw new ResourceNotFoundException('Event', eventId);
+    }
+
+    const rows = await this.rsvpRepo.find({
+      where: { eventId },
+      relations: { alumni: true },
+      order: { updatedAt: 'DESC' },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      event_id: row.eventId,
+      alumni_id: row.alumniId,
+      full_name: row.alumni?.fullName ?? null,
+      email: row.alumni?.email ?? null,
+      status: row.status,
+      created_at: row.createdAt,
+      updated_at: row.updatedAt,
+    }));
+  }
+
+  private async toEventResponse(event: EventEntity) {
+    const image_url = await this.portalMediaService.resolvePublicUrl(
+      event.imageMedia,
+    );
+
     return {
       id: event.id,
       title: event.title,
@@ -600,6 +735,8 @@ export class EventService {
       end_time: event.endTime ? String(event.endTime).slice(0, 8) : null,
       venue: event.venue,
       guest_speaker: event.guestSpeaker,
+      image_url,
+      is_draft: event.isDraft,
       target_criteria: event.targetCriteria ?? null,
       created_by: event.createdBy,
       created_at: event.createdAt,

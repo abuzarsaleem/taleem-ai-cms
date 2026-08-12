@@ -15,7 +15,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GenerateAlumniCardDto } from '../dto/generate-alumni-card.dto';
 import { AlumniCardService } from '../services/alumni-card.service';
 
-@ApiTags('Admin Portal')
+@ApiTags('Admin / Alumni Cards')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)

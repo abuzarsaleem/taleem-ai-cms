@@ -12,6 +12,7 @@ import {
 } from '../../common/enums';
 import { AccountEntity } from './account.entity';
 import { AlumniEntity } from './alumni.entity';
+import { PortalMediaEntity } from './portal-media.entity';
 
 @Entity({ name: 'announcements' })
 export class AnnouncementEntity {
@@ -39,8 +40,12 @@ export class AnnouncementEntity {
   @JoinColumn({ name: 'featured_alumni_id' })
   featuredAlumni: AlumniEntity | null;
 
-  @Column({ name: 'image_url', type: 'varchar', length: 255, nullable: true })
-  imageUrl: string | null;
+  @Column({ name: 'image_media_id', type: 'uuid', nullable: true })
+  imageMediaId: string | null;
+
+  @ManyToOne(() => PortalMediaEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'image_media_id' })
+  imageMedia: PortalMediaEntity | null;
 
   @Index('IDX_announcements_published')
   @Column({ name: 'is_published', type: 'boolean', default: true })

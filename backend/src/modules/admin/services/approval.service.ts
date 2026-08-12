@@ -31,7 +31,11 @@ export class ApprovalService {
     private readonly alumniCardService: AlumniCardService,
   ) {}
 
-  async approve(registrationId: string, adminUserId: string) {
+  async approve(
+    registrationId: string,
+    adminUserId: string,
+    cnicNationalId: string,
+  ) {
     const request = await this.registrationRepository.findById(registrationId);
     if (!request) {
       throw new ResourceNotFoundException('Registration', registrationId);
@@ -41,6 +45,13 @@ export class ApprovalService {
         `Registration is already ${request.status}`,
         HttpStatus.CONFLICT,
         'ALREADY_REVIEWED',
+      );
+    }
+    if (request.cnicNationalId !== cnicNationalId.trim()) {
+      throw new BusinessException(
+        'CNIC does not match this registration request',
+        HttpStatus.BAD_REQUEST,
+        'CNIC_MISMATCH',
       );
     }
 
@@ -84,11 +95,12 @@ export class ApprovalService {
         phoneNumber: request.phoneNumber,
         whatsappNumber: request.whatsappNumber,
         cnicNationalId: request.cnicNationalId,
-        photoUrl: request.photoUrl,
+        photoMediaId: request.photoMediaId,
         academic: {
           degreeProgramId: request.degreeProgramId,
           registrationRollNumber: request.registrationRollNumber,
           graduationYear: request.graduationYear,
+          registrationYear: null,
         },
       });
       alumniId = profile.alumni.id;
@@ -108,7 +120,7 @@ export class ApprovalService {
 
     try {
       const card = await this.alumniCardService.generate(alumniId, {
-        photoUrl: request.photoUrl ?? undefined,
+        media_id: request.photoMediaId ?? undefined,
       });
       qrCode = card.qrCode;
       this.logger.log(`APPROVAL_QR_GENERATED alumniId=${alumniId}`);

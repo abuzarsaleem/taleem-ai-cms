@@ -9,6 +9,7 @@ import {
 import {
   AlumniStatus,
   AnnouncementCategory,
+  PortalMediaType,
   UserRole,
 } from '../../../common/enums';
 import {
@@ -23,6 +24,7 @@ import {
 } from '../../../database/entities';
 import type { AlumniProfile } from '../../alumni/entities/alumni.entity';
 import type { IAlumniRepository } from '../../alumni/interfaces/alumni.repository.interface';
+import { PortalMediaService } from '../../media/portal-media.service';
 import {
   AnnouncementListQueryDto,
   CreateAnnouncementDto,
@@ -39,6 +41,7 @@ export class AnnouncementService {
     private readonly announcementRepo: Repository<AnnouncementEntity>,
     @InjectRepository(DegreeProgramEntity)
     private readonly degreeProgramRepo: Repository<DegreeProgramEntity>,
+    private readonly portalMediaService: PortalMediaService,
     @Inject(ALUMNI_REPOSITORY)
     private readonly alumniRepository: IAlumniRepository,
     @Inject(NOTIFICATION_SENDER)
@@ -53,36 +56,11 @@ export class AnnouncementService {
     originalname: string;
     size: number;
   }): Promise<UploadAnnouncementImageResponseDto> {
-    if (!file) {
-      throw new BusinessException('Image file is required');
-    }
-
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.mimetype)) {
-      throw new BusinessException('Only JPEG, PNG, or WEBP images are allowed');
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      throw new BusinessException('Image must be 5MB or smaller');
-    }
-
-    const stored = await this.objectStorage.upload({
-      buffer: file.buffer,
-      mimeType: file.mimetype,
-      folder: 'announcements',
-      fileName: file.originalname,
-    });
-
-    if (stored.publicUrl.length > 255) {
-      throw new BusinessException(
-        'Stored image URL exceeds maximum length; use a shorter file name',
-      );
-    }
-
-    return {
-      image_url: stored.publicUrl,
-      storage_key: stored.storageKey,
-    };
+    return this.portalMediaService.uploadImage(
+      file,
+      PortalMediaType.ANNOUNCEMENT_IMAGE,
+      'announcements',
+    );
   }
 
   async list(userRole: string, query: AnnouncementListQueryDto) {
@@ -95,6 +73,8 @@ export class AnnouncementService {
     const qb = this.announcementRepo
       .createQueryBuilder('a')
       .leftJoinAndSelect('a.featuredAlumni', 'featuredAlumni')
+      .leftJoinAndSelect('featuredAlumni.photoMedia', 'featuredAlumniPhoto')
+      .leftJoinAndSelect('a.imageMedia', 'imageMedia')
       .orderBy('a.publishedAt', 'DESC', 'NULLS LAST')
       .addOrderBy('a.id', 'DESC');
 
@@ -115,7 +95,10 @@ export class AnnouncementService {
   async getById(id: string, userRole: string) {
     const row = await this.announcementRepo.findOne({
       where: { id },
-      relations: { featuredAlumni: true },
+      relations: {
+        featuredAlumni: { photoMedia: true },
+        imageMedia: true,
+      },
     });
     if (!row) {
       throw new ResourceNotFoundException('Announcement', id);
@@ -134,13 +117,20 @@ export class AnnouncementService {
     await this.validateSpotlight(dto.category, dto.featured_alumni_id);
 
     const isPublished = dto.is_published !== false;
+    if (dto.media_id) {
+      await this.portalMediaService.requireById(
+        dto.media_id,
+        PortalMediaType.ANNOUNCEMENT_IMAGE,
+      );
+    }
+
     const saved = await this.announcementRepo.save(
       this.announcementRepo.create({
         title: dto.title.trim(),
         content: dto.content.trim(),
         category: dto.category,
         featuredAlumniId: dto.featured_alumni_id ?? null,
-        imageUrl: dto.image_url?.trim() ?? null,
+        imageMediaId: dto.media_id ?? null,
         isPublished,
         publishedAt: isPublished ? new Date() : null,
         createdBy: adminUserId,
@@ -149,7 +139,10 @@ export class AnnouncementService {
 
     const withRelation = await this.announcementRepo.findOne({
       where: { id: saved.id },
-      relations: { featuredAlumni: true },
+      relations: {
+        featuredAlumni: { photoMedia: true },
+        imageMedia: true,
+      },
     });
 
     if (isPublished && withRelation) {
@@ -162,7 +155,10 @@ export class AnnouncementService {
   async update(id: string, dto: UpdateAnnouncementDto) {
     const row = await this.announcementRepo.findOne({
       where: { id },
-      relations: { featuredAlumni: true },
+      relations: {
+        featuredAlumni: { photoMedia: true },
+        imageMedia: true,
+      },
     });
     if (!row) {
       throw new ResourceNotFoundException('Announcement', id);
@@ -176,8 +172,14 @@ export class AnnouncementService {
     if (dto.featured_alumni_id !== undefined) {
       row.featuredAlumniId = dto.featured_alumni_id ?? null;
     }
-    if (dto.image_url !== undefined) {
-      row.imageUrl = dto.image_url?.trim() ?? null;
+    if (dto.media_id !== undefined) {
+      if (dto.media_id) {
+        await this.portalMediaService.requireById(
+          dto.media_id,
+          PortalMediaType.ANNOUNCEMENT_IMAGE,
+        );
+      }
+      row.imageMediaId = dto.media_id ?? null;
     }
     if (dto.is_published !== undefined) {
       row.isPublished = dto.is_published;
@@ -199,7 +201,10 @@ export class AnnouncementService {
     const saved = await this.announcementRepo.save(row);
     const withRelation = await this.announcementRepo.findOne({
       where: { id: saved.id },
-      relations: { featuredAlumni: true },
+      relations: {
+        featuredAlumni: { photoMedia: true },
+        imageMedia: true,
+      },
     });
 
     if (!wasPublished && saved.isPublished && withRelation) {
@@ -245,11 +250,9 @@ export class AnnouncementService {
       if (profile) {
         featuredAlumni = await this.toFeaturedAlumni(profile);
       } else if (row.featuredAlumni) {
-        const photoUrl = row.featuredAlumni.photoUrl
-          ? await this.objectStorage.resolveDownloadUrl(
-              row.featuredAlumni.photoUrl,
-            )
-          : null;
+        const photoUrl = await this.portalMediaService.resolvePublicUrl(
+          row.featuredAlumni.photoMedia,
+        );
         featuredAlumni = {
           alumni_id: row.featuredAlumni.id,
           full_name: row.featuredAlumni.fullName,
@@ -260,9 +263,9 @@ export class AnnouncementService {
       }
     }
 
-    const imageUrl = row.imageUrl
-      ? await this.objectStorage.resolveDownloadUrl(row.imageUrl)
-      : null;
+    const imageUrl = await this.portalMediaService.resolvePublicUrl(
+      row.imageMedia,
+    );
 
     return {
       id: row.id,
@@ -297,9 +300,9 @@ export class AnnouncementService {
       }
     }
 
-    const photoUrl = profile.alumni.photoUrl
-      ? await this.objectStorage.resolveDownloadUrl(profile.alumni.photoUrl)
-      : null;
+    const photoUrl = await this.portalMediaService.resolvePublicUrl(
+      profile.alumni.photoMedia,
+    );
 
     return {
       alumni_id: profile.alumni.id,
@@ -319,9 +322,10 @@ export class AnnouncementService {
         (p) => p.alumni.status === AlumniStatus.ACTIVE && p.alumni.email,
       );
 
-      const imageUrl = announcement.imageUrl
-        ? await this.objectStorage.resolveDownloadUrl(announcement.imageUrl)
-        : '';
+      const imageUrl =
+        (await this.portalMediaService.resolvePublicUrl(
+          announcement.imageMedia,
+        )) ?? '';
 
       const results = await Promise.allSettled(
         active.map((profile) =>

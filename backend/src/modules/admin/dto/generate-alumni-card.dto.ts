@@ -1,15 +1,14 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class GenerateAlumniCardDto {
   @ApiPropertyOptional({
-    description: 'Optional photo URL. Falls back to existing photo.',
-    example: 'https://cdn.example.com/photos/alumni-42.jpg',
+    description:
+      'Optional media_id (REGISTRATION_PHOTO or ALUMNI_PHOTO). Falls back to alumni photo.',
   })
   @IsOptional()
-  @IsUrl({ require_tld: false })
-  @MaxLength(500)
-  photoUrl?: string;
+  @IsUUID()
+  media_id?: string;
 
   @ApiPropertyOptional({
     description: 'Optional note stored with generation metadata',

@@ -38,36 +38,20 @@ export class MeCareerService {
 
     const current = await this.alumniRepository.findCurrentProfessional(alumniId);
     if (current) {
-      if (!dto.previous_end_date) {
-        throw new BusinessException(
-          'previous_end_date is required to close the current job before adding a new one',
-        );
-      }
-      const previousEndDate = this.parseDate(
-        dto.previous_end_date,
-        'previous_end_date',
-      );
       this.assertDateOrder(
         current.startDate,
-        previousEndDate,
-        'previous_end_date must be on or after the previous job start_date',
-      );
-      this.assertDateOrder(
-        previousEndDate,
         startDate,
-        'start_date must be on or after previous_end_date',
+        'start_date must be on or after the previous job start_date',
       );
       await this.alumniRepository.updateProfessional(current.id, {
-        endDate: previousEndDate,
+        endDate: startDate,
       });
     }
 
     const created = await this.alumniRepository.createProfessional(alumniId, {
       currentCompany: dto.current_company ?? null,
       jobTitle: dto.job_title ?? null,
-      industry: dto.industry ?? null,
-      yearsOfExperience: dto.years_of_experience ?? null,
-      linkedinUrl: dto.linkedin_url ?? null,
+      role: dto.role ?? null,
       startDate,
       endDate: null,
     });
@@ -118,9 +102,7 @@ export class MeCareerService {
     const updated = await this.alumniRepository.updateProfessional(id, {
       currentCompany: dto.current_company,
       jobTitle: dto.job_title,
-      industry: dto.industry,
-      yearsOfExperience: dto.years_of_experience,
-      linkedinUrl: dto.linkedin_url,
+      role: dto.role,
       startDate: dto.start_date ? startDate : undefined,
       endDate: dto.end_date !== undefined ? endDate : undefined,
     });
@@ -157,6 +139,7 @@ export class MeCareerService {
     const created = await this.alumniRepository.addAcademic(alumniId, {
       degreeProgramId: dto.degree_program_id,
       registrationRollNumber: dto.registration_roll_number,
+      registrationYear: dto.registration_year,
       graduationYear: dto.graduation_year,
       cgpa: dto.cgpa ?? null,
     });
@@ -179,6 +162,7 @@ export class MeCareerService {
     const updated = await this.alumniRepository.updateAcademic(id, {
       degreeProgramId: dto.degree_program_id,
       registrationRollNumber: dto.registration_roll_number,
+      registrationYear: dto.registration_year,
       graduationYear: dto.graduation_year,
       cgpa: dto.cgpa,
     });
@@ -285,9 +269,7 @@ export class MeCareerService {
       id: row.id,
       current_company: row.currentCompany,
       job_title: row.jobTitle,
-      industry: row.industry,
-      years_of_experience: row.yearsOfExperience,
-      linkedin_url: row.linkedinUrl,
+      role: row.role,
       start_date: row.startDate,
       end_date: row.endDate,
     };
@@ -301,6 +283,7 @@ export class MeCareerService {
       id: row.id,
       degree_program_id: row.degreeProgramId,
       registration_roll_number: row.registrationRollNumber,
+      registration_year: row.registrationYear,
       graduation_year: row.graduationYear,
       cgpa: row.cgpa,
       is_verification: isVerification,

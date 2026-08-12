@@ -75,11 +75,11 @@ export class AdminAlumniQueryDto {
   @MaxLength(100)
   country?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Filter by professional job role' })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  industry?: string;
+  @MaxLength(150)
+  role?: string;
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()

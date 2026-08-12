@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   ALUMNI_REPOSITORY,
   CONTACT_REQUEST_REPOSITORY,
-  PHOTO_UPLOAD_REPOSITORY,
   REGISTRATION_REQUEST_REPOSITORY,
   USER_REPOSITORY,
   VERIFICATION_TOKEN_REPOSITORY,
@@ -16,10 +15,12 @@ import {
   AlumniProfessionalInformationEntity,
   AlumniRegistrationRequestEntity,
   AlumniVerificationEntity,
+  PortalMediaEntity,
   RoleEntity,
 } from '../../database/entities';
 import { AuthModule } from '../auth/auth.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
+import { MediaModule } from '../media/media.module';
 import { AlumniDirectoryController } from './controllers/alumni-directory.controller';
 import { AlumniMeController } from './controllers/alumni-me.controller';
 import { AuthOnboardingController } from './controllers/auth-onboarding.controller';
@@ -27,7 +28,6 @@ import { InMemoryAlumniRepository } from './repositories/in-memory-alumni.reposi
 import { InMemoryContactRequestRepository } from './repositories/in-memory-contact-request.repository';
 import { InMemoryRegistrationRequestRepository } from './repositories/in-memory-registration-request.repository';
 import {
-  InMemoryPhotoUploadRepository,
   InMemoryVerificationTokenRepository,
 } from './repositories/in-memory-supporting.repository';
 import { InMemoryUserRepository } from './repositories/in-memory-user.repository';
@@ -50,6 +50,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
 @Module({
   imports: [
     IntegrationsModule,
+    MediaModule,
     forwardRef(() => AuthModule),
     ...(dbEnabled
       ? [
@@ -62,6 +63,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
             AlumniContactRequestEntity,
             AccountEntity,
             RoleEntity,
+            PortalMediaEntity,
           ]),
         ]
       : []),
@@ -103,10 +105,6 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
         : InMemoryVerificationTokenRepository,
     },
     {
-      provide: PHOTO_UPLOAD_REPOSITORY,
-      useClass: InMemoryPhotoUploadRepository,
-    },
-    {
       provide: CONTACT_REQUEST_REPOSITORY,
       useClass: dbEnabled
         ? TypeOrmContactRequestRepository
@@ -126,7 +124,6 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
     ALUMNI_REPOSITORY,
     USER_REPOSITORY,
     VERIFICATION_TOKEN_REPOSITORY,
-    PHOTO_UPLOAD_REPOSITORY,
     CONTACT_REQUEST_REPOSITORY,
   ],
 })

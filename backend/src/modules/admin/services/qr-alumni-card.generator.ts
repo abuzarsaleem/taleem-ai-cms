@@ -18,7 +18,7 @@ export class QrAlumniCardGenerator implements IAlumniCardGenerator {
 
   async generate(
     profile: AlumniProfile,
-    _options?: { photoUrl?: string },
+    _options?: { photoPublicUrl?: string | null },
   ): Promise<AlumniCardGenerationResult> {
     const verifyBase =
       process.env.ALUMNI_CARD_VERIFY_URL ??

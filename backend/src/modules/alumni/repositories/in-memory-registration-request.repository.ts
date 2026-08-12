@@ -28,7 +28,7 @@ export class InMemoryRegistrationRequestRepository
       degreeProgramId: input.degreeProgramId,
       registrationRollNumber: input.registrationRollNumber,
       graduationYear: input.graduationYear,
-      photoUrl: input.photoUrl ?? null,
+      photoMediaId: input.photoMediaId ?? null,
       reviewedBy: null,
       reviewedAt: null,
       rejectionReason: null,

@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiExcludeEndpoint,
   ApiOperation,
   ApiProduces,
   ApiTags,
@@ -17,14 +18,16 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import { ApiWrappedOkResponse } from '../../../common/swagger/api-wrapped-response.decorator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import {
   AdminAlumniQueryDto,
   AdminOutreachExportQueryDto,
 } from '../dto/admin-alumni.dto';
+import { AdminAlumniListResponseDto } from '../dto/admin-response.dto';
 import { AdminAlumniAnalyticsService } from '../services/admin-alumni-analytics.service';
 
-@ApiTags('Admin Alumni Analytics')
+@ApiTags('Admin / Alumni Analytics')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -39,12 +42,14 @@ export class AdminAlumniAnalyticsController {
     summary:
       'List alumni with search/filters plus demographic and geographic analytics',
   })
+  @ApiWrappedOkResponse(AdminAlumniListResponseDto)
   async list(@Query() query: AdminAlumniQueryDto) {
     const data = await this.adminAlumniAnalyticsService.list(query);
     return ApiResponseDto.of(data);
   }
 
   @Get('export/outreach')
+  @ApiExcludeEndpoint()
   @ApiOperation({
     summary:
       'Export filtered alumni outreach CSV for WhatsApp/email campaigns',

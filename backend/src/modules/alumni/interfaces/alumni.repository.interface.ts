@@ -13,11 +13,12 @@ export interface CreateAlumniInput {
   phoneNumber?: string | null;
   whatsappNumber?: string | null;
   cnicNationalId: string;
-  photoUrl?: string | null;
+  photoMediaId?: string | null;
   academic: {
     degreeProgramId: string;
     registrationRollNumber: string;
     graduationYear: string;
+    registrationYear?: string | null;
     cgpa?: number | null;
   };
 }
@@ -26,7 +27,6 @@ export interface AlumniDirectoryFilters {
   name?: string;
   graduationYear?: string;
   degreeProgramId?: string;
-  industry?: string;
   city?: string;
   country?: string;
   excludeAlumniId?: string;

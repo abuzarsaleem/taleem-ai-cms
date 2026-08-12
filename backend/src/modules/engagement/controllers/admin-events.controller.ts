@@ -4,20 +4,26 @@ import {
   Delete,
   Get,
   Header,
+  UploadedFile,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
   Query,
   Res,
+  UseInterceptors,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiExcludeEndpoint,
   ApiOperation,
   ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import type { AuthUser } from '../../../common/decorators/current-user.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -25,15 +31,27 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import {
+  ApiWrappedCreatedResponse,
+  ApiWrappedOkResponse,
+  ApiWrappedPaginatedResponse,
+} from '../../../common/swagger/api-wrapped-response.decorator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import {
   CreateEventDto,
   EventListQueryDto,
+  UploadEventImageResponseDto,
   UpdateEventDto,
 } from '../dto/event.dto';
+import {
+  AdminRsvpListItemDto,
+  DeletedIdResponseDto,
+  EventDetailResponseDto,
+  EventResponseDto,
+} from '../dto/event-response.dto';
 import { EventService } from '../services/event.service';
 
-@ApiTags('Events & RSVP')
+@ApiTags('Admin / Events')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -43,6 +61,7 @@ export class AdminEventsController {
 
   @Get()
   @ApiOperation({ summary: 'Admin list events' })
+  @ApiWrappedPaginatedResponse(EventDetailResponseDto)
   async list(@CurrentUser() user: AuthUser, @Query() query: EventListQueryDto) {
     const data = await this.eventService.list(user, query);
     return ApiResponseDto.of(data);
@@ -50,12 +69,39 @@ export class AdminEventsController {
 
   @Post()
   @ApiOperation({ summary: 'Create and publish an event' })
+  @ApiWrappedCreatedResponse(EventResponseDto)
   async create(@CurrentUser() admin: AuthUser, @Body() dto: CreateEventDto) {
     const data = await this.eventService.create(admin.userId, dto);
     return ApiResponseDto.of(data, 'Event published');
   }
 
+  @Post('upload-image')
+  @ApiOperation({ summary: 'Upload event image' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiWrappedCreatedResponse(UploadEventImageResponseDto)
+  async uploadImage(
+    @UploadedFile()
+    file: {
+      buffer: Buffer;
+      mimetype: string;
+      originalname: string;
+      size: number;
+    },
+  ) {
+    const data = await this.eventService.uploadImage(file);
+    return ApiResponseDto.of(data, 'Image uploaded');
+  }
+
   @Get(':id/manifest/export')
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Export attendance manifest CSV' })
   @ApiProduces('text/csv')
   @Header('Content-Type', 'text/csv; charset=utf-8')
@@ -71,8 +117,17 @@ export class AdminEventsController {
     res.send(csv);
   }
 
+  @Get(':id/rsvps')
+  @ApiOperation({ summary: 'List RSVPs for an event' })
+  @ApiWrappedOkResponse(AdminRsvpListItemDto, { isArray: true })
+  async listRsvps(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.eventService.listRsvps(id);
+    return ApiResponseDto.of(data);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Admin get event by id' })
+  @ApiWrappedOkResponse(EventDetailResponseDto)
   async getOne(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -83,6 +138,7 @@ export class AdminEventsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update an event' })
+  @ApiWrappedOkResponse(EventResponseDto)
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEventDto,
@@ -93,6 +149,7 @@ export class AdminEventsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an event' })
+  @ApiWrappedOkResponse(DeletedIdResponseDto)
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.eventService.remove(id);
     return ApiResponseDto.of(data, 'Event deleted');

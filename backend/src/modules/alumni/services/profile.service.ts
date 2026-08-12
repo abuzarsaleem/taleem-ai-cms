@@ -7,6 +7,7 @@ import { ResourceNotFoundException } from '../../../common/exceptions';
 import type { IObjectStorage } from '../../../common/interfaces/photo-storage.interface';
 import { UpdateProfileDto } from '../dto/f001.dto';
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
+import { PortalMediaService } from '../../media/portal-media.service';
 
 @Injectable()
 export class ProfileService {
@@ -16,6 +17,7 @@ export class ProfileService {
     @Inject(ALUMNI_REPOSITORY)
     private readonly alumniRepository: IAlumniRepository,
     @Inject(PHOTO_STORAGE) private readonly objectStorage: IObjectStorage,
+    private readonly portalMediaService: PortalMediaService,
   ) {}
 
   async getMyProfile(userId: string) {
@@ -41,6 +43,7 @@ export class ProfileService {
       country: dto.country,
       gender: dto.gender,
       dateOfBirth: dto.date_of_birth ? new Date(dto.date_of_birth) : undefined,
+      linkedinUrl: dto.linkedin_url,
     });
 
     this.logger.log(`ALUMNI_PROFILE_UPDATED alumniId=${profile.alumni.id}`);
@@ -55,9 +58,9 @@ export class ProfileService {
     const qrCode = a.qrCode
       ? await this.objectStorage.resolveDownloadUrl(a.qrCode)
       : a.qrCode;
-    const photoUrl = a.photoUrl
-      ? await this.objectStorage.resolveDownloadUrl(a.photoUrl)
-      : a.photoUrl;
+    const photoUrl = await this.portalMediaService.resolvePublicUrl(
+      a.photoMedia,
+    );
 
     return {
       alumni_id: a.id,
@@ -73,6 +76,7 @@ export class ProfileService {
       country: a.country,
       gender: a.gender,
       date_of_birth: a.dateOfBirth,
+      linkedin_url: a.linkedinUrl,
       photo_url: photoUrl,
       qr_code: qrCode,
       academic: this.mapAcademic(profile.academic),
@@ -93,6 +97,7 @@ export class ProfileService {
       id: row.id,
       degree_program_id: row.degreeProgramId,
       registration_roll_number: row.registrationRollNumber,
+      registration_year: row.registrationYear,
       graduation_year: row.graduationYear,
       cgpa: row.cgpa,
       is_verification: row.id === verificationId,
@@ -108,9 +113,7 @@ export class ProfileService {
       id: row.id,
       current_company: row.currentCompany,
       job_title: row.jobTitle,
-      industry: row.industry,
-      years_of_experience: row.yearsOfExperience,
-      linkedin_url: row.linkedinUrl,
+      role: row.role,
       start_date: row.startDate,
       end_date: row.endDate,
     }));

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -16,6 +17,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EventType, RsvpStatus } from '../../../common/enums';
+import { UploadMediaResponseDto } from '../../../common/dto/upload-media-response.dto';
 
 export class EventTargetCriteriaDto {
   @ApiPropertyOptional({
@@ -63,9 +65,13 @@ export class CreateEventDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ enum: EventType, default: EventType.OTHER })
+  @ApiProperty({
+    enum: EventType,
+    enumName: 'EventType',
+    example: EventType.OTHER,
+  })
   @IsEnum(EventType)
-  event_type: EventType = EventType.OTHER;
+  event_type: EventType;
 
   @ApiProperty({ example: '2026-09-15' })
   @IsDateString()
@@ -98,6 +104,21 @@ export class CreateEventDto {
   @MaxLength(200)
   guest_speaker?: string;
 
+  @ApiPropertyOptional({
+    description: 'media_id from POST /api/v1/admin/events/upload-image',
+  })
+  @IsOptional()
+  @IsUUID()
+  media_id?: string;
+
+  @ApiPropertyOptional({
+    description: 'When true, event is saved as draft and not shown to alumni',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_draft?: boolean = false;
+
   @ApiPropertyOptional({ type: EventTargetCriteriaDto })
   @IsOptional()
   @ValidateNested()
@@ -107,8 +128,10 @@ export class CreateEventDto {
 
 export class UpdateEventDto extends PartialType(CreateEventDto) {}
 
+export class UploadEventImageResponseDto extends UploadMediaResponseDto {}
+
 export class RsvpEventDto {
-  @ApiProperty({ enum: RsvpStatus })
+  @ApiProperty({ enum: RsvpStatus, enumName: 'RsvpStatus' })
   @IsEnum(RsvpStatus)
   status: RsvpStatus;
 }

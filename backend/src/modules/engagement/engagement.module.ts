@@ -7,10 +7,12 @@ import {
   DegreeProgramEntity,
   EventEntity,
   EventRsvpEntity,
+  PortalMediaEntity,
 } from '../../database/entities';
 import { AlumniModule } from '../alumni/alumni.module';
 import { AuthModule } from '../auth/auth.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
+import { MediaModule } from '../media/media.module';
 import { AdminAnnouncementsController } from './controllers/admin-announcements.controller';
 import { AdminEventsController } from './controllers/admin-events.controller';
 import { AnnouncementsController } from './controllers/announcements.controller';
@@ -25,6 +27,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
     AlumniModule,
     AuthModule,
     IntegrationsModule,
+    MediaModule,
     ...(dbEnabled
       ? [
           TypeOrmModule.forFeature([

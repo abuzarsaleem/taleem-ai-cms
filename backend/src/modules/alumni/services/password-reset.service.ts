@@ -16,6 +16,7 @@ import {
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
 import type { IUserRepository } from '../interfaces/user.repository.interface';
 import type { IVerificationTokenRepository } from '../interfaces/supporting.repository.interface';
+import { PasswordCryptoService } from '../../auth/password-crypto.service';
 
 const RESET_TTL_HOURS = 1;
 
@@ -31,6 +32,7 @@ export class PasswordResetService {
     private readonly tokenRepository: IVerificationTokenRepository,
     @Inject(NOTIFICATION_SENDER)
     private readonly notificationSender: INotificationSender,
+    private readonly passwordCryptoService: PasswordCryptoService,
   ) {}
 
   async forgotPassword(email: string) {
@@ -95,6 +97,7 @@ export class PasswordResetService {
   }
 
   async resetPassword(token: string, password: string) {
+    const plainPassword = this.passwordCryptoService.decryptPassword(password);
     const record = await this.tokenRepository.findValidByHash(
       hashToken(token),
       VerificationTokenType.PASSWORD_RESET,
@@ -109,7 +112,7 @@ export class PasswordResetService {
     }
 
     await this.userRepository.update(user.id, {
-      passwordHash: await hashPassword(password),
+      passwordHash: await hashPassword(plainPassword),
       failedLoginAttempts: 0,
       lockedUntil: null,
     });

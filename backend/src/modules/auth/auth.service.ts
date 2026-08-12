@@ -6,6 +6,7 @@ import { UserRole } from '../../common/enums';
 import { BusinessException } from '../../common/exceptions';
 import { hashPassword, verifyPassword } from '../../common/utils';
 import type { IUserRepository } from '../alumni/interfaces/user.repository.interface';
+import { PasswordCryptoService } from './password-crypto.service';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
@@ -16,6 +17,7 @@ export class AuthService implements OnModuleInit {
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     private readonly jwtService: JwtService,
+    private readonly passwordCryptoService: PasswordCryptoService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -38,6 +40,7 @@ export class AuthService implements OnModuleInit {
     password: string,
     allowedRoles?: UserRole[],
   ): Promise<{ accessToken: string; role: UserRole; userId: string }> {
+    const plainPassword = this.passwordCryptoService.decryptPassword(password);
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
       throw new BusinessException(
@@ -71,7 +74,7 @@ export class AuthService implements OnModuleInit {
       );
     }
 
-    const valid = await verifyPassword(password, user.passwordHash);
+    const valid = await verifyPassword(plainPassword, user.passwordHash);
     if (!valid) {
       const failed = user.failedLoginAttempts + 1;
       const patch: Partial<typeof user> = { failedLoginAttempts: failed };

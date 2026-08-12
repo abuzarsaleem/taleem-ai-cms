@@ -13,6 +13,7 @@ import { EventRsvpEntity } from './event-rsvp.entity';
 import { EventEntity } from './event.entity';
 import { ProgramEntity } from './program.entity';
 import { RoleEntity } from './role.entity';
+import { PortalMediaEntity } from './portal-media.entity';
 
 export const databaseEntities = [
   RoleEntity,
@@ -21,6 +22,7 @@ export const databaseEntities = [
   DegreeEntity,
   ProgramEntity,
   DegreeProgramEntity,
+  PortalMediaEntity,
   AlumniRegistrationRequestEntity,
   AlumniEntity,
   AlumniAcademicInformationEntity,
@@ -39,6 +41,7 @@ export {
   DegreeEntity,
   ProgramEntity,
   DegreeProgramEntity,
+  PortalMediaEntity,
   AlumniRegistrationRequestEntity,
   AlumniEntity,
   AlumniAcademicInformationEntity,

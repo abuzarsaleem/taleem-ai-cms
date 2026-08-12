@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { AlumniStatus } from '../../../common/enums';
 import { AlumniEntity } from '../../../database/entities';
+import { PortalMediaService } from '../../media/portal-media.service';
 import {
   AdminAlumniQueryDto,
   AdminOutreachChannel,
@@ -14,6 +15,7 @@ export class AdminAlumniAnalyticsService {
   constructor(
     @InjectRepository(AlumniEntity)
     private readonly alumniRepo: Repository<AlumniEntity>,
+    private readonly portalMediaService: PortalMediaService,
   ) {}
 
   async list(query: AdminAlumniQueryDto) {
@@ -27,16 +29,19 @@ export class AdminAlumniAnalyticsService {
 
     const [rows, total] = await qb.getManyAndCount();
 
-    const items = rows.map((row) => ({
-      alumni_id: row.id,
-      full_name: row.fullName,
-      email: row.email,
-      phone_number: row.phoneNumber,
-      whatsapp_number: row.whatsappNumber,
-      city: row.city,
-      country: row.country,
-      photo_url: row.photoUrl,
-      graduation_year: row.academicRecords?.[0]?.graduationYear ?? null,
+    const items = await Promise.all(
+      rows.map(async (row) => ({
+        alumni_id: row.id,
+        full_name: row.fullName,
+        email: row.email,
+        phone_number: row.phoneNumber,
+        whatsapp_number: row.whatsappNumber,
+        city: row.city,
+        country: row.country,
+        photo_url: await this.portalMediaService.resolvePublicUrl(
+          row.photoMedia,
+        ),
+        graduation_year: row.academicRecords?.[0]?.graduationYear ?? null,
       registration_roll_number:
         row.academicRecords?.[0]?.registrationRollNumber ?? null,
       degree_program_id: row.academicRecords?.[0]?.degreeProgramId ?? null,
@@ -58,10 +63,11 @@ export class AdminAlumniAnalyticsService {
           ? {
               current_company: row.professionalRecords[0].currentCompany,
               job_title: row.professionalRecords[0].jobTitle,
-              industry: row.professionalRecords[0].industry,
+              role: row.professionalRecords[0].role,
             }
           : null,
-    }));
+      })),
+    );
 
     const [distribution, geography] = await Promise.all([
       this.buildDistribution(query),
@@ -206,6 +212,7 @@ export class AdminAlumniAnalyticsService {
       .leftJoinAndSelect('degreeProgram.program', 'program')
       .leftJoinAndSelect('degreeProgram.campus', 'campus')
       .leftJoinAndSelect('alumni.professionalRecords', 'professional')
+      .leftJoinAndSelect('alumni.photoMedia', 'photoMedia')
       .where('alumni.status = :status', { status: AlumniStatus.ACTIVE });
 
     this.applyFilters(qb, query);
@@ -277,9 +284,9 @@ export class AdminAlumniAnalyticsService {
         country: `%${query.country.trim().toLowerCase()}%`,
       });
     }
-    if (query.industry?.trim()) {
-      qb.andWhere('LOWER(professional.industry) LIKE :industry', {
-        industry: `%${query.industry.trim().toLowerCase()}%`,
+    if (query.role?.trim()) {
+      qb.andWhere('LOWER(professional.role) LIKE :role', {
+        role: `%${query.role.trim().toLowerCase()}%`,
       });
     }
   }

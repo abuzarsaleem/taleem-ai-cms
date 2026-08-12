@@ -11,16 +11,13 @@ import {
   ResourceNotFoundException,
 } from '../../../common/exceptions';
 import type { INotificationSender } from '../../../common/interfaces/notification-sender.interface';
-import {
-  generateRawToken,
-  hashPassword,
-  hashToken,
-} from '../../../common/utils';
+import { generateRawToken, hashToken } from '../../../common/utils';
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
 import type { IUserRepository } from '../interfaces/user.repository.interface';
 import type { IVerificationTokenRepository } from '../interfaces/supporting.repository.interface';
 
 const ACTIVATION_TTL_HOURS = 48;
+const POST_ACTIVATION_RESET_TTL_HOURS = 1;
 
 @Injectable()
 export class ActivationService {
@@ -77,8 +74,11 @@ export class ActivationService {
     return rawToken;
   }
 
-  /** FR-002: UPDATE existing users row — do not INSERT a new user. */
-  async activate(token: string, password: string) {
+  /**
+   * Validates the email activation token, activates the account, and returns a
+   * one-time password-reset token for POST /auth/reset-password.
+   */
+  async activate(token: string) {
     const record = await this.tokenRepository.findValidByHash(
       hashToken(token),
       VerificationTokenType.ACTIVATION,
@@ -97,11 +97,26 @@ export class ActivationService {
     }
 
     await this.userRepository.update(user.id, {
-      passwordHash: await hashPassword(password),
       isActive: true,
       role: UserRole.ALUMNI,
     });
     await this.tokenRepository.markUsed(record.id);
+
+    await this.tokenRepository.invalidateActiveForUser(
+      user.id,
+      VerificationTokenType.PASSWORD_RESET,
+    );
+
+    const resetToken = generateRawToken();
+    await this.tokenRepository.create({
+      userId: user.id,
+      alumniId: record.alumniId,
+      tokenHash: hashToken(resetToken),
+      tokenType: VerificationTokenType.PASSWORD_RESET,
+      expiresAt: new Date(
+        Date.now() + POST_ACTIVATION_RESET_TTL_HOURS * 60 * 60 * 1000,
+      ),
+    });
 
     this.logger.log(`ALUMNI_ACCOUNT_ACTIVATED userId=${user.id}`);
 
@@ -109,6 +124,7 @@ export class ActivationService {
       user_id: user.id,
       email: user.email,
       activated: true,
+      reset_token: resetToken,
     };
   }
 

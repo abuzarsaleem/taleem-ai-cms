@@ -8,17 +8,9 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { UploadMediaResponseDto } from '../../../common/dto/upload-media-response.dto';
 
-export class UploadPhotoResponseDto {
-  @ApiProperty()
-  upload_id: string;
-
-  @ApiProperty()
-  public_url: string;
-
-  @ApiProperty()
-  expires_at: Date;
-}
+export class UploadPhotoResponseDto extends UploadMediaResponseDto {}
 
 export class RegisterDto {
   @ApiProperty()
@@ -68,22 +60,18 @@ export class RegisterDto {
   @MaxLength(20)
   graduation_year: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'media_id from POST /auth/upload-photo',
+  })
   @IsOptional()
   @IsUUID()
-  upload_id?: string;
+  media_id?: string;
 }
 
 export class ActivateDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Activation token from email link' })
   @IsString()
   token: string;
-
-  @ApiProperty()
-  @IsString()
-  @MinLength(8)
-  @MaxLength(128)
-  password: string;
 }
 
 export class LoginDto {
@@ -91,7 +79,10 @@ export class LoginDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      'Base64 RSA-OAEP encrypted password using GET /auth/password-public-key',
+  })
   @IsString()
   @MinLength(1)
   password: string;
@@ -115,7 +106,11 @@ export class ResetPasswordDto {
   @IsString()
   token: string;
 
-  @ApiProperty({ minLength: 8 })
+  @ApiProperty({
+    minLength: 8,
+    description:
+      'Base64 RSA-OAEP encrypted new password using GET /auth/password-public-key',
+  })
   @IsString()
   @MinLength(8)
   @MaxLength(128)
@@ -169,4 +164,10 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   date_of_birth?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  linkedin_url?: string;
 }

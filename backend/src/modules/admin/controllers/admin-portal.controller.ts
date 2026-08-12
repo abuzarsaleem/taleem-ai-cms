@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
+  Optional,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -22,28 +24,60 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { RegistrationStatus, UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import {
+  ApiWrappedCreatedResponse,
+  ApiWrappedOkOneOfResponse,
+  ApiWrappedOkResponse,
+} from '../../../common/swagger/api-wrapped-response.decorator';
 import { AuthService } from '../../auth/auth.service';
+import { PasswordCryptoService } from '../../auth/password-crypto.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import {
+  AuthTokenResponseDto,
+  PasswordPublicKeyResponseDto,
+} from '../../alumni/dto/auth-response.dto';
+import {
+  AdminDashboardResponseDto,
   AdminLoginDto,
   ReviewRegistrationDto,
 } from '../dto/admin.dto';
+import {
+  RegistrationApproveResponseDto,
+  RegistrationDetailResponseDto,
+  RegistrationListItemDto,
+  RegistrationRejectResponseDto,
+} from '../dto/admin-response.dto';
+import { AdminDashboardService } from '../services/admin-dashboard.service';
 import { ApprovalService } from '../services/approval.service';
 import { RegistrationReviewService } from '../services/registration-review.service';
 import { RejectionService } from '../services/rejection.service';
 
-@ApiTags('Admin Portal')
+@ApiTags('Admin / Auth, Dashboard & Registrations')
 @Controller('admin')
 export class AdminPortalController {
   constructor(
     private readonly authService: AuthService,
+    private readonly passwordCryptoService: PasswordCryptoService,
     private readonly reviewService: RegistrationReviewService,
     private readonly approvalService: ApprovalService,
     private readonly rejectionService: RejectionService,
+    @Optional()
+    @Inject(AdminDashboardService)
+    private readonly dashboardService?: AdminDashboardService,
   ) {}
+
+  @Get('auth/password-public-key')
+  @ApiOperation({
+    summary: 'Get RSA public key for frontend password encryption',
+  })
+  @ApiWrappedOkResponse(PasswordPublicKeyResponseDto)
+  getPasswordPublicKey() {
+    return ApiResponseDto.of(this.passwordCryptoService.getPublicKeyPayload());
+  }
 
   @Post('auth/login')
   @ApiOperation({ summary: 'Admin login' })
+  @ApiWrappedCreatedResponse(AuthTokenResponseDto)
   async login(@Body() dto: AdminLoginDto) {
     const data = await this.authService.login(dto.email, dto.password, [
       UserRole.ADMIN,
@@ -63,9 +97,12 @@ export class AdminPortalController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin dashboard counts' })
+  @ApiOperation({ summary: 'Admin dashboard statistics' })
+  @ApiWrappedOkResponse(AdminDashboardResponseDto)
   async dashboard() {
-    const data = await this.reviewService.dashboard();
+    const data = this.dashboardService
+      ? await this.dashboardService.getDashboard()
+      : await this.reviewService.dashboard();
     return ApiResponseDto.of(data);
   }
 
@@ -75,6 +112,7 @@ export class AdminPortalController {
   @ApiBearerAuth()
   @ApiQuery({ name: 'status', required: false, enum: RegistrationStatus })
   @ApiOperation({ summary: 'List registration requests' })
+  @ApiWrappedOkResponse(RegistrationListItemDto, { isArray: true })
   async list(@Query('status') status?: RegistrationStatus) {
     const data = await this.reviewService.list(status);
     return ApiResponseDto.of(data);
@@ -85,6 +123,7 @@ export class AdminPortalController {
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Registration detail' })
+  @ApiWrappedOkResponse(RegistrationDetailResponseDto)
   async detail(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.reviewService.detail(id);
     return ApiResponseDto.of(data);
@@ -97,13 +136,21 @@ export class AdminPortalController {
   @ApiOperation({
     summary: 'Approve or reject registration via status body',
   })
+  @ApiWrappedOkOneOfResponse([
+    RegistrationApproveResponseDto,
+    RegistrationRejectResponseDto,
+  ])
   async review(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: AuthUser,
     @Body() dto: ReviewRegistrationDto,
   ) {
     if (dto.status === RegistrationStatus.APPROVED) {
-      const data = await this.approvalService.approve(id, admin.userId);
+      const data = await this.approvalService.approve(
+        id,
+        admin.userId,
+        dto.cnic_national_id,
+      );
       return ApiResponseDto.of(data, 'Registration approved');
     }
 
@@ -111,6 +158,7 @@ export class AdminPortalController {
       id,
       admin.userId,
       dto.rejection_reason ?? '',
+      dto.cnic_national_id,
     );
     return ApiResponseDto.of(data, 'Registration rejected');
   }

@@ -26,15 +26,25 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import {
+  ApiWrappedCreatedResponse,
+  ApiWrappedOkResponse,
+  ApiWrappedPaginatedResponse,
+} from '../../../common/swagger/api-wrapped-response.decorator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import {
   AnnouncementListQueryDto,
   CreateAnnouncementDto,
   UpdateAnnouncementDto,
+  UploadAnnouncementImageResponseDto,
 } from '../dto/announcement.dto';
+import {
+  AnnouncementResponseDto,
+  DeletedAnnouncementResponseDto,
+} from '../dto/announcement-response.dto';
 import { AnnouncementService } from '../services/announcement.service';
 
-@ApiTags('Announcements')
+@ApiTags('Admin / Announcements')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -44,6 +54,7 @@ export class AdminAnnouncementsController {
 
   @Get()
   @ApiOperation({ summary: 'Admin announcements feed' })
+  @ApiWrappedPaginatedResponse(AnnouncementResponseDto)
   async list(
     @CurrentUser() user: AuthUser,
     @Query() query: AnnouncementListQueryDto,
@@ -64,6 +75,7 @@ export class AdminAnnouncementsController {
       properties: { file: { type: 'string', format: 'binary' } },
     },
   })
+  @ApiWrappedCreatedResponse(UploadAnnouncementImageResponseDto)
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(
     @UploadedFile()
@@ -83,6 +95,7 @@ export class AdminAnnouncementsController {
     summary:
       'Create announcement or alumni spotlight',
   })
+  @ApiWrappedCreatedResponse(AnnouncementResponseDto)
   async create(
     @CurrentUser() admin: AuthUser,
     @Body() dto: CreateAnnouncementDto,
@@ -93,6 +106,7 @@ export class AdminAnnouncementsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Admin get announcement by id' })
+  @ApiWrappedOkResponse(AnnouncementResponseDto)
   async getOne(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -105,6 +119,7 @@ export class AdminAnnouncementsController {
   @ApiOperation({
     summary: 'Update announcement',
   })
+  @ApiWrappedOkResponse(AnnouncementResponseDto)
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateAnnouncementDto,
@@ -115,6 +130,7 @@ export class AdminAnnouncementsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete announcement' })
+  @ApiWrappedOkResponse(DeletedAnnouncementResponseDto)
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.announcementService.remove(id);
     return ApiResponseDto.of(data, 'Announcement deleted');

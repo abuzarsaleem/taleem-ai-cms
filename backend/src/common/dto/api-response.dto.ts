@@ -4,9 +4,10 @@ export class ApiResponseDto<T> {
   @ApiProperty({ example: true })
   success: boolean;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ example: 'Operation completed' })
   message?: string;
 
+  @ApiProperty({ description: 'Endpoint-specific response payload' })
   data: T;
 
   constructor(data: T, message?: string) {

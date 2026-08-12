@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -25,41 +24,17 @@ export class CreateProfessionalDto {
   @MaxLength(150)
   job_title?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Job role' })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  industry?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  years_of_experience?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  linkedin_url?: string;
+  @MaxLength(150)
+  role?: string;
 
   @ApiProperty({ example: '2024-01-15' })
   @IsString()
   @MinLength(8)
   @MaxLength(10)
   start_date: string;
-
-  @ApiPropertyOptional({
-    description:
-      'Required when a current job (end_date null) already exists; closes that job',
-    example: '2023-12-31',
-  })
-  @IsOptional()
-  @IsString()
-  @MinLength(8)
-  @MaxLength(10)
-  previous_end_date?: string;
 }
 
 export class UpdateProfessionalDto {
@@ -75,24 +50,11 @@ export class UpdateProfessionalDto {
   @MaxLength(150)
   job_title?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Job role' })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  industry?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  years_of_experience?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  linkedin_url?: string;
+  @MaxLength(150)
+  role?: string;
 
   @ApiPropertyOptional({ example: '2024-01-15' })
   @IsOptional()
@@ -121,6 +83,11 @@ export class CreateAcademicDto {
   @MaxLength(50)
   registration_roll_number: string;
 
+  @ApiProperty({ example: '2017', description: 'Year of university registration/enrollment' })
+  @IsString()
+  @MaxLength(20)
+  registration_year: string;
+
   @ApiProperty({ example: '2021' })
   @IsString()
   @MaxLength(20)
@@ -146,6 +113,12 @@ export class UpdateAcademicDto {
   @IsString()
   @MaxLength(50)
   registration_roll_number?: string;
+
+  @ApiPropertyOptional({ example: '2017' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  registration_year?: string;
 
   @ApiPropertyOptional({ example: '2021' })
   @IsOptional()

@@ -25,7 +25,12 @@ export class RejectionService {
   /**
    * FR-008–010: rejection has no account-creation step (unlike approval).
    */
-  async reject(registrationId: string, adminUserId: string, reason: string) {
+  async reject(
+    registrationId: string,
+    adminUserId: string,
+    reason: string,
+    cnicNationalId: string,
+  ) {
     const trimmed = reason?.trim();
     if (!trimmed) {
       throw new BusinessException('Rejection reason is required');
@@ -40,6 +45,13 @@ export class RejectionService {
         `Registration is already ${request.status}`,
         HttpStatus.CONFLICT,
         'ALREADY_REVIEWED',
+      );
+    }
+    if (request.cnicNationalId !== cnicNationalId.trim()) {
+      throw new BusinessException(
+        'CNIC does not match this registration request',
+        HttpStatus.BAD_REQUEST,
+        'CNIC_MISMATCH',
       );
     }
 

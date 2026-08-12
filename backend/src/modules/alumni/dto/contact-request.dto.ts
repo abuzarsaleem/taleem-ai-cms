@@ -35,12 +35,6 @@ export class DirectoryQueryDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  industry?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
   city?: string;
 
   @ApiPropertyOptional()

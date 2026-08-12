@@ -36,6 +36,9 @@ export class AlumniAcademicInformationEntity {
   @Column({ name: 'registration_roll_number', type: 'varchar', length: 50 })
   registrationRollNumber: string;
 
+  @Column({ name: 'registration_year', type: 'varchar', length: 20, nullable: true })
+  registrationYear: string | null;
+
   @Column({ name: 'graduation_year', type: 'varchar', length: 20 })
   graduationYear: string;
 

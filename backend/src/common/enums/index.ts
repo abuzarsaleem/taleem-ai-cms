@@ -6,3 +6,4 @@ export * from './contact-request-status.enum';
 export * from './event-type.enum';
 export * from './rsvp-status.enum';
 export * from './announcement-category.enum';
+export * from './portal-media-type.enum';

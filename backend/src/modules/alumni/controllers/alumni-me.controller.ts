@@ -16,6 +16,10 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { UserRole } from '../../../common/enums';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import {
+  ApiWrappedCreatedResponse,
+  ApiWrappedOkResponse,
+} from '../../../common/swagger/api-wrapped-response.decorator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { UpdateProfileDto } from '../dto/f001.dto';
 import {
@@ -24,10 +28,16 @@ import {
   UpdateAcademicDto,
   UpdateProfessionalDto,
 } from '../dto/me-career.dto';
+import {
+  AlumniProfileResponseDto,
+  IdResponseDto,
+  ProfileAcademicItemDto,
+  ProfileProfessionalItemDto,
+} from '../dto/me-response.dto';
 import { MeCareerService } from '../services/me-career.service';
 import { ProfileService } from '../services/profile.service';
 
-@ApiTags('Alumni Self-Service')
+@ApiTags('Alumni / Profile & Career')
 @Controller('me')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ALUMNI)
@@ -40,6 +50,7 @@ export class AlumniMeController {
 
   @Get('profile')
   @ApiOperation({ summary: 'Get my alumni profile' })
+  @ApiWrappedOkResponse(AlumniProfileResponseDto)
   async getProfile(@CurrentUser() user: AuthUser) {
     const data = await this.profileService.getMyProfile(user.userId);
     return ApiResponseDto.of(data);
@@ -47,6 +58,7 @@ export class AlumniMeController {
 
   @Put('profile')
   @ApiOperation({ summary: 'Update my editable personal/contact profile fields' })
+  @ApiWrappedOkResponse(AlumniProfileResponseDto)
   async updateProfile(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateProfileDto,
@@ -57,16 +69,15 @@ export class AlumniMeController {
 
   @Get('professional')
   @ApiOperation({ summary: 'List my professional information records' })
+  @ApiWrappedOkResponse(ProfileProfessionalItemDto, { isArray: true })
   async listProfessional(@CurrentUser() user: AuthUser) {
     const data = await this.meCareerService.listProfessional(user.userId);
     return ApiResponseDto.of(data);
   }
 
   @Post('professional')
-  @ApiOperation({
-    summary:
-      'Add a current job',
-  })
+  @ApiOperation({ summary: 'Add a current job' })
+  @ApiWrappedCreatedResponse(ProfileProfessionalItemDto)
   async createProfessional(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateProfessionalDto,
@@ -80,6 +91,7 @@ export class AlumniMeController {
 
   @Put('professional/:id')
   @ApiOperation({ summary: 'Update one of my professional information records' })
+  @ApiWrappedOkResponse(ProfileProfessionalItemDto)
   async updateProfessional(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -95,6 +107,7 @@ export class AlumniMeController {
 
   @Delete('professional/:id')
   @ApiOperation({ summary: 'Delete one of my professional information records' })
+  @ApiWrappedOkResponse(IdResponseDto)
   async deleteProfessional(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -105,6 +118,7 @@ export class AlumniMeController {
 
   @Get('academic')
   @ApiOperation({ summary: 'List my academic information records' })
+  @ApiWrappedOkResponse(ProfileAcademicItemDto, { isArray: true })
   async listAcademic(@CurrentUser() user: AuthUser) {
     const data = await this.meCareerService.listAcademic(user.userId);
     return ApiResponseDto.of(data);
@@ -112,6 +126,7 @@ export class AlumniMeController {
 
   @Post('academic')
   @ApiOperation({ summary: 'Add an additional academic information record' })
+  @ApiWrappedCreatedResponse(ProfileAcademicItemDto)
   async createAcademic(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateAcademicDto,
@@ -121,10 +136,8 @@ export class AlumniMeController {
   }
 
   @Put('academic/:id')
-  @ApiOperation({
-    summary:
-      'Update an academic information record',
-  })
+  @ApiOperation({ summary: 'Update an academic information record' })
+  @ApiWrappedOkResponse(ProfileAcademicItemDto)
   async updateAcademic(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -139,10 +152,8 @@ export class AlumniMeController {
   }
 
   @Delete('academic/:id')
-  @ApiOperation({
-    summary:
-      'Delete an academic information record',
-  })
+  @ApiOperation({ summary: 'Delete an academic information record' })
+  @ApiWrappedOkResponse(IdResponseDto)
   async deleteAcademic(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

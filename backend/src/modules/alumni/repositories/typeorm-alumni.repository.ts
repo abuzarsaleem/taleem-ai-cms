@@ -47,8 +47,9 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       secondryAddress: null,
       city: null,
       country: null,
+      linkedinUrl: null,
       qrCode: '',
-      photoUrl: input.photoUrl ?? null,
+      photoMediaId: input.photoMediaId ?? null,
     });
     const saved = await this.alumniRepo.save(alumni);
 
@@ -56,6 +57,7 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       alumniId: saved.id,
       degreeProgramId: input.academic.degreeProgramId,
       registrationRollNumber: input.academic.registrationRollNumber,
+      registrationYear: input.academic.registrationYear ?? null,
       graduationYear: input.academic.graduationYear,
       cgpa:
         input.academic.cgpa !== undefined && input.academic.cgpa !== null
@@ -71,7 +73,11 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
     return this.toProfile(
       await this.alumniRepo.findOne({
         where: { id },
-        relations: { academicRecords: true, professionalRecords: true },
+        relations: {
+          academicRecords: true,
+          professionalRecords: true,
+          photoMedia: true,
+        },
       }),
     );
   }
@@ -80,7 +86,11 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
     return this.toProfile(
       await this.alumniRepo.findOne({
         where: { email: email.toLowerCase() },
-        relations: { academicRecords: true, professionalRecords: true },
+        relations: {
+          academicRecords: true,
+          professionalRecords: true,
+          photoMedia: true,
+        },
       }),
     );
   }
@@ -89,7 +99,11 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
     return this.toProfile(
       await this.alumniRepo.findOne({
         where: { userId },
-        relations: { academicRecords: true, professionalRecords: true },
+        relations: {
+          academicRecords: true,
+          professionalRecords: true,
+          photoMedia: true,
+        },
       }),
     );
   }
@@ -100,14 +114,22 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
     return this.toProfile(
       await this.alumniRepo.findOne({
         where: { registrationRequestId },
-        relations: { academicRecords: true, professionalRecords: true },
+        relations: {
+          academicRecords: true,
+          professionalRecords: true,
+          photoMedia: true,
+        },
       }),
     );
   }
 
   async findAll(): Promise<AlumniProfile[]> {
     const rows = await this.alumniRepo.find({
-      relations: { academicRecords: true, professionalRecords: true },
+      relations: {
+        academicRecords: true,
+        professionalRecords: true,
+        photoMedia: true,
+      },
       order: { createdAt: 'DESC' },
     });
     return rows
@@ -125,6 +147,7 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       .createQueryBuilder('alumni')
       .leftJoinAndSelect('alumni.academicRecords', 'academic')
       .leftJoinAndSelect('alumni.professionalRecords', 'professional')
+      .leftJoinAndSelect('alumni.photoMedia', 'photoMedia')
       .where('alumni.status = :status', { status: AlumniStatus.ACTIVE });
 
     if (filters.excludeAlumniId) {
@@ -155,11 +178,6 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
     if (filters.degreeProgramId) {
       qb.andWhere('academic.degreeProgramId = :degreeProgramId', {
         degreeProgramId: filters.degreeProgramId,
-      });
-    }
-    if (filters.industry?.trim()) {
-      qb.andWhere('LOWER(professional.industry) LIKE :industry', {
-        industry: `%${filters.industry.trim().toLowerCase()}%`,
       });
     }
 
@@ -205,11 +223,16 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       existing.secondryAddress = patch.secondryAddress;
     if (patch.city !== undefined) existing.city = patch.city;
     if (patch.country !== undefined) existing.country = patch.country;
+    if (patch.linkedinUrl !== undefined) existing.linkedinUrl = patch.linkedinUrl;
     if (patch.qrCode !== undefined) existing.qrCode = patch.qrCode;
-    if (patch.photoUrl !== undefined) existing.photoUrl = patch.photoUrl;
+    if (patch.photoMediaId !== undefined) existing.photoMediaId = patch.photoMediaId;
 
     const saved = await this.alumniRepo.save(existing);
-    return this.toAlumniDomain(saved);
+    const withMedia = await this.alumniRepo.findOne({
+      where: { id: saved.id },
+      relations: { photoMedia: true },
+    });
+    return this.toAlumniDomain(withMedia ?? saved);
   }
 
   async addAcademic(
@@ -223,6 +246,7 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       alumniId,
       degreeProgramId: data.degreeProgramId,
       registrationRollNumber: data.registrationRollNumber,
+      registrationYear: data.registrationYear ?? null,
       graduationYear: data.graduationYear,
       cgpa: data.cgpa !== null && data.cgpa !== undefined ? String(data.cgpa) : null,
     });
@@ -258,6 +282,8 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       existing.degreeProgramId = patch.degreeProgramId;
     if (patch.registrationRollNumber !== undefined)
       existing.registrationRollNumber = patch.registrationRollNumber;
+    if (patch.registrationYear !== undefined)
+      existing.registrationYear = patch.registrationYear;
     if (patch.graduationYear !== undefined)
       existing.graduationYear = patch.graduationYear;
     if (patch.cgpa !== undefined) {
@@ -313,9 +339,7 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       alumniId,
       currentCompany: data.currentCompany ?? null,
       jobTitle: data.jobTitle ?? null,
-      industry: data.industry ?? null,
-      yearsOfExperience: data.yearsOfExperience ?? null,
-      linkedinUrl: data.linkedinUrl ?? null,
+      role: data.role ?? null,
       startDate: this.toDateString(data.startDate),
       endDate: data.endDate ? this.toDateString(data.endDate) : null,
     });
@@ -338,11 +362,7 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
     if (patch.currentCompany !== undefined)
       existing.currentCompany = patch.currentCompany;
     if (patch.jobTitle !== undefined) existing.jobTitle = patch.jobTitle;
-    if (patch.industry !== undefined) existing.industry = patch.industry;
-    if (patch.yearsOfExperience !== undefined)
-      existing.yearsOfExperience = patch.yearsOfExperience;
-    if (patch.linkedinUrl !== undefined)
-      existing.linkedinUrl = patch.linkedinUrl;
+    if (patch.role !== undefined) existing.role = patch.role;
     if (patch.startDate !== undefined)
       existing.startDate = this.toDateString(patch.startDate);
     if (patch.endDate !== undefined) {
@@ -389,8 +409,16 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       secondryAddress: entity.secondryAddress,
       city: entity.city,
       country: entity.country,
+      linkedinUrl: entity.linkedinUrl,
       qrCode: entity.qrCode,
-      photoUrl: entity.photoUrl,
+      photoMediaId: entity.photoMediaId,
+      photoMedia: entity.photoMedia
+        ? {
+            id: entity.photoMedia.id,
+            publicUrl: entity.photoMedia.publicUrl,
+            storageKey: entity.photoMedia.storageKey,
+          }
+        : null,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -404,6 +432,7 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       alumniId: entity.alumniId,
       degreeProgramId: entity.degreeProgramId,
       registrationRollNumber: entity.registrationRollNumber,
+      registrationYear: entity.registrationYear,
       graduationYear: entity.graduationYear,
       cgpa: entity.cgpa !== null ? Number(entity.cgpa) : null,
       createdAt: entity.createdAt,
@@ -419,9 +448,7 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       alumniId: entity.alumniId,
       currentCompany: entity.currentCompany,
       jobTitle: entity.jobTitle,
-      industry: entity.industry,
-      yearsOfExperience: entity.yearsOfExperience,
-      linkedinUrl: entity.linkedinUrl,
+      role: entity.role,
       startDate: new Date(entity.startDate),
       endDate: entity.endDate ? new Date(entity.endDate) : null,
       createdAt: entity.createdAt,

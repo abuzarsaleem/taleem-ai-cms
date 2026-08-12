@@ -12,6 +12,7 @@ import {
 import { EVENT_TYPE_ENUM, EventType } from '../../common/enums';
 import { AccountEntity } from './account.entity';
 import { EventRsvpEntity } from './event-rsvp.entity';
+import { PortalMediaEntity } from './portal-media.entity';
 
 export type EventTargetCriteria = {
   campus_ids?: string[];
@@ -55,6 +56,16 @@ export class EventEntity {
 
   @Column({ name: 'guest_speaker', type: 'varchar', length: 200, nullable: true })
   guestSpeaker: string | null;
+
+  @Column({ name: 'image_media_id', type: 'uuid', nullable: true })
+  imageMediaId: string | null;
+
+  @ManyToOne(() => PortalMediaEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'image_media_id' })
+  imageMedia: PortalMediaEntity | null;
+
+  @Column({ name: 'is_draft', type: 'boolean', default: false })
+  isDraft: boolean;
 
   @Column({ name: 'target_criteria', type: 'jsonb', nullable: true, default: null })
   targetCriteria: EventTargetCriteria | null;

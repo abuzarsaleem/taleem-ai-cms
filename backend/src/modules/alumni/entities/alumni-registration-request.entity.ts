@@ -1,4 +1,5 @@
 import { RegistrationStatus } from '../../../common/enums';
+import { PortalMediaRef } from './portal-media-ref';
 
 export class AlumniRegistrationRequest {
   id: string;
@@ -11,7 +12,8 @@ export class AlumniRegistrationRequest {
   degreeProgramId: string;
   registrationRollNumber: string;
   graduationYear: string;
-  photoUrl: string | null;
+  photoMediaId: string | null;
+  photoMedia?: PortalMediaRef | null;
   reviewedBy: string | null;
   reviewedAt: Date | null;
   rejectionReason: string | null;

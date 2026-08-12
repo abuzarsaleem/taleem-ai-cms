@@ -10,7 +10,7 @@ export interface CreateRegistrationRequestInput {
   degreeProgramId: string;
   registrationRollNumber: string;
   graduationYear: string;
-  photoUrl?: string | null;
+  photoMediaId?: string | null;
 }
 
 export interface IRegistrationRequestRepository {

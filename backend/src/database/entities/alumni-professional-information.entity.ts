@@ -29,14 +29,8 @@ export class AlumniProfessionalInformationEntity {
   @Column({ name: 'job_title', type: 'varchar', length: 150, nullable: true })
   jobTitle: string | null;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  industry: string | null;
-
-  @Column({ name: 'years_of_experience', type: 'int', nullable: true })
-  yearsOfExperience: number | null;
-
-  @Column({ name: 'linkedin_url', type: 'varchar', length: 255, nullable: true })
-  linkedinUrl: string | null;
+  @Column({ name: 'role', type: 'varchar', length: 150, nullable: true })
+  role: string | null;
 
   @Column({ name: 'start_date', type: 'date' })
   startDate: string;

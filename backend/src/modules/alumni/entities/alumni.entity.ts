@@ -1,4 +1,5 @@
 import { AlumniStatus } from '../../../common/enums';
+import { PortalMediaRef } from './portal-media-ref';
 
 export class Alumni {
   id: string;
@@ -16,8 +17,10 @@ export class Alumni {
   secondryAddress: string | null;
   city: string | null;
   country: string | null;
+  linkedinUrl: string | null;
   qrCode: string;
-  photoUrl: string | null;
+  photoMediaId: string | null;
+  photoMedia?: PortalMediaRef | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +30,7 @@ export class AlumniAcademicInformation {
   alumniId: string;
   degreeProgramId: string;
   registrationRollNumber: string;
+  registrationYear: string | null;
   graduationYear: string;
   cgpa: number | null;
   createdAt: Date;
@@ -38,9 +42,7 @@ export class AlumniProfessionalInformation {
   alumniId: string;
   currentCompany: string | null;
   jobTitle: string | null;
-  industry: string | null;
-  yearsOfExperience: number | null;
-  linkedinUrl: string | null;
+  role: string | null;
   startDate: Date;
   endDate: Date | null;
   createdAt: Date;

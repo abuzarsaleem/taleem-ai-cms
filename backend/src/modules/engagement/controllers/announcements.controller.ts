@@ -13,11 +13,16 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import {
+  ApiWrappedOkResponse,
+  ApiWrappedPaginatedResponse,
+} from '../../../common/swagger/api-wrapped-response.decorator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { AnnouncementListQueryDto } from '../dto/announcement.dto';
+import { AnnouncementResponseDto } from '../dto/announcement-response.dto';
 import { AnnouncementService } from '../services/announcement.service';
 
-@ApiTags('Announcements')
+@ApiTags('Alumni / Announcements')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('announcements')
@@ -27,6 +32,7 @@ export class AnnouncementsController {
   @Get()
   @Roles(UserRole.ALUMNI, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Published announcements feed' })
+  @ApiWrappedPaginatedResponse(AnnouncementResponseDto)
   async list(
     @CurrentUser() user: AuthUser,
     @Query() query: AnnouncementListQueryDto,
@@ -38,6 +44,7 @@ export class AnnouncementsController {
   @Get(':id')
   @Roles(UserRole.ALUMNI, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get announcement by id' })
+  @ApiWrappedOkResponse(AnnouncementResponseDto)
   async getOne(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

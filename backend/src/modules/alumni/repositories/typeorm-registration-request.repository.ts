@@ -31,17 +31,25 @@ export class TypeOrmRegistrationRequestRepository
       degreeProgramId: input.degreeProgramId,
       registrationRollNumber: input.registrationRollNumber,
       graduationYear: input.graduationYear,
-      photoUrl: input.photoUrl ?? null,
+      photoMediaId: input.photoMediaId ?? null,
       reviewedBy: null,
       reviewedAt: null,
       rejectionReason: null,
     });
     const saved = await this.repo.save(entity);
-    return this.toDomain(saved);
+    return this.toDomain(
+      (await this.repo.findOne({
+        where: { id: saved.id },
+        relations: { photoMedia: true },
+      })) ?? saved,
+    );
   }
 
   async findById(id: string): Promise<AlumniRegistrationRequest | null> {
-    const entity = await this.repo.findOne({ where: { id } });
+    const entity = await this.repo.findOne({
+      where: { id },
+      relations: { photoMedia: true },
+    });
     return entity ? this.toDomain(entity) : null;
   }
 
@@ -49,6 +57,7 @@ export class TypeOrmRegistrationRequestRepository
     const entity = await this.repo.findOne({
       where: { email: email.toLowerCase() },
       order: { createdAt: 'DESC' },
+      relations: { photoMedia: true },
     });
     return entity ? this.toDomain(entity) : null;
   }
@@ -56,6 +65,7 @@ export class TypeOrmRegistrationRequestRepository
   async findByCnic(cnic: string): Promise<AlumniRegistrationRequest | null> {
     const entity = await this.repo.findOne({
       where: { cnicNationalId: cnic },
+      relations: { photoMedia: true },
     });
     return entity ? this.toDomain(entity) : null;
   }
@@ -66,6 +76,7 @@ export class TypeOrmRegistrationRequestRepository
     const entities = await this.repo.find({
       where: status ? { status } : undefined,
       order: { createdAt: 'DESC' },
+      relations: { photoMedia: true },
     });
     return entities.map((e) => this.toDomain(e));
   }
@@ -78,7 +89,11 @@ export class TypeOrmRegistrationRequestRepository
     if (!existing) throw new Error(`Registration request ${id} not found`);
     Object.assign(existing, patch, { id: existing.id });
     const saved = await this.repo.save(existing);
-    return this.toDomain(saved);
+    const withMedia = await this.repo.findOne({
+      where: { id: saved.id },
+      relations: { photoMedia: true },
+    });
+    return this.toDomain(withMedia ?? saved);
   }
 
   private toDomain(
@@ -95,7 +110,14 @@ export class TypeOrmRegistrationRequestRepository
       degreeProgramId: entity.degreeProgramId,
       registrationRollNumber: entity.registrationRollNumber,
       graduationYear: entity.graduationYear,
-      photoUrl: entity.photoUrl,
+      photoMediaId: entity.photoMediaId,
+      photoMedia: entity.photoMedia
+        ? {
+            id: entity.photoMedia.id,
+            publicUrl: entity.photoMedia.publicUrl,
+            storageKey: entity.photoMedia.storageKey,
+          }
+        : null,
       reviewedBy: entity.reviewedBy,
       reviewedAt: entity.reviewedAt,
       rejectionReason: entity.rejectionReason,

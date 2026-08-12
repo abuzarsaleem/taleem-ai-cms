@@ -41,8 +41,9 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
       secondryAddress: null,
       city: null,
       country: null,
+      linkedinUrl: null,
       qrCode: '',
-      photoUrl: input.photoUrl ?? null,
+      photoMediaId: input.photoMediaId ?? null,
       createdAt: now,
       updatedAt: now,
     };
@@ -52,6 +53,7 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
       alumniId: alumni.id,
       degreeProgramId: input.academic.degreeProgramId,
       registrationRollNumber: input.academic.registrationRollNumber,
+      registrationYear: input.academic.registrationYear ?? null,
       graduationYear: input.academic.graduationYear,
       cgpa: input.academic.cgpa ?? null,
       createdAt: now,
@@ -134,12 +136,6 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
     if (filters.degreeProgramId) {
       items = items.filter((p) =>
         p.academic.some((a) => a.degreeProgramId === filters.degreeProgramId),
-      );
-    }
-    if (filters.industry?.trim()) {
-      const q = filters.industry.trim().toLowerCase();
-      items = items.filter((p) =>
-        p.professional.some((pr) => pr.industry?.toLowerCase().includes(q)),
       );
     }
 
@@ -285,9 +281,7 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
       alumniId,
       currentCompany: data.currentCompany ?? null,
       jobTitle: data.jobTitle ?? null,
-      industry: data.industry ?? null,
-      yearsOfExperience: data.yearsOfExperience ?? null,
-      linkedinUrl: data.linkedinUrl ?? null,
+      role: data.role ?? null,
       startDate: data.startDate,
       endDate: data.endDate ?? null,
       createdAt: now,

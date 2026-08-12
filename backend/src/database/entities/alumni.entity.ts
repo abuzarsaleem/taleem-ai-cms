@@ -16,6 +16,7 @@ import { AlumniAcademicInformationEntity } from './alumni-academic-information.e
 import { AlumniProfessionalInformationEntity } from './alumni-professional-information.entity';
 import { AlumniRegistrationRequestEntity } from './alumni-registration-request.entity';
 import { AlumniVerificationEntity } from './alumni-verification.entity';
+import { PortalMediaEntity } from './portal-media.entity';
 
 @Entity({ name: 'alumni' })
 export class AlumniEntity {
@@ -90,11 +91,18 @@ export class AlumniEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   country: string | null;
 
+  @Column({ name: 'linkedin_url', type: 'varchar', length: 255, nullable: true })
+  linkedinUrl: string | null;
+
   @Column({ name: 'qr_code', type: 'text', default: '' })
   qrCode: string;
 
-  @Column({ name: 'photo_url', type: 'text', nullable: true })
-  photoUrl: string | null;
+  @Column({ name: 'photo_media_id', type: 'uuid', nullable: true })
+  photoMediaId: string | null;
+
+  @ManyToOne(() => PortalMediaEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'photo_media_id' })
+  photoMedia: PortalMediaEntity | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

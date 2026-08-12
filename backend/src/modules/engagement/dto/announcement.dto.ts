@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { AnnouncementCategory } from '../../../common/enums';
+import { UploadMediaResponseDto } from '../../../common/dto/upload-media-response.dto';
 
 export class CreateAnnouncementDto {
   @ApiProperty({ example: 'Welcome new alumni board' })
@@ -41,13 +42,11 @@ export class CreateAnnouncementDto {
   featured_alumni_id?: string;
 
   @ApiPropertyOptional({
-    description:
-      'Durable image URL from POST /api/v1/admin/announcements/upload-image',
+    description: 'media_id from POST /api/v1/admin/announcements/upload-image',
   })
   @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  image_url?: string;
+  @IsUUID()
+  media_id?: string;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
@@ -57,15 +56,7 @@ export class CreateAnnouncementDto {
 
 export class UpdateAnnouncementDto extends PartialType(CreateAnnouncementDto) {}
 
-export class UploadAnnouncementImageResponseDto {
-  @ApiProperty({
-    description: 'Durable URL to store in create/update image_url',
-  })
-  image_url: string;
-
-  @ApiProperty({ description: 'Object storage key' })
-  storage_key: string;
-}
+export class UploadAnnouncementImageResponseDto extends UploadMediaResponseDto {}
 
 export class AnnouncementListQueryDto {
   @ApiPropertyOptional({ default: 1 })

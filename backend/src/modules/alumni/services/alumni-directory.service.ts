@@ -11,6 +11,7 @@ import type { IContactRequestRepository } from '../interfaces/contact-request.re
 import type { AlumniProfile } from '../entities/alumni.entity';
 import { DirectoryQueryDto } from '../dto/contact-request.dto';
 import { maskEmail, maskPhone } from '../utils/contact-masking.util';
+import { PortalMediaService } from '../../media/portal-media.service';
 
 @Injectable()
 export class AlumniDirectoryService {
@@ -20,6 +21,7 @@ export class AlumniDirectoryService {
     @Inject(CONTACT_REQUEST_REPOSITORY)
     private readonly contactRequestRepository: IContactRequestRepository,
     @Inject(PHOTO_STORAGE) private readonly objectStorage: IObjectStorage,
+    private readonly portalMediaService: PortalMediaService,
   ) {}
 
   async list(viewerUserId: string, query: DirectoryQueryDto) {
@@ -32,7 +34,6 @@ export class AlumniDirectoryService {
       name: query.name,
       graduationYear: query.graduation_year,
       degreeProgramId: query.degree_program_id,
-      industry: query.industry,
       city: query.city,
       country: query.country,
       excludeAlumniId: viewer.alumni.id,
@@ -88,9 +89,9 @@ export class AlumniDirectoryService {
     detailed = false,
   ) {
     const a = profile.alumni;
-    const photoUrl = a.photoUrl
-      ? await this.objectStorage.resolveDownloadUrl(a.photoUrl)
-      : null;
+    const photoUrl = await this.portalMediaService.resolvePublicUrl(
+      a.photoMedia,
+    );
 
     const professional = profile.professional[0];
     const academic = profile.academic[0];
@@ -108,7 +109,7 @@ export class AlumniDirectoryService {
       professional: profile.professional.map((row) => ({
         current_company: row.currentCompany,
         job_title: row.jobTitle,
-        industry: row.industry,
+        role: row.role,
       })),
       is_contact_revealed: isContactRevealed,
       email: isContactRevealed ? a.email : maskEmail(a.email),
@@ -120,16 +121,14 @@ export class AlumniDirectoryService {
         : maskPhone(a.whatsappNumber),
       address: isContactRevealed ? a.address : null,
       secondry_address: isContactRevealed ? a.secondryAddress : null,
-      linkedin_url: isContactRevealed
-        ? (professional?.linkedinUrl ?? null)
-        : null,
+      linkedin_url: isContactRevealed ? a.linkedinUrl : null,
     };
 
     if (!detailed) {
       return {
         ...base,
         primary_graduation_year: academic?.graduationYear ?? null,
-        primary_industry: professional?.industry ?? null,
+        primary_role: professional?.role ?? null,
       };
     }
 

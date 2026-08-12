@@ -21,6 +21,9 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import {
+  ApiWrappedOkResponse,
+} from '../../../common/swagger/api-wrapped-response.decorator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { ContactRequestService } from '../../alumni/services/contact-request.service';
 import {
@@ -28,8 +31,9 @@ import {
   AdminContactReviewAction,
   AdminReviewContactRequestDto,
 } from '../../alumni/dto/contact-request.dto';
+import { ContactRequestResponseDto } from '../../alumni/dto/directory-response.dto';
 
-@ApiTags('Admin Contact Requests')
+@ApiTags('Admin / Contact Requests')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -39,6 +43,7 @@ export class AdminContactRequestController {
 
   @Get()
   @ApiOperation({ summary: 'List alumni contact requests' })
+  @ApiWrappedOkResponse(ContactRequestResponseDto, { isArray: true })
   async list(@Query() query: AdminContactRequestQueryDto) {
     const data = await this.contactRequestService.listForAdmin(query.status);
     return ApiResponseDto.of(data);
@@ -47,6 +52,7 @@ export class AdminContactRequestController {
   @Patch(':id/:action')
   @ApiOperation({ summary: 'Admin approve or reject contact request' })
   @ApiParam({ name: 'action', enum: AdminContactReviewAction })
+  @ApiWrappedOkResponse(ContactRequestResponseDto)
   async review(
     @CurrentUser() admin: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

@@ -1,17 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { REGISTRATION_REQUEST_REPOSITORY } from '../../../common/constants/tokens';
+import { PortalMediaType, RegistrationStatus } from '../../../common/enums';
 import {
-  PHOTO_UPLOAD_REPOSITORY,
-  REGISTRATION_REQUEST_REPOSITORY,
-} from '../../../common/constants/tokens';
-import { PhotoUploadStatus, RegistrationStatus } from '../../../common/enums';
-import {
-  BusinessException,
   ConflictException,
   ResourceNotFoundException,
 } from '../../../common/exceptions';
 import { RegisterDto } from '../dto/f001.dto';
 import type { IRegistrationRequestRepository } from '../interfaces/registration-request.repository.interface';
-import type { IPhotoUploadRepository } from '../interfaces/supporting.repository.interface';
+import { PortalMediaService } from '../../media/portal-media.service';
 
 @Injectable()
 export class RegistrationService {
@@ -20,8 +16,7 @@ export class RegistrationService {
   constructor(
     @Inject(REGISTRATION_REQUEST_REPOSITORY)
     private readonly registrationRepository: IRegistrationRequestRepository,
-    @Inject(PHOTO_UPLOAD_REPOSITORY)
-    private readonly photoUploadRepository: IPhotoUploadRepository,
+    private readonly portalMediaService: PortalMediaService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -43,20 +38,13 @@ export class RegistrationService {
       );
     }
 
-    let photoUrl: string | null = null;
-    if (dto.upload_id) {
-      const upload = await this.photoUploadRepository.findById(dto.upload_id);
-      if (!upload) {
-        throw new ResourceNotFoundException('Photo upload', dto.upload_id);
-      }
-      if (upload.status !== PhotoUploadStatus.TEMP) {
-        throw new BusinessException('Photo upload is not available');
-      }
-      if (upload.expiresAt.getTime() < Date.now()) {
-        throw new BusinessException('Photo upload has expired');
-      }
-      await this.photoUploadRepository.markAttached(upload.id);
-      photoUrl = upload.publicUrl;
+    let photoMediaId: string | null = null;
+    if (dto.media_id) {
+      await this.portalMediaService.requireById(
+        dto.media_id,
+        PortalMediaType.REGISTRATION_PHOTO,
+      );
+      photoMediaId = dto.media_id;
     }
 
     const created = await this.registrationRepository.create({
@@ -68,18 +56,22 @@ export class RegistrationService {
       degreeProgramId: dto.degree_program_id,
       registrationRollNumber: dto.registration_roll_number,
       graduationYear: dto.graduation_year,
-      photoUrl,
+      photoMediaId,
     });
 
     this.logger.log(
       `ALUMNI_REGISTER_SUBMITTED requestId=${created.id} email=${created.email}`,
     );
 
+    const photo_url = await this.portalMediaService.resolvePublicUrl(
+      created.photoMedia,
+    );
+
     return {
       registration_id: created.id,
       status: created.status,
       submitted_at: created.createdAt,
-      photo_url: created.photoUrl,
+      photo_url,
       message:
         'Registration submitted and pending institutional verification',
     };

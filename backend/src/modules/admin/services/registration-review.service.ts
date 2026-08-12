@@ -11,6 +11,8 @@ import { ActivationService } from '../../alumni/services/activation.service';
 import type { IAlumniRepository } from '../../alumni/interfaces/alumni.repository.interface';
 import type { IRegistrationRequestRepository } from '../../alumni/interfaces/registration-request.repository.interface';
 import { AlumniRegistrationRequest } from '../../alumni/entities/alumni-registration-request.entity';
+import type { AdminDashboardResponseDto } from '../dto/admin.dto';
+import { PortalMediaService } from '../../media/portal-media.service';
 
 @Injectable()
 export class RegistrationReviewService {
@@ -22,27 +24,26 @@ export class RegistrationReviewService {
     @Inject(PHOTO_STORAGE)
     private readonly objectStorage: IObjectStorage,
     private readonly activationService: ActivationService,
+    private readonly portalMediaService: PortalMediaService,
   ) {}
 
-  async dashboard() {
+  async dashboard(): Promise<AdminDashboardResponseDto> {
     const all = await this.registrationRepository.findAll();
     const pending = all.filter((r) => r.status === RegistrationStatus.PENDING);
-    const approved = all.filter(
-      (r) => r.status === RegistrationStatus.APPROVED,
-    );
     const rejected = all.filter(
       (r) => r.status === RegistrationStatus.REJECTED,
     );
     const alumni = await this.alumniRepository.findAll();
 
     return {
-      pending_count: pending.length,
-      approved_count: approved.length,
-      rejected_count: rejected.length,
       alumni_count: alumni.length,
-      recent_pending: await Promise.all(
-        pending.slice(0, 5).map((r) => this.toListItem(r)),
-      ),
+      pending_registrations_count: pending.length,
+      rejected_requests_count: rejected.length,
+      pending_contact_requests_count: 0,
+      published_events_count: 0,
+      active_events_count: 0,
+      completed_events_count: 0,
+      latest_announcements: [],
     };
   }
 
@@ -62,8 +63,6 @@ export class RegistrationReviewService {
 
     const base = await this.toListItem(request);
     const qrDurable = alumni?.alumni.qrCode || null;
-    const photoDurable =
-      alumni?.alumni.photoUrl || request.photoUrl || null;
 
     return {
       ...base,
@@ -71,19 +70,17 @@ export class RegistrationReviewService {
       rejection_reason: request.rejectionReason,
       reviewed_by: request.reviewedBy,
       reviewed_at: request.reviewedAt,
-      photo_url: photoDurable
-        ? await this.objectStorage.resolveDownloadUrl(photoDurable)
-        : null,
+      photo_url: await this.portalMediaService.resolvePublicUrl(
+        request.photoMedia,
+      ),
       alumni: alumni
         ? {
             alumni_id: alumni.alumni.id,
             status: alumni.alumni.status,
             user_id: alumni.alumni.userId,
-            photo_url: alumni.alumni.photoUrl
-              ? await this.objectStorage.resolveDownloadUrl(
-                  alumni.alumni.photoUrl,
-                )
-              : null,
+            photo_url: await this.portalMediaService.resolvePublicUrl(
+              alumni.alumni.photoMedia,
+            ),
             qr_code: qrDurable
               ? await this.objectStorage.resolveDownloadUrl(qrDurable)
               : null,
@@ -137,9 +134,9 @@ export class RegistrationReviewService {
       registration_roll_number: request.registrationRollNumber,
       graduation_year: request.graduationYear,
       cnic_national_id: request.cnicNationalId,
-      photo_url: request.photoUrl
-        ? await this.objectStorage.resolveDownloadUrl(request.photoUrl)
-        : null,
+      photo_url: await this.portalMediaService.resolvePublicUrl(
+        request.photoMedia,
+      ),
     };
   }
 }

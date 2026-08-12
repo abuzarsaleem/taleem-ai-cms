@@ -15,15 +15,24 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import {
+  ApiWrappedCreatedResponse,
+  ApiWrappedOkResponse,
+  ApiWrappedPaginatedResponse,
+} from '../../../common/swagger/api-wrapped-response.decorator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import {
   CreateContactRequestDto,
   DirectoryQueryDto,
 } from '../dto/contact-request.dto';
+import {
+  ContactRequestResponseDto,
+  DirectoryAlumniCardDto,
+} from '../dto/directory-response.dto';
 import { AlumniDirectoryService } from '../services/alumni-directory.service';
 import { ContactRequestService } from '../services/contact-request.service';
 
-@ApiTags('Alumni Directory & Contact Requests')
+@ApiTags('Alumni / Directory & Contacts')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ALUMNI)
@@ -36,6 +45,7 @@ export class AlumniDirectoryController {
 
   @Get('directory')
   @ApiOperation({ summary: 'Paginated alumni directory with masked contacts' })
+  @ApiWrappedPaginatedResponse(DirectoryAlumniCardDto)
   async listDirectory(
     @CurrentUser() user: AuthUser,
     @Query() query: DirectoryQueryDto,
@@ -46,6 +56,7 @@ export class AlumniDirectoryController {
 
   @Get('directory/:alumniId')
   @ApiOperation({ summary: 'Alumni directory profile' })
+  @ApiWrappedOkResponse(DirectoryAlumniCardDto)
   async getDirectoryProfile(
     @CurrentUser() user: AuthUser,
     @Param('alumniId', ParseUUIDPipe) alumniId: string,
@@ -56,6 +67,7 @@ export class AlumniDirectoryController {
 
   @Post('contact-requests')
   @ApiOperation({ summary: 'Submit contact request' })
+  @ApiWrappedCreatedResponse(ContactRequestResponseDto)
   async createContactRequest(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateContactRequestDto,
@@ -70,6 +82,7 @@ export class AlumniDirectoryController {
 
   @Get('contact-requests/sent')
   @ApiOperation({ summary: 'Contact requests sent by current alumnus' })
+  @ApiWrappedOkResponse(ContactRequestResponseDto, { isArray: true })
   async listSent(@CurrentUser() user: AuthUser) {
     const data = await this.contactRequestService.listSent(user.userId);
     return ApiResponseDto.of(data);

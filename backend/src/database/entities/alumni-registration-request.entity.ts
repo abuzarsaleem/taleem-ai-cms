@@ -16,6 +16,7 @@ import {
 import { AccountEntity } from './account.entity';
 import { AlumniEntity } from './alumni.entity';
 import { DegreeProgramEntity } from './degree-program.entity';
+import { PortalMediaEntity } from './portal-media.entity';
 
 @Entity({ name: 'alumni_registration_request' })
 export class AlumniRegistrationRequestEntity {
@@ -61,8 +62,12 @@ export class AlumniRegistrationRequestEntity {
   @Column({ name: 'graduation_year', type: 'varchar', length: 20 })
   graduationYear: string;
 
-  @Column({ name: 'photo_url', type: 'text', nullable: true })
-  photoUrl: string | null;
+  @Column({ name: 'photo_media_id', type: 'uuid', nullable: true })
+  photoMediaId: string | null;
+
+  @ManyToOne(() => PortalMediaEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'photo_media_id' })
+  photoMedia: PortalMediaEntity | null;
 
   @Column({ name: 'reviewed_by', type: 'uuid', nullable: true })
   reviewedBy: string | null;

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -14,7 +15,20 @@ import {
 } from '@nestjs/swagger';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { UserRole } from '../../../common/enums';
+import {
+  ApiWrappedCreatedResponse,
+  ApiWrappedOkResponse,
+} from '../../../common/swagger/api-wrapped-response.decorator';
 import { AuthService } from '../../auth/auth.service';
+import {
+  ActivateAccountResponseDto,
+  AuthTokenResponseDto,
+  ForgotPasswordResponseDto,
+  PasswordPublicKeyResponseDto,
+  RegisterResponseDto,
+  ResendActivationResponseDto,
+  ResetPasswordResponseDto,
+} from '../dto/auth-response.dto';
 import {
   ActivateDto,
   ForgotPasswordDto,
@@ -22,13 +36,15 @@ import {
   RegisterDto,
   ResendActivationDto,
   ResetPasswordDto,
+  UploadPhotoResponseDto,
 } from '../dto/f001.dto';
 import { ActivationService } from '../services/activation.service';
 import { PasswordResetService } from '../services/password-reset.service';
 import { PhotoUploadService } from '../services/photo-upload.service';
 import { RegistrationService } from '../services/registration.service';
+import { PasswordCryptoService } from '../../auth/password-crypto.service';
 
-@ApiTags('Authentication & Onboarding')
+@ApiTags('Alumni / Auth & Onboarding')
 @Controller('auth')
 export class AuthOnboardingController {
   constructor(
@@ -37,10 +53,21 @@ export class AuthOnboardingController {
     private readonly activationService: ActivationService,
     private readonly passwordResetService: PasswordResetService,
     private readonly authService: AuthService,
+    private readonly passwordCryptoService: PasswordCryptoService,
   ) {}
 
+  @Get('password-public-key')
+  @ApiOperation({
+    summary: 'Get RSA public key for frontend password encryption',
+  })
+  @ApiWrappedOkResponse(PasswordPublicKeyResponseDto)
+  getPasswordPublicKey() {
+    const data = this.passwordCryptoService.getPublicKeyPayload();
+    return ApiResponseDto.of(data);
+  }
+
   @Post('upload-photo')
-  @ApiOperation({ summary: 'Upload temporary alumni photo' })
+  @ApiOperation({ summary: 'Upload alumni registration photo' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -48,6 +75,7 @@ export class AuthOnboardingController {
       properties: { file: { type: 'string', format: 'binary' } },
     },
   })
+  @ApiWrappedCreatedResponse(UploadPhotoResponseDto)
   @UseInterceptors(FileInterceptor('file'))
   async uploadPhoto(
     @UploadedFile()
@@ -64,6 +92,7 @@ export class AuthOnboardingController {
 
   @Post('register')
   @ApiOperation({ summary: 'Submit alumni registration' })
+  @ApiWrappedCreatedResponse(RegisterResponseDto)
   async register(@Body() dto: RegisterDto) {
     const data = await this.registrationService.register(dto);
     return ApiResponseDto.of(data, 'Registration submitted');
@@ -71,20 +100,29 @@ export class AuthOnboardingController {
 
   @Post('resend-activation')
   @ApiOperation({ summary: 'Resend activation link' })
+  @ApiWrappedCreatedResponse(ResendActivationResponseDto)
   async resendActivation(@Body() dto: ResendActivationDto) {
     const data = await this.activationService.resendActivation(dto.email);
     return ApiResponseDto.of(data, 'Activation email resent');
   }
 
   @Post('activate')
-  @ApiOperation({ summary: 'Activate account with token and password' })
+  @ApiOperation({
+    summary:
+      'Activate account with email token; returns a reset_token for setting password',
+  })
+  @ApiWrappedCreatedResponse(ActivateAccountResponseDto)
   async activate(@Body() dto: ActivateDto) {
-    const data = await this.activationService.activate(dto.token, dto.password);
-    return ApiResponseDto.of(data, 'Account activated');
+    const data = await this.activationService.activate(dto.token);
+    return ApiResponseDto.of(
+      data,
+      'Account activated — use reset_token with /auth/reset-password to set a password',
+    );
   }
 
   @Post('login')
   @ApiOperation({ summary: 'Alumni login' })
+  @ApiWrappedCreatedResponse(AuthTokenResponseDto)
   async login(@Body() dto: LoginDto) {
     const data = await this.authService.login(dto.email, dto.password, [
       UserRole.ALUMNI,
@@ -101,6 +139,7 @@ export class AuthOnboardingController {
 
   @Post('forgot-password')
   @ApiOperation({ summary: 'Request password reset email' })
+  @ApiWrappedCreatedResponse(ForgotPasswordResponseDto)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const data = await this.passwordResetService.forgotPassword(dto.email);
     return ApiResponseDto.of(data);
@@ -108,6 +147,7 @@ export class AuthOnboardingController {
 
   @Post('reset-password')
   @ApiOperation({ summary: 'Reset password with token from email' })
+  @ApiWrappedCreatedResponse(ResetPasswordResponseDto)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     const data = await this.passwordResetService.resetPassword(
       dto.token,

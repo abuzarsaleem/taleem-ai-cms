@@ -12,6 +12,6 @@ export interface AlumniCardGenerationResult {
 export interface IAlumniCardGenerator {
   generate(
     profile: AlumniProfile,
-    options?: { photoUrl?: string },
+    options?: { photoPublicUrl?: string | null },
   ): Promise<AlumniCardGenerationResult>;
 }
