@@ -131,6 +131,7 @@ export class RegistrationReviewService {
       status: request.status,
       submitted_at: request.createdAt,
       degree_program_id: request.degreeProgramId,
+      degree_program_name: request.degreeProgramName,
       registration_roll_number: request.registrationRollNumber,
       graduation_year: request.graduationYear,
       cnic_national_id: request.cnicNationalId,

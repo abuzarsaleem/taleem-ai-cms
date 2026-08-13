@@ -26,6 +26,13 @@ export class RegistrationListItemDto {
   @ApiProperty()
   degree_program_id: string;
 
+  @ApiPropertyOptional({
+    nullable: true,
+    example: 'BS Computer Science',
+    description: 'Degree code + program name for the selected offering',
+  })
+  degree_program_name: string | null;
+
   @ApiProperty()
   registration_roll_number: string;
 

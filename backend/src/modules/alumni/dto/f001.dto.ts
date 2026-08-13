@@ -107,13 +107,12 @@ export class ResetPasswordDto {
   token: string;
 
   @ApiProperty({
-    minLength: 8,
+    example: 'base64-rsa-oaep-encrypted-password',
     description:
       'Base64 RSA-OAEP-SHA256 encrypted new password (frontend uses PASSWORD_PUBLIC_KEY)',
   })
   @IsString()
-  @MinLength(8)
-  @MaxLength(128)
+  @MinLength(1)
   password: string;
 }
 

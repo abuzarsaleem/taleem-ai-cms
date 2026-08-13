@@ -98,6 +98,12 @@ export class PasswordResetService {
 
   async resetPassword(token: string, password: string) {
     const plainPassword = this.passwordCryptoService.decryptPassword(password);
+    if (plainPassword.length < 8 || plainPassword.length > 128) {
+      throw new BusinessException(
+        'Password must be between 8 and 128 characters',
+      );
+    }
+
     const record = await this.tokenRepository.findValidByHash(
       hashToken(token),
       VerificationTokenType.PASSWORD_RESET,

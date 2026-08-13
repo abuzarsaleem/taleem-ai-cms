@@ -1,13 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsRelations, Repository } from 'typeorm';
 import { RegistrationStatus } from '../../../common/enums';
+import {
+  degreeProgramNameFromSeed,
+  formatDegreeProgramName,
+} from '../../../common/utils';
 import { AlumniRegistrationRequestEntity } from '../../../database/entities';
 import { AlumniRegistrationRequest } from '../entities/alumni-registration-request.entity';
 import {
   CreateRegistrationRequestInput,
   IRegistrationRequestRepository,
 } from '../interfaces/registration-request.repository.interface';
+
+const REGISTRATION_RELATIONS: FindOptionsRelations<AlumniRegistrationRequestEntity> =
+  {
+    photoMedia: true,
+    degreeProgram: {
+      degree: true,
+      program: true,
+    },
+  };
 
 @Injectable()
 export class TypeOrmRegistrationRequestRepository
@@ -40,7 +53,7 @@ export class TypeOrmRegistrationRequestRepository
     return this.toDomain(
       (await this.repo.findOne({
         where: { id: saved.id },
-        relations: { photoMedia: true },
+        relations: REGISTRATION_RELATIONS,
       })) ?? saved,
     );
   }
@@ -48,7 +61,7 @@ export class TypeOrmRegistrationRequestRepository
   async findById(id: string): Promise<AlumniRegistrationRequest | null> {
     const entity = await this.repo.findOne({
       where: { id },
-      relations: { photoMedia: true },
+      relations: REGISTRATION_RELATIONS,
     });
     return entity ? this.toDomain(entity) : null;
   }
@@ -57,7 +70,7 @@ export class TypeOrmRegistrationRequestRepository
     const entity = await this.repo.findOne({
       where: { email: email.toLowerCase() },
       order: { createdAt: 'DESC' },
-      relations: { photoMedia: true },
+      relations: REGISTRATION_RELATIONS,
     });
     return entity ? this.toDomain(entity) : null;
   }
@@ -65,7 +78,7 @@ export class TypeOrmRegistrationRequestRepository
   async findByCnic(cnic: string): Promise<AlumniRegistrationRequest | null> {
     const entity = await this.repo.findOne({
       where: { cnicNationalId: cnic },
-      relations: { photoMedia: true },
+      relations: REGISTRATION_RELATIONS,
     });
     return entity ? this.toDomain(entity) : null;
   }
@@ -76,7 +89,7 @@ export class TypeOrmRegistrationRequestRepository
     const entities = await this.repo.find({
       where: status ? { status } : undefined,
       order: { createdAt: 'DESC' },
-      relations: { photoMedia: true },
+      relations: REGISTRATION_RELATIONS,
     });
     return entities.map((e) => this.toDomain(e));
   }
@@ -91,7 +104,7 @@ export class TypeOrmRegistrationRequestRepository
     const saved = await this.repo.save(existing);
     const withMedia = await this.repo.findOne({
       where: { id: saved.id },
-      relations: { photoMedia: true },
+      relations: REGISTRATION_RELATIONS,
     });
     return this.toDomain(withMedia ?? saved);
   }
@@ -108,6 +121,11 @@ export class TypeOrmRegistrationRequestRepository
       whatsappNumber: entity.whatsappNumber,
       cnicNationalId: entity.cnicNationalId,
       degreeProgramId: entity.degreeProgramId,
+      degreeProgramName:
+        formatDegreeProgramName({
+          degreeCode: entity.degreeProgram?.degree?.code,
+          programName: entity.degreeProgram?.program?.name,
+        }) ?? degreeProgramNameFromSeed(entity.degreeProgramId),
       registrationRollNumber: entity.registrationRollNumber,
       graduationYear: entity.graduationYear,
       photoMediaId: entity.photoMediaId,

@@ -23,7 +23,6 @@ export type RegisterPayload = {
   registration_roll_number: string
   graduation_year: string
   media_id?: string
-  upload_id?: string
 }
 
 export type RegisterResponse = {
@@ -37,8 +36,6 @@ export type RegisterResponse = {
 export type UploadPhotoResponse = {
   media_id: string
   public_url: string
-  upload_id?: string
-  expires_at?: string
 }
 
 export type ResetPasswordPayload = {

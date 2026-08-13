@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { RegistrationStatus } from '../../../common/enums';
-import { generateId } from '../../../common/utils';
+import {
+  degreeProgramNameFromSeed,
+  generateId,
+} from '../../../common/utils';
 import { AlumniRegistrationRequest } from '../entities/alumni-registration-request.entity';
 import {
   CreateRegistrationRequestInput,
@@ -26,6 +29,7 @@ export class InMemoryRegistrationRequestRepository
       whatsappNumber: input.whatsappNumber ?? null,
       cnicNationalId: input.cnicNationalId,
       degreeProgramId: input.degreeProgramId,
+      degreeProgramName: degreeProgramNameFromSeed(input.degreeProgramId),
       registrationRollNumber: input.registrationRollNumber,
       graduationYear: input.graduationYear,
       photoMediaId: input.photoMediaId ?? null,

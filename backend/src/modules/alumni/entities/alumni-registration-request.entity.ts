@@ -10,6 +10,7 @@ export class AlumniRegistrationRequest {
   whatsappNumber: string | null;
   cnicNationalId: string;
   degreeProgramId: string;
+  degreeProgramName: string | null;
   registrationRollNumber: string;
   graduationYear: string;
   photoMediaId: string | null;

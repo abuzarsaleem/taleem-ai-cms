@@ -3,10 +3,12 @@ import {
   Controller,
   Delete,
   Get,
+  Optional,
   Param,
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -37,6 +39,11 @@ import {
 } from '../dto/me-response.dto';
 import { MeCareerService } from '../services/me-career.service';
 import { ProfileService } from '../services/profile.service';
+import { AlumniNotificationsService } from '../services/alumni-notifications.service';
+import {
+  NotificationsQueryDto,
+  NotificationsSummaryDto,
+} from '../dto/notifications.dto';
 
 @ApiTags(SWAGGER_TAGS.PROFILE_CAREER)
 @Controller('me')
@@ -47,6 +54,8 @@ export class AlumniMeController {
   constructor(
     private readonly profileService: ProfileService,
     private readonly meCareerService: MeCareerService,
+    @Optional()
+    private readonly notificationsService?: AlumniNotificationsService,
   ) {}
 
   @Get('profile')
@@ -66,6 +75,32 @@ export class AlumniMeController {
   ) {
     const data = await this.profileService.updateMyProfile(user.userId, dto);
     return ApiResponseDto.of(data, 'Profile updated');
+  }
+
+  @Get('notifications')
+  @ApiOperation({
+    summary: 'Unread alumni / event / announcement counts since a cutoff',
+  })
+  @ApiWrappedOkResponse(NotificationsSummaryDto)
+  async getNotifications(
+    @CurrentUser() user: AuthUser,
+    @Query() query: NotificationsQueryDto,
+  ) {
+    if (!this.notificationsService) {
+      return ApiResponseDto.of({
+        unread_count: 0,
+        alumni: 0,
+        events: 0,
+        announcements: 0,
+        since: query.since ? new Date(query.since) : new Date(),
+        items: [],
+      });
+    }
+    const data = await this.notificationsService.getSummary(
+      user.userId,
+      query.since,
+    );
+    return ApiResponseDto.of(data);
   }
 
   @Get('professional')

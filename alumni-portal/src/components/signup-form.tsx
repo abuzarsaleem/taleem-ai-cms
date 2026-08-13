@@ -151,11 +151,15 @@ export function SignupForm({
     setLoading(true)
 
     try {
-      let uploadId: string | undefined
+      let mediaId: string | undefined
       if (photo) {
         try {
           const upload = await authService.uploadPhoto(photo)
-          uploadId = upload.upload_id
+          mediaId = upload.media_id
+          if (!mediaId) {
+            setErrors({ photo: "Photo upload did not return a media id" })
+            return
+          }
         } catch (err) {
           setErrors({
             photo:
@@ -174,7 +178,7 @@ export function SignupForm({
         degree_program_id: degreeProgramId,
         registration_roll_number: rollNumber.trim(),
         graduation_year: graduationYear,
-        upload_id: uploadId,
+        media_id: mediaId,
       })
 
       toast.success("Registration submitted", {

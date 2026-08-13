@@ -16,16 +16,33 @@ const METHOD_ORDER = [
   'head',
 ];
 
+const ALLOWED_TAGS = new Set(SWAGGER_TAG_ORDER);
+
 function tagIndex(name: string): number {
   const index = SWAGGER_TAG_ORDER.indexOf(name);
   return index === -1 ? SWAGGER_TAG_ORDER.length : index;
 }
 
+/** Keep only the functional tags from DocumentBuilder (drop controller-name tags). */
+function uniqueAllowedTags(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const tag of tags) {
+    if (typeof tag !== 'string' || !ALLOWED_TAGS.has(tag) || seen.has(tag)) {
+      continue;
+    }
+    seen.add(tag);
+    result.push(tag);
+  }
+  return result;
+}
+
 export function sortSwaggerDocument(document: OpenAPIObject): OpenAPIObject {
   if (document.tags) {
-    document.tags.sort(
-      (a, b) => tagIndex(a.name) - tagIndex(b.name),
-    );
+    document.tags = document.tags
+      .filter((tag) => ALLOWED_TAGS.has(tag.name))
+      .sort((a, b) => tagIndex(a.name) - tagIndex(b.name));
   }
 
   if (!document.paths) {
@@ -46,10 +63,17 @@ export function sortSwaggerDocument(document: OpenAPIObject): OpenAPIObject {
       if (method === 'parameters' || typeof operation !== 'object') {
         continue;
       }
+      const op = operation as Record<string, unknown>;
+      const allowed = uniqueAllowedTags(op.tags);
+      if (allowed.length > 0) {
+        op.tags = allowed;
+      } else {
+        delete op.tags;
+      }
       operations.push({
         path,
         method,
-        operation: operation as Record<string, unknown>,
+        operation: op,
       });
     }
   }

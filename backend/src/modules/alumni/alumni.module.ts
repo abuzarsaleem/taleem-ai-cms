@@ -15,6 +15,8 @@ import {
   AlumniProfessionalInformationEntity,
   AlumniRegistrationRequestEntity,
   AlumniVerificationEntity,
+  AnnouncementEntity,
+  EventEntity,
   PortalMediaEntity,
   RoleEntity,
 } from '../../database/entities';
@@ -38,6 +40,7 @@ import { TypeOrmUserRepository } from './repositories/typeorm-user.repository';
 import { TypeOrmVerificationTokenRepository } from './repositories/typeorm-verification-token.repository';
 import { ActivationService } from './services/activation.service';
 import { AlumniDirectoryService } from './services/alumni-directory.service';
+import { AlumniNotificationsService } from './services/alumni-notifications.service';
 import { ContactRequestService } from './services/contact-request.service';
 import { PasswordResetService } from './services/password-reset.service';
 import { PhotoUploadService } from './services/photo-upload.service';
@@ -64,6 +67,8 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
             AccountEntity,
             RoleEntity,
             PortalMediaEntity,
+            EventEntity,
+            AnnouncementEntity,
           ]),
         ]
       : []),
@@ -82,6 +87,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
     PhotoUploadService,
     AlumniDirectoryService,
     ContactRequestService,
+    ...(dbEnabled ? [AlumniNotificationsService] : []),
     {
       provide: REGISTRATION_REQUEST_REPOSITORY,
       useClass: dbEnabled

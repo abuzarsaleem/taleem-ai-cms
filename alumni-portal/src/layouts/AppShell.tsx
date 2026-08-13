@@ -20,7 +20,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { useNotifications } from "@/hooks/use-notifications"
 import { cn } from "@/lib/utils"
+import type { NotificationItem } from "@/services/notifications.service"
 
 const primaryNav = [
   { to: "/home", label: "Home", icon: Home },
@@ -28,6 +30,18 @@ const primaryNav = [
   { to: "/events", label: "Events", icon: CalendarDays },
   { to: "/announcements", label: "Announcements", icon: Megaphone },
 ] as const
+
+function notificationHref(item: NotificationItem) {
+  if (item.type === "alumni") return `/directory/${item.id}`
+  if (item.type === "event") return `/events/${item.id}`
+  return `/announcements/${item.id}`
+}
+
+function notificationLabel(item: NotificationItem) {
+  if (item.type === "alumni") return `New alumni · ${item.title}`
+  if (item.type === "event") return `Event · ${item.title}`
+  return `Announcement · ${item.title}`
+}
 
 function initials(name: string) {
   return name
@@ -48,6 +62,9 @@ export function AppShell({
   const { clearSession } = useAuth()
   const navigate = useNavigate()
   const [meOpen, setMeOpen] = useState(false)
+  const [notifyOpen, setNotifyOpen] = useState(false)
+  const { summary, markSeen } = useNotifications()
+  const unread = summary.unread_count
 
   function logout() {
     setMeOpen(false)
@@ -112,14 +129,72 @@ export function AppShell({
 
           <div className="flex h-full shrink-0 items-center gap-0.5 border-l border-border pl-2 sm:pl-3">
             <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-9 text-muted-foreground"
-              aria-label="Notifications"
+            <Popover
+              open={notifyOpen}
+              onOpenChange={(open) => {
+                setNotifyOpen(open)
+                if (open) markSeen()
+              }}
             >
-              <Bell className="size-5" />
-            </Button>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative size-9 text-muted-foreground"
+                    aria-label="Notifications"
+                  />
+                }
+              >
+                <Bell className="size-5" />
+                {unread > 0 ? (
+                  <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                ) : null}
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={8} className="w-[320px] p-0">
+                <div className="border-b border-border px-3 py-2.5">
+                  <p className="text-sm font-semibold">Notifications</p>
+                  <p className="text-xs text-muted-foreground">
+                    New alumni, events, and announcements
+                  </p>
+                </div>
+                {summary.items.length === 0 ? (
+                  <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                    You’re all caught up
+                  </p>
+                ) : (
+                  <ul className="max-h-80 overflow-y-auto">
+                    {summary.items.map((item) => (
+                      <li key={`${item.type}-${item.id}`}>
+                        <button
+                          type="button"
+                          className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm hover:bg-muted"
+                          onClick={() => {
+                            setNotifyOpen(false)
+                            navigate(notificationHref(item))
+                          }}
+                        >
+                          <span className="mt-0.5 text-muted-foreground">
+                            {item.type === "alumni" ? (
+                              <Users className="size-4" />
+                            ) : item.type === "event" ? (
+                              <CalendarDays className="size-4" />
+                            ) : (
+                              <Megaphone className="size-4" />
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1 leading-snug">
+                            {notificationLabel(item)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </PopoverContent>
+            </Popover>
 
             <Popover open={meOpen} onOpenChange={setMeOpen}>
               <PopoverTrigger
