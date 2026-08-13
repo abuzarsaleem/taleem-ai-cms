@@ -3,12 +3,10 @@ import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import { ApiError } from "@/lib/api-client"
-import { cn } from "@/lib/utils"
 import { announcementsService } from "@/services/announcements.service"
 import type { AnnouncementItem } from "@/types/portal"
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -21,6 +19,148 @@ function relativeTime(value: string | null) {
   } catch {
     return ""
   }
+}
+
+function categoryLabel(category: string | null | undefined) {
+  if (!category) return "Announcement"
+  return category.replace(/_/g, " ")
+}
+
+function AnnouncementCover({ item }: { item: AnnouncementItem }) {
+  if (item.image_url) {
+    return (
+      <img
+        src={item.image_url}
+        alt=""
+        className="aspect-[16/9] w-full rounded-lg object-cover"
+      />
+    )
+  }
+
+  return (
+    <div className="relative flex aspect-[16/9] w-full items-end overflow-hidden rounded-lg bg-[linear-gradient(160deg,oklch(0.45_0.1_75),oklch(0.38_0.08_50)_55%,oklch(0.34_0.06_40))] p-4">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,oklch(1_0_0/0.16),transparent_50%)]" />
+      <div className="relative">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-white/70 uppercase">
+          {categoryLabel(item.category)}
+        </p>
+        <p className="mt-1 line-clamp-2 text-lg font-semibold text-white">
+          {item.title}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function FeaturedAlumniRow({
+  alumni,
+}: {
+  alumni: NonNullable<AnnouncementItem["featured_alumni"]>
+}) {
+  const initials = alumni.full_name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("")
+
+  return (
+    <Link
+      to={`/directory/${alumni.alumni_id}`}
+      className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3 transition-colors hover:bg-muted/55"
+      onClick={(event) => event.stopPropagation()}
+    >
+      {alumni.photo_url ? (
+        <img
+          src={alumni.photo_url}
+          alt=""
+          className="size-11 rounded-full object-cover"
+        />
+      ) : (
+        <div className="flex size-11 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+          {initials}
+        </div>
+      )}
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+          Featured alumni
+        </p>
+        <p className="truncate text-sm font-semibold">{alumni.full_name}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {[alumni.degree, alumni.graduation_year].filter(Boolean).join(" · ")}
+        </p>
+      </div>
+    </Link>
+  )
+}
+
+function AnnouncementCard({
+  item,
+  linkTitle = true,
+  clampContent = true,
+}: {
+  item: AnnouncementItem
+  linkTitle?: boolean
+  clampContent?: boolean
+}) {
+  const meta = [
+    categoryLabel(item.category),
+    relativeTime(item.published_at),
+  ]
+    .filter(Boolean)
+    .join(" · ")
+
+  return (
+    <article className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="space-y-3 p-4 sm:p-5">
+        <div>
+          {linkTitle ? (
+            <Link
+              to={`/announcements/${item.id}`}
+              className="text-[18px] font-semibold leading-snug text-foreground hover:text-primary hover:underline"
+            >
+              {item.title}
+            </Link>
+          ) : (
+            <h2 className="text-[18px] font-semibold leading-snug text-foreground">
+              {item.title}
+            </h2>
+          )}
+          {meta ? (
+            <p className="mt-1 text-sm text-muted-foreground">{meta}</p>
+          ) : null}
+        </div>
+
+        <Link to={`/announcements/${item.id}`} className="block">
+          <AnnouncementCover item={item} />
+        </Link>
+
+        {item.featured_alumni ? (
+          <FeaturedAlumniRow alumni={item.featured_alumni} />
+        ) : null}
+
+        {item.content ? (
+          <p
+            className={
+              clampContent
+                ? "line-clamp-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap"
+                : "text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap"
+            }
+          >
+            {item.content}
+          </p>
+        ) : null}
+
+        {linkTitle ? (
+          <Link
+            to={`/announcements/${item.id}`}
+            className="inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Read more
+          </Link>
+        ) : null}
+      </div>
+    </article>
+  )
 }
 
 export function AnnouncementsPage() {
@@ -69,9 +209,12 @@ export function AnnouncementsPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-lg bg-card" />
+        <div className="mx-auto w-full max-w-[560px] space-y-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[22rem] animate-pulse rounded-xl border border-border bg-card"
+            />
           ))}
         </div>
       ) : error ? (
@@ -82,33 +225,13 @@ export function AnnouncementsPage() {
           </CardHeader>
         </Card>
       ) : items.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           No announcements yet.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          {items.map((item, index) => (
-            <Link
-              key={item.id}
-              to={`/announcements/${item.id}`}
-              className={cn(
-                "block px-4 py-3.5 transition-colors hover:bg-muted/40",
-                index < items.length - 1 && "border-b border-border",
-              )}
-            >
-              <p className="font-semibold leading-snug">{item.title}</p>
-              {item.featured_alumni ? (
-                <p className="mt-1 text-xs font-medium text-primary">
-                  Featured · {item.featured_alumni.full_name}
-                </p>
-              ) : null}
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                {item.content}
-              </p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {relativeTime(item.published_at)}
-              </p>
-            </Link>
+        <div className="mx-auto w-full max-w-[560px] space-y-4">
+          {items.map((item) => (
+            <AnnouncementCard key={item.id} item={item} />
           ))}
         </div>
       )}
@@ -149,7 +272,9 @@ export function AnnouncementDetailPage() {
   }, [announcementId])
 
   if (loading) {
-    return <div className="h-40 animate-pulse rounded-xl bg-muted" />
+    return (
+      <div className="mx-auto h-[22rem] w-full max-w-[560px] animate-pulse rounded-xl bg-muted" />
+    )
   }
 
   if (error || !item) {
@@ -164,71 +289,14 @@ export function AnnouncementDetailPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-[560px] space-y-3">
       <Link
         to="/announcements"
-        className="text-sm text-primary hover:underline"
+        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
       >
-        Back to announcements
+        ← Back to announcements
       </Link>
-      <Card>
-        <CardHeader>
-          <CardTitle>{item.title}</CardTitle>
-          <CardDescription>
-            {item.category}
-            {item.published_at
-              ? ` · ${relativeTime(item.published_at)}`
-              : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {item.image_url ? (
-            <img
-              src={item.image_url}
-              alt=""
-              className="mb-4 max-h-72 w-full rounded-lg object-cover"
-            />
-          ) : null}
-          {item.featured_alumni ? (
-            <Link
-              to={`/directory/${item.featured_alumni.alumni_id}`}
-              className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3 transition-colors hover:bg-muted"
-            >
-              {item.featured_alumni.photo_url ? (
-                <img
-                  src={item.featured_alumni.photo_url}
-                  alt=""
-                  className="size-12 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex size-12 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                  {item.featured_alumni.full_name
-                    .split(/\s+/)
-                    .slice(0, 2)
-                    .map((part) => part[0]?.toUpperCase() ?? "")
-                    .join("")}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                  Featured alumni
-                </p>
-                <p className="truncate text-sm font-semibold">
-                  {item.featured_alumni.full_name}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {[item.featured_alumni.degree, item.featured_alumni.graduation_year]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              </div>
-            </Link>
-          ) : null}
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-            {item.content}
-          </p>
-        </CardContent>
-      </Card>
+      <AnnouncementCard item={item} linkTitle={false} clampContent={false} />
     </div>
   )
 }
