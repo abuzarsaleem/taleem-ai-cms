@@ -131,6 +131,7 @@ export function SignupForm({
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const form = event.currentTarget
     setApiError("")
 
     const nextErrors = validateRegistration({
@@ -188,7 +189,7 @@ export function SignupForm({
         duration: 6000,
       })
       resetForm()
-      event.currentTarget.reset()
+      form.reset()
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Registration failed"
