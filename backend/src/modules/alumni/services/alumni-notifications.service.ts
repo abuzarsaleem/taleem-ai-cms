@@ -1,130 +1,191 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan, Not, Repository } from 'typeorm';
-import { ALUMNI_REPOSITORY } from '../../../common/constants/tokens';
+import { Repository } from 'typeorm';
 import { AlumniStatus } from '../../../common/enums';
 import {
   AlumniEntity,
-  AnnouncementEntity,
-  EventEntity,
+  AlumniNotificationEntity,
+  AlumniNotificationType,
 } from '../../../database/entities';
-import { ResourceNotFoundException } from '../../../common/exceptions';
-import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
 import type {
   NotificationItemDto,
   NotificationsSummaryDto,
 } from '../dto/notifications.dto';
 
-const DEFAULT_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
-const ITEM_LIMIT = 8;
+const ITEM_LIMIT = 20;
 
 @Injectable()
 export class AlumniNotificationsService {
+  private readonly logger = new Logger(AlumniNotificationsService.name);
+
   constructor(
-    @Inject(ALUMNI_REPOSITORY)
-    private readonly alumniRepository: IAlumniRepository,
+    @InjectRepository(AlumniNotificationEntity)
+    private readonly notificationRepo: Repository<AlumniNotificationEntity>,
     @InjectRepository(AlumniEntity)
     private readonly alumniRepo: Repository<AlumniEntity>,
-    @InjectRepository(EventEntity)
-    private readonly eventRepo: Repository<EventEntity>,
-    @InjectRepository(AnnouncementEntity)
-    private readonly announcementRepo: Repository<AnnouncementEntity>,
   ) {}
 
-  async getSummary(
-    userId: string,
-    sinceRaw?: string,
-  ): Promise<NotificationsSummaryDto> {
-    const profile = await this.alumniRepository.findByUserId(userId);
-    if (!profile) {
-      throw new ResourceNotFoundException('Alumni profile for user', userId);
+  async getSummary(userId: string): Promise<NotificationsSummaryDto> {
+    const me = await this.alumniRepo.findOne({ where: { userId } });
+    if (!me) {
+      return {
+        unread_count: 0,
+        alumni: 0,
+        events: 0,
+        announcements: 0,
+        since: new Date(),
+        items: [],
+      };
     }
 
-    const since = this.resolveSince(sinceRaw);
-    const meId = profile.alumni.id;
-
-    const [alumniRows, eventRows, announcementRows] = await Promise.all([
-      this.alumniRepo.find({
-        where: {
-          createdAt: MoreThan(since),
-          status: AlumniStatus.ACTIVE,
-          id: Not(meId),
-        },
+    const [unreadRows, items] = await Promise.all([
+      this.notificationRepo
+        .createQueryBuilder('n')
+        .select('n.type', 'type')
+        .addSelect('COUNT(*)', 'count')
+        .where('n.alumni_id = :alumniId', { alumniId: me.id })
+        .andWhere('n.is_read = false')
+        .groupBy('n.type')
+        .getRawMany<{ type: AlumniNotificationType; count: string }>(),
+      this.notificationRepo.find({
+        where: { alumniId: me.id },
         order: { createdAt: 'DESC' },
-        take: ITEM_LIMIT,
-      }),
-      this.eventRepo.find({
-        where: {
-          createdAt: MoreThan(since),
-          isDraft: false,
-        },
-        order: { createdAt: 'DESC' },
-        take: ITEM_LIMIT,
-      }),
-      this.announcementRepo.find({
-        where: {
-          isPublished: true,
-          publishedAt: MoreThan(since),
-        },
-        order: { publishedAt: 'DESC' },
         take: ITEM_LIMIT,
       }),
     ]);
 
-    const [alumniCount, eventsCount, announcementsCount] = await Promise.all([
-      this.alumniRepo.count({
-        where: {
-          createdAt: MoreThan(since),
-          status: AlumniStatus.ACTIVE,
-          id: Not(meId),
-        },
-      }),
-      this.eventRepo.count({
-        where: { createdAt: MoreThan(since), isDraft: false },
-      }),
-      this.announcementRepo.count({
-        where: { isPublished: true, publishedAt: MoreThan(since) },
-      }),
-    ]);
+    const byType: Record<string, number> = {
+      alumni: 0,
+      event: 0,
+      announcement: 0,
+    };
+    for (const row of unreadRows) {
+      byType[row.type] = Number(row.count) || 0;
+    }
 
-    const items: NotificationItemDto[] = [
-      ...alumniRows.map((row) => ({
-        type: 'alumni' as const,
-        id: row.id,
-        title: row.fullName,
-        occurred_at: row.createdAt,
-      })),
-      ...eventRows.map((row) => ({
-        type: 'event' as const,
-        id: row.id,
-        title: row.title,
-        occurred_at: row.createdAt,
-      })),
-      ...announcementRows.map((row) => ({
-        type: 'announcement' as const,
-        id: row.id,
-        title: row.title,
-        occurred_at: row.publishedAt ?? since,
-      })),
-    ]
-      .sort((a, b) => b.occurred_at.getTime() - a.occurred_at.getTime())
-      .slice(0, ITEM_LIMIT);
+    const mapped: NotificationItemDto[] = items.map((row) => ({
+      type: row.type,
+      id: row.referenceId ?? row.id,
+      title: row.title,
+      occurred_at: row.createdAt,
+      is_read: row.isRead,
+      notification_id: row.id,
+    }));
 
     return {
-      unread_count: alumniCount + eventsCount + announcementsCount,
-      alumni: alumniCount,
-      events: eventsCount,
-      announcements: announcementsCount,
-      since,
-      items,
+      unread_count: byType.alumni + byType.event + byType.announcement,
+      alumni: byType.alumni,
+      events: byType.event,
+      announcements: byType.announcement,
+      since: new Date(),
+      items: mapped,
     };
   }
 
-  private resolveSince(sinceRaw?: string) {
-    if (sinceRaw) {
-      const parsed = new Date(sinceRaw);
-      if (!Number.isNaN(parsed.getTime())) return parsed;
+  async markRead(userId: string, notificationIds?: string[]) {
+    const me = await this.alumniRepo.findOne({ where: { userId } });
+    if (!me) return { updated: 0 };
+
+    if (notificationIds && notificationIds.length > 0) {
+      const result = await this.notificationRepo
+        .createQueryBuilder()
+        .update(AlumniNotificationEntity)
+        .set({ isRead: true })
+        .where('alumni_id = :alumniId', { alumniId: me.id })
+        .andWhere('is_read = false')
+        .andWhere('id IN (:...ids)', { ids: notificationIds })
+        .execute();
+      return { updated: result.affected ?? 0 };
     }
-    return new Date(Date.now() - DEFAULT_LOOKBACK_MS);
+
+    const result = await this.notificationRepo.update(
+      { alumniId: me.id, isRead: false },
+      { isRead: true },
+    );
+    return { updated: result.affected ?? 0 };
+  }
+
+  async createForAlumniIds(input: {
+    alumniIds: string[];
+    type: AlumniNotificationType;
+    title: string;
+    referenceId: string;
+  }) {
+    const uniqueIds = [...new Set(input.alumniIds)].filter(Boolean);
+    if (uniqueIds.length === 0) return 0;
+
+    const rows = uniqueIds.map((alumniId) =>
+      this.notificationRepo.create({
+        alumniId,
+        type: input.type,
+        title: input.title,
+        referenceId: input.referenceId,
+        isRead: false,
+      }),
+    );
+
+    await this.notificationRepo.save(rows);
+    return rows.length;
+  }
+
+  async notifyAllActiveAlumni(input: {
+    type: AlumniNotificationType;
+    title: string;
+    referenceId: string;
+    excludeAlumniId?: string;
+  }) {
+    try {
+      const qb = this.alumniRepo
+        .createQueryBuilder('alumni')
+        .select('alumni.id', 'id')
+        .where('alumni.status = :status', { status: AlumniStatus.ACTIVE });
+
+      if (input.excludeAlumniId) {
+        qb.andWhere('alumni.id != :excludeId', {
+          excludeId: input.excludeAlumniId,
+        });
+      }
+
+      const rows = await qb.getRawMany<{ id: string }>();
+      const count = await this.createForAlumniIds({
+        alumniIds: rows.map((row) => row.id),
+        type: input.type,
+        title: input.title,
+        referenceId: input.referenceId,
+      });
+      this.logger.log(
+        `NOTIFICATION_FANOUT type=${input.type} ref=${input.referenceId} count=${count}`,
+      );
+      return count;
+    } catch (error) {
+      this.logger.error(
+        `NOTIFICATION_FANOUT_FAILED type=${input.type}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return 0;
+    }
+  }
+
+  async notifySpecificAlumni(input: {
+    alumniIds: string[];
+    type: AlumniNotificationType;
+    title: string;
+    referenceId: string;
+  }) {
+    try {
+      const count = await this.createForAlumniIds(input);
+      this.logger.log(
+        `NOTIFICATION_TARGETED type=${input.type} ref=${input.referenceId} count=${count}`,
+      );
+      return count;
+    } catch (error) {
+      this.logger.error(
+        `NOTIFICATION_TARGETED_FAILED type=${input.type}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return 0;
+    }
   }
 }

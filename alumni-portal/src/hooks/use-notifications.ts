@@ -58,15 +58,26 @@ export function useNotifications() {
     return () => window.clearInterval(id)
   }, [token, refresh])
 
-  function markSeen() {
-    writeSeen(new Date().toISOString())
+  async function markSeen() {
+    const seenAt = new Date().toISOString()
+    writeSeen(seenAt)
     setSummary((current) => ({
       ...current,
       unread_count: 0,
       alumni: 0,
       events: 0,
       announcements: 0,
+      since: seenAt,
+      items: current.items.map((item) => ({ ...item, is_read: true })),
     }))
+
+    // Persist when the API supports DB-backed read state (ignore 404 on older backends).
+    try {
+      const next = await notificationsService.markRead()
+      setSummary(next)
+    } catch {
+      /* since cursor already updated for feed-based /me/notifications */
+    }
   }
 
   return { summary, refresh, markSeen }

@@ -119,7 +119,7 @@ export const dashboardService = {
     const pendingTargets = new Set(
       sentRequests
         .filter((r) =>
-          ["PENDING_ADMIN", "PENDING_ALUMNI", "APPROVED", "PENDING"].includes(
+          ["PENDING_ADMIN", "APPROVED", "PENDING"].includes(
             r.status,
           ),
         )
@@ -188,7 +188,6 @@ export const dashboardService = {
 
     const pendingContactStatuses = new Set([
       "PENDING_ADMIN",
-      "PENDING_ALUMNI",
       "PENDING",
     ])
 

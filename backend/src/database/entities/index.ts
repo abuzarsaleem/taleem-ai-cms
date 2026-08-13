@@ -1,6 +1,7 @@
 import { AccountEntity } from './account.entity';
 import { AlumniAcademicInformationEntity } from './alumni-academic-information.entity';
 import { AlumniContactRequestEntity } from './alumni-contact-request.entity';
+import { AlumniNotificationEntity } from './alumni-notification.entity';
 import { AlumniProfessionalInformationEntity } from './alumni-professional-information.entity';
 import { AlumniRegistrationRequestEntity } from './alumni-registration-request.entity';
 import { AlumniVerificationEntity } from './alumni-verification.entity';
@@ -29,6 +30,7 @@ export const databaseEntities = [
   AlumniProfessionalInformationEntity,
   AlumniVerificationEntity,
   AlumniContactRequestEntity,
+  AlumniNotificationEntity,
   EventEntity,
   EventRsvpEntity,
   AnnouncementEntity,
@@ -48,9 +50,11 @@ export {
   AlumniProfessionalInformationEntity,
   AlumniVerificationEntity,
   AlumniContactRequestEntity,
+  AlumniNotificationEntity,
   EventEntity,
   EventRsvpEntity,
   AnnouncementEntity,
 };
 
 export type { EventTargetCriteria } from './event.entity';
+export { AlumniNotificationType } from './alumni-notification.entity';

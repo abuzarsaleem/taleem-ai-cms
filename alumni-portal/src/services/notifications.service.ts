@@ -6,6 +6,8 @@ export type NotificationItem = {
   id: string
   title: string
   occurred_at: string
+  is_read?: boolean
+  notification_id?: string
 }
 
 export type NotificationsSummary = {
@@ -22,6 +24,14 @@ export const notificationsService = {
     const { data } = await apiClient.get<ApiResponse<NotificationsSummary>>(
       "/me/notifications",
       { params: since ? { since } : undefined },
+    )
+    return data.data
+  },
+
+  async markRead(notificationIds?: string[]): Promise<NotificationsSummary> {
+    const { data } = await apiClient.post<ApiResponse<NotificationsSummary>>(
+      "/me/notifications/read",
+      notificationIds?.length ? { notification_ids: notificationIds } : {},
     )
     return data.data
   },

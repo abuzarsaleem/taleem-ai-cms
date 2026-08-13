@@ -1,4 +1,4 @@
-import { IdCard } from "lucide-react"
+import { GraduationCap } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
@@ -14,6 +14,41 @@ import { ApiError } from "@/lib/api-client"
 import { catalogService } from "@/services/catalog.service"
 import { profileService } from "@/services/profile.service"
 import type { AlumniProfile } from "@/types/portal"
+
+function CornerAccents() {
+  return (
+    <>
+      {/* Top-left */}
+      <div className="pointer-events-none absolute top-0 left-0" aria-hidden>
+        <div className="absolute top-0 left-0 h-[72px] w-[18px] bg-[#0b4d3c]" />
+        <div className="absolute top-0 left-[22px] h-[18px] w-[72px] bg-[#0b4d3c]" />
+        <div className="absolute top-[6px] left-[6px] h-[52px] w-[8px] bg-[#c9a227]" />
+        <div className="absolute top-[6px] left-[6px] h-[8px] w-[52px] bg-[#c9a227]" />
+      </div>
+      {/* Top-right */}
+      <div className="pointer-events-none absolute top-0 right-0" aria-hidden>
+        <div className="absolute top-0 right-0 h-[72px] w-[18px] bg-[#0b4d3c]" />
+        <div className="absolute top-0 right-[22px] h-[18px] w-[72px] bg-[#0b4d3c]" />
+        <div className="absolute top-[6px] right-[6px] h-[52px] w-[8px] bg-[#c9a227]" />
+        <div className="absolute top-[6px] right-[6px] h-[8px] w-[52px] bg-[#c9a227]" />
+      </div>
+      {/* Bottom-left */}
+      <div className="pointer-events-none absolute bottom-0 left-0" aria-hidden>
+        <div className="absolute bottom-0 left-0 h-[72px] w-[18px] bg-[#0b4d3c]" />
+        <div className="absolute bottom-0 left-[22px] h-[18px] w-[72px] bg-[#0b4d3c]" />
+        <div className="absolute bottom-[6px] left-[6px] h-[52px] w-[8px] bg-[#c9a227]" />
+        <div className="absolute bottom-[6px] left-[6px] h-[8px] w-[52px] bg-[#c9a227]" />
+      </div>
+      {/* Bottom-right */}
+      <div className="pointer-events-none absolute right-0 bottom-0" aria-hidden>
+        <div className="absolute right-0 bottom-0 h-[72px] w-[18px] bg-[#0b4d3c]" />
+        <div className="absolute right-[22px] bottom-0 h-[18px] w-[72px] bg-[#0b4d3c]" />
+        <div className="absolute right-[6px] bottom-[6px] h-[52px] w-[8px] bg-[#c9a227]" />
+        <div className="absolute right-[6px] bottom-[6px] h-[8px] w-[52px] bg-[#c9a227]" />
+      </div>
+    </>
+  )
+}
 
 export function AlumniCardPage() {
   const [profile, setProfile] = useState<AlumniProfile | null>(null)
@@ -65,97 +100,117 @@ export function AlumniCardPage() {
   const primaryAcademic =
     profile.academic.find((row) => row.is_verification) ?? profile.academic[0]
   const degreeLabel = primaryAcademic
-    ? (degreeLabels.get(primaryAcademic.degree_program_id) ?? "Degree program")
+    ? (degreeLabels.get(primaryAcademic.degree_program_id) ?? null)
     : null
+  const degreeShort =
+    degreeLabel?.split(" — ")[0] ??
+    degreeLabel ??
+    "Alumni member"
   const hasQr = Boolean(profile.qr_code)
+  const initials = profile.full_name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("")
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Alumni card</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">
+          Alumni card
+        </h1>
         <p className="text-sm text-muted-foreground">
           Digital ID from your profile photo, academic details, and QR
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 text-white shadow-lg">
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3 text-xs uppercase tracking-[0.18em] text-white/70">
-          <span className="inline-flex items-center gap-2">
-            <IdCard className="size-3.5" />
-            Taleem Alumni
-          </span>
-          <span>{profile.status}</span>
-        </div>
+      <div className="mx-auto w-full max-w-[340px]">
+        <div
+          className="relative overflow-hidden rounded-[14px] bg-white"
+          style={{
+            aspectRatio: "54 / 86",
+            boxShadow:
+              "0 1px 0 rgba(255,255,255,0.9) inset, 0 18px 40px -20px rgba(11,77,60,0.45), 0 6px 16px rgba(15,23,42,0.08)",
+          }}
+        >
+          <CornerAccents />
 
-        <div className="grid gap-6 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
-          <div className="flex gap-4">
-            {profile.photo_url ? (
-              <img
-                src={profile.photo_url}
-                alt={profile.full_name}
-                className="size-24 shrink-0 rounded-xl object-cover ring-2 ring-white/20"
-              />
-            ) : (
-              <div className="flex size-24 shrink-0 items-center justify-center rounded-xl bg-white/10 text-xl font-semibold">
-                {profile.full_name
-                  .split(/\s+/)
-                  .slice(0, 2)
-                  .map((p) => p[0])
-                  .join("")}
+          <div className="relative flex h-full flex-col items-center px-7 pt-9 pb-8">
+            {/* Brand header */}
+            <div className="flex w-full items-center justify-between gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#0b4d3c] text-[#c9a227] shadow-sm">
+                <GraduationCap className="size-5" strokeWidth={2.25} />
               </div>
-            )}
-            <div className="min-w-0 space-y-1">
-              <h2 className="text-xl font-semibold leading-tight">
+              <div className="min-w-0 text-right">
+                <p className="font-display text-[17px] leading-none font-bold tracking-[0.04em] text-[#0b4d3c] uppercase">
+                  Taleem
+                </p>
+                <p className="mt-1 text-[10px] font-semibold tracking-[0.22em] text-[#0b4d3c]/80 uppercase">
+                  Alumni
+                </p>
+              </div>
+            </div>
+
+            {/* Portrait */}
+            <div className="mt-8">
+              {profile.photo_url ? (
+                <img
+                  src={profile.photo_url}
+                  alt={profile.full_name}
+                  className="size-[118px] rounded-full object-cover ring-[3px] ring-[#0b4d3c]"
+                />
+              ) : (
+                <div className="flex size-[118px] items-center justify-center rounded-full bg-[#0b4d3c]/10 text-3xl font-semibold text-[#0b4d3c] ring-[3px] ring-[#0b4d3c]">
+                  {initials}
+                </div>
+              )}
+            </div>
+
+            {/* Identity */}
+            <div className="mt-5 w-full text-center">
+              <h2 className="text-[20px] leading-tight font-bold tracking-wide text-[#0b4d3c] uppercase">
                 {profile.full_name}
               </h2>
-              <p className="truncate text-sm text-white/75">{profile.email}</p>
-              {degreeLabel ? (
-                <p className="text-sm text-teal-200">
-                  {degreeLabel}
-                  {primaryAcademic?.graduation_year
-                    ? ` · Class of ${primaryAcademic.graduation_year}`
-                    : null}
-                </p>
-              ) : (
-                <p className="text-sm text-white/60">
-                  Add academic details on{" "}
-                  <Link to="/profile" className="underline underline-offset-2">
-                    Profile
-                  </Link>
-                </p>
-              )}
+              <p className="mt-2 text-[11px] font-medium tracking-[0.18em] text-[#0b4d3c]/75 uppercase">
+                {degreeShort}
+                {primaryAcademic?.graduation_year
+                  ? ` · ${primaryAcademic.graduation_year}`
+                  : ""}
+              </p>
               {primaryAcademic?.registration_roll_number ? (
-                <p className="text-xs text-white/55">
+                <p className="mt-1.5 text-[11px] text-[#0b4d3c]/55">
                   Roll # {primaryAcademic.registration_roll_number}
                 </p>
               ) : null}
-              {(profile.city || profile.country) && (
-                <p className="text-xs text-white/55">
-                  {[profile.city, profile.country].filter(Boolean).join(", ")}
-                </p>
-              )}
+            </div>
+
+            {/* QR */}
+            <div className="mt-auto flex flex-col items-center pt-5">
+              <div className="rounded-md bg-white p-1.5 ring-1 ring-[#0b4d3c]/15">
+                {hasQr ? (
+                  <img
+                    src={profile.qr_code!}
+                    alt="Alumni verification QR"
+                    className="size-[108px]"
+                  />
+                ) : (
+                  <div className="flex size-[108px] items-center justify-center bg-[#0b4d3c]/5 px-3 text-center text-[11px] leading-snug text-[#0b4d3c]/60">
+                    QR not issued yet
+                  </div>
+                )}
+              </div>
+
+              <p className="mt-4 text-[15px] font-bold tracking-[0.28em] text-[#0b4d3c] uppercase">
+                Alumni
+              </p>
+              <p className="mt-1 text-[10px] tracking-wide text-[#0b4d3c]/45">
+                {hasQr
+                  ? "Scan to verify identity"
+                  : "Issued after university approval"}
+              </p>
             </div>
           </div>
-
-          <div className="justify-self-center rounded-xl bg-white p-3 shadow-inner">
-            {hasQr ? (
-              <img
-                src={profile.qr_code!}
-                alt="Alumni verification QR"
-                className="size-32"
-              />
-            ) : (
-              <div className="flex size-32 items-center justify-center bg-slate-100 px-2 text-center text-xs text-slate-500">
-                QR not issued yet
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="border-t border-white/10 px-5 py-3 text-xs text-white/55">
-          {hasQr
-            ? "Scan the QR to verify alumni identity"
-            : "Your QR is created when the alumni card is issued by the university"}
         </div>
       </div>
 

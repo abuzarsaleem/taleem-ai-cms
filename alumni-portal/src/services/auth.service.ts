@@ -65,7 +65,14 @@ export const authService = {
       "/auth/register",
       payload,
     )
-    return data.data
+    return (
+      data.data ?? {
+        registration_id: "",
+        status: "PENDING",
+        submitted_at: new Date().toISOString(),
+        message: data.message || "Registration submitted",
+      }
+    )
   },
 
   async uploadPhoto(file: File): Promise<UploadPhotoResponse> {

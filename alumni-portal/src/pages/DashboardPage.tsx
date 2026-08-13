@@ -2,13 +2,10 @@ import { format, formatDistanceToNow, parseISO } from "date-fns"
 import {
   CalendarDays,
   ChevronDown,
-  IdCard,
   MapPin,
   Megaphone,
   Send,
-  Settings,
   Users,
-  UserPlus,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
@@ -493,14 +490,10 @@ export function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="grid gap-4 lg:grid-cols-[225px_minmax(0,1fr)_300px] lg:gap-6">
-        <div className="hidden h-52 animate-pulse rounded-lg bg-card lg:block" />
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-48 animate-pulse rounded-lg bg-card" />
-          ))}
-        </div>
-        <div className="h-64 animate-pulse rounded-lg bg-card" />
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-48 animate-pulse rounded-lg bg-card" />
+        ))}
       </div>
     )
   }
@@ -520,147 +513,8 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[225px_minmax(0,1fr)_300px] lg:gap-6">
-      {/* Left identity */}
-      <aside className="order-1 hidden lg:block">
-        <div className="sticky top-[4.25rem] space-y-3">
-          <Surface>
-            <div className="h-14 bg-[linear-gradient(105deg,oklch(0.42_0.12_250),oklch(0.48_0.08_220))]" />
-            <div className="-mt-8 px-3 pb-3 text-center">
-              <Link to="/profile" className="mx-auto inline-block rounded-full">
-                <Avatar
-                  name={data.full_name}
-                  photoUrl={data.photo_url}
-                  size="lg"
-                  className="ring-2 ring-card"
-                />
-              </Link>
-              <Link
-                to="/profile"
-                className="mt-2 block text-[16px] font-semibold hover:underline"
-              >
-                {data.full_name}
-              </Link>
-              <p className="text-xs text-muted-foreground">Alumni member</p>
-            </div>
-            <div className="space-y-0.5 border-t border-border px-1.5 py-1.5">
-              <Link
-                to="/card"
-                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <IdCard className="size-4" />
-                My alumni card
-              </Link>
-              <Link
-                to="/profile"
-                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <Settings className="size-4" />
-                Settings
-              </Link>
-            </div>
-          </Surface>
-
-          <nav className="space-y-0.5 px-1">
-            <p className="px-2 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-              Quick access
-            </p>
-            {(
-              [
-                {
-                  to: "/contact-requests",
-                  label: "Contact requests",
-                  meta:
-                    data.shortcuts.contact_requests_total > 0
-                      ? String(data.shortcuts.contact_requests_total)
-                      : undefined,
-                  icon: UserPlus,
-                  tone: "bg-sky-500",
-                },
-                {
-                  to: "/directory",
-                  label: "Directory",
-                  icon: Users,
-                  tone: "bg-blue-600",
-                },
-                {
-                  to: "/events",
-                  label: "Events",
-                  meta:
-                    data.shortcuts.upcoming_events > 0
-                      ? String(data.shortcuts.upcoming_events)
-                      : undefined,
-                  icon: CalendarDays,
-                  tone: "bg-emerald-500",
-                },
-                {
-                  to: "/announcements",
-                  label: "Announcements",
-                  meta:
-                    data.shortcuts.announcements > 0
-                      ? String(data.shortcuts.announcements)
-                      : undefined,
-                  icon: Megaphone,
-                  tone: "bg-amber-500",
-                },
-                {
-                  to: "/card",
-                  label: "Alumni card",
-                  icon: IdCard,
-                  tone: "bg-violet-500",
-                },
-              ] as const
-            ).map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className="flex items-center gap-3 rounded-lg px-2 py-2 text-[15px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-                >
-                  <span
-                    className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm",
-                      item.tone,
-                    )}
-                  >
-                    <Icon className="size-4" strokeWidth={2.25} />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                  {"meta" in item && item.meta ? (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                      {item.meta}
-                    </span>
-                  ) : null}
-                </Link>
-              )
-            })}
-            {data.shortcuts.contact_requests_pending > 0 ? (
-              <p className="px-2 pt-1 text-xs text-muted-foreground">
-                {data.shortcuts.contact_requests_pending} pending review
-              </p>
-            ) : null}
-          </nav>
-        </div>
-      </aside>
-
-      {/* Center */}
-      <section className="order-2 min-w-0 space-y-2.5">
-        {/* Mobile identity strip */}
-        <Surface className="flex items-center gap-3 p-3 lg:hidden">
-          <Avatar name={data.full_name} photoUrl={data.photo_url} size="sm" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{data.full_name}</p>
-            <p className="text-xs text-muted-foreground">Welcome back</p>
-          </div>
-          <Link
-            to="/card"
-            className="inline-flex h-7 items-center rounded-full border border-border px-3 text-xs font-medium hover:bg-muted"
-          >
-            Card
-          </Link>
-        </Surface>
-
+    <>
+      <div className="space-y-2.5">
         {data.feed.length === 0 ? (
           <Surface className="p-10 text-center text-sm text-muted-foreground">
             Nothing in your feed yet. Events, announcements, and alumni will
@@ -677,64 +531,7 @@ export function DashboardPage() {
             />
           ))
         )}
-      </section>
-
-      {/* Right — My events */}
-      <aside className="order-3">
-        <div className="sticky top-[4.25rem]">
-          <Surface>
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h2 className="text-[16px] font-semibold">My events</h2>
-              <Link
-                to="/events"
-                className="text-xs font-semibold text-primary hover:underline"
-              >
-                View all
-              </Link>
-            </div>
-            {data.my_events.length === 0 ? (
-              <p className="px-4 py-5 text-sm leading-relaxed text-muted-foreground">
-                RSVP to an event and it will land here with your status.
-              </p>
-            ) : (
-              <ul>
-                {data.my_events.map((event, index) => (
-                  <li key={event.id}>
-                    <Link
-                      to={`/events/${event.id}`}
-                      className={cn(
-                        "flex gap-3 px-4 py-3 transition-colors hover:bg-muted/50",
-                        index < data.my_events.length - 1 &&
-                          "border-b border-border",
-                      )}
-                    >
-                      {event.image_url ? (
-                        <img
-                          src={event.image_url}
-                          alt=""
-                          className="size-12 shrink-0 rounded object-cover"
-                        />
-                      ) : (
-                        <div className="flex size-12 shrink-0 items-center justify-center rounded bg-muted">
-                          <CalendarDays className="size-4 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="line-clamp-2 text-sm font-semibold leading-snug">
-                          {event.title}
-                        </p>
-                        <p className="mt-1 text-xs font-medium text-primary">
-                          {rsvpLabel(event.my_rsvp_status)}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Surface>
-        </div>
-      </aside>
+      </div>
 
       <Dialog
         open={Boolean(contactTarget)}
@@ -774,6 +571,6 @@ export function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }

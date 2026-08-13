@@ -168,4 +168,12 @@ export type AnnouncementItem = {
   image_url: string | null
   is_published: boolean
   published_at: string | null
+  featured_alumni_id?: string | null
+  featured_alumni?: {
+    alumni_id: string
+    full_name: string
+    photo_url: string | null
+    degree: string | null
+    graduation_year: string | null
+  } | null
 }

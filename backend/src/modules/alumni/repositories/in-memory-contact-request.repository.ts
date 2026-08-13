@@ -89,7 +89,6 @@ export class InMemoryContactRequestRepository
   ): Promise<AlumniContactRequest | null> {
     const active = [
       ContactRequestStatus.PENDING_ADMIN,
-      ContactRequestStatus.PENDING_ALUMNI,
       ContactRequestStatus.APPROVED,
     ];
     for (const row of this.store.values()) {

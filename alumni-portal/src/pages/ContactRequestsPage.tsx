@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { formatDistanceToNow, parseISO } from "date-fns"
 
@@ -25,23 +25,36 @@ function statusLabel(status: string) {
   switch (status) {
     case "PENDING_ADMIN":
       return "Pending admin review"
-    case "PENDING_ALUMNI":
-      return "Pending alumni"
     case "APPROVED":
       return "Approved"
     case "REJECTED_BY_ADMIN":
       return "Rejected by admin"
     case "REJECTED_BY_ALUMNI":
-      return "Rejected by alumni"
+      return "Rejected"
     default:
       return status
   }
 }
 
+function isSentPending(status: string) {
+  return status === "PENDING_ADMIN"
+}
+
+function isCompleted(status: string) {
+  return (
+    status === "APPROVED" ||
+    status === "REJECTED_BY_ADMIN" ||
+    status === "REJECTED_BY_ALUMNI"
+  )
+}
+
+type Tab = "sent" | "completed"
+
 export function ContactRequestsPage() {
   const [items, setItems] = useState<ContactRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [tab, setTab] = useState<Tab>("sent")
 
   useEffect(() => {
     let cancelled = false
@@ -69,15 +82,43 @@ export function ContactRequestsPage() {
     }
   }, [])
 
+  const visible = useMemo(() => {
+    if (tab === "sent") return items.filter((item) => isSentPending(item.status))
+    return items.filter((item) => isCompleted(item.status))
+  }, [items, tab])
+
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">
-          Contact requests
+          My requests
         </h1>
         <p className="text-sm text-muted-foreground">
-          Requests you’ve sent to connect with alumni
+          Contact requests you’ve sent to alumni
         </p>
+      </div>
+
+      <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
+        {(
+          [
+            { id: "sent" as const, label: "Sent requests" },
+            { id: "completed" as const, label: "Completed requests" },
+          ] as const
+        ).map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => setTab(option.id)}
+            className={cn(
+              "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === option.id
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -93,10 +134,12 @@ export function ContactRequestsPage() {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
         </Card>
-      ) : items.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-8 text-center">
           <p className="text-sm text-muted-foreground">
-            You haven’t sent any contact requests yet.
+            {tab === "sent"
+              ? "No sent requests awaiting review."
+              : "No completed requests yet."}
           </p>
           <Link
             to="/directory"
@@ -107,12 +150,12 @@ export function ContactRequestsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-border bg-card">
-          {items.map((item, index) => (
+          {visible.map((item, index) => (
             <div
               key={item.id}
               className={cn(
                 "flex items-start justify-between gap-3 px-4 py-3",
-                index < items.length - 1 && "border-b border-border",
+                index < visible.length - 1 && "border-b border-border",
               )}
             >
               <div className="min-w-0">

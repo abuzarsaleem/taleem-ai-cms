@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import {
   ALUMNI_REPOSITORY,
   REGISTRATION_REQUEST_REPOSITORY,
@@ -11,6 +11,8 @@ import {
 } from '../../../common/exceptions';
 import { placeholderPasswordHash } from '../../../common/utils';
 import { ActivationService } from '../../alumni/services/activation.service';
+import { AlumniNotificationsService } from '../../alumni/services/alumni-notifications.service';
+import { AlumniNotificationType } from '../../../database/entities';
 import type { IAlumniRepository } from '../../alumni/interfaces/alumni.repository.interface';
 import type { IRegistrationRequestRepository } from '../../alumni/interfaces/registration-request.repository.interface';
 import type { IUserRepository } from '../../alumni/interfaces/user.repository.interface';
@@ -29,6 +31,8 @@ export class ApprovalService {
     private readonly userRepository: IUserRepository,
     private readonly activationService: ActivationService,
     private readonly alumniCardService: AlumniCardService,
+    @Optional()
+    private readonly alumniNotificationsService?: AlumniNotificationsService,
   ) {}
 
   async approve(
@@ -104,6 +108,15 @@ export class ApprovalService {
         },
       });
       alumniId = profile.alumni.id;
+
+      if (this.alumniNotificationsService) {
+        await this.alumniNotificationsService.notifyAllActiveAlumni({
+          type: AlumniNotificationType.ALUMNI,
+          title: request.fullName,
+          referenceId: alumniId,
+          excludeAlumniId: alumniId,
+        });
+      }
 
       this.logger.log(
         `REGISTRATION_APPROVED registrationId=${registrationId} alumniId=${alumniId} by=${adminUserId}`,

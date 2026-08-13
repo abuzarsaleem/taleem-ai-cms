@@ -1,14 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional } from 'class-validator';
+import { IsArray, IsOptional, IsUUID } from 'class-validator';
 
 export class NotificationsQueryDto {
   @ApiPropertyOptional({
-    description:
-      'ISO timestamp. Counts items created/published after this time. Defaults to 7 days ago.',
-    example: '2026-08-13T00:00:00.000Z',
+    description: 'Deprecated — unread state is stored in the database',
   })
   @IsOptional()
-  @IsDateString()
   since?: string;
 }
 
@@ -16,7 +13,7 @@ export class NotificationItemDto {
   @ApiProperty({ enum: ['alumni', 'event', 'announcement'] })
   type: 'alumni' | 'event' | 'announcement';
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Referenced alumni/event/announcement id' })
   id: string;
 
   @ApiProperty()
@@ -24,10 +21,16 @@ export class NotificationItemDto {
 
   @ApiProperty()
   occurred_at: Date;
+
+  @ApiPropertyOptional()
+  is_read?: boolean;
+
+  @ApiPropertyOptional({ description: 'Row id in alumni_notifications' })
+  notification_id?: string;
 }
 
 export class NotificationsSummaryDto {
-  @ApiProperty({ description: 'alumni + events + announcements since cutoff' })
+  @ApiProperty()
   unread_count: number;
 
   @ApiProperty()
@@ -44,4 +47,15 @@ export class NotificationsSummaryDto {
 
   @ApiProperty({ type: [NotificationItemDto] })
   items: NotificationItemDto[];
+}
+
+export class MarkNotificationsReadDto {
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Notification row ids. Omit to mark all as read.',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  notification_ids?: string[];
 }

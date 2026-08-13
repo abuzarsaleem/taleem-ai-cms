@@ -8,7 +8,6 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -41,8 +40,8 @@ import { MeCareerService } from '../services/me-career.service';
 import { ProfileService } from '../services/profile.service';
 import { AlumniNotificationsService } from '../services/alumni-notifications.service';
 import {
-  NotificationsQueryDto,
   NotificationsSummaryDto,
+  MarkNotificationsReadDto,
 } from '../dto/notifications.dto';
 
 @ApiTags(SWAGGER_TAGS.PROFILE_CAREER)
@@ -79,12 +78,30 @@ export class AlumniMeController {
 
   @Get('notifications')
   @ApiOperation({
-    summary: 'Unread alumni / event / announcement counts since a cutoff',
+    summary: 'List alumni notifications with unread counts (persisted)',
   })
   @ApiWrappedOkResponse(NotificationsSummaryDto)
-  async getNotifications(
+  async getNotifications(@CurrentUser() user: AuthUser) {
+    if (!this.notificationsService) {
+      return ApiResponseDto.of({
+        unread_count: 0,
+        alumni: 0,
+        events: 0,
+        announcements: 0,
+        since: new Date(),
+        items: [],
+      });
+    }
+    const data = await this.notificationsService.getSummary(user.userId);
+    return ApiResponseDto.of(data);
+  }
+
+  @Post('notifications/read')
+  @ApiOperation({ summary: 'Mark notifications as read (all or selected ids)' })
+  @ApiWrappedOkResponse(NotificationsSummaryDto)
+  async markNotificationsRead(
     @CurrentUser() user: AuthUser,
-    @Query() query: NotificationsQueryDto,
+    @Body() dto: MarkNotificationsReadDto,
   ) {
     if (!this.notificationsService) {
       return ApiResponseDto.of({
@@ -92,15 +109,16 @@ export class AlumniMeController {
         alumni: 0,
         events: 0,
         announcements: 0,
-        since: query.since ? new Date(query.since) : new Date(),
+        since: new Date(),
         items: [],
       });
     }
-    const data = await this.notificationsService.getSummary(
+    await this.notificationsService.markRead(
       user.userId,
-      query.since,
+      dto.notification_ids,
     );
-    return ApiResponseDto.of(data);
+    const data = await this.notificationsService.getSummary(user.userId);
+    return ApiResponseDto.of(data, 'Notifications marked as read');
   }
 
   @Get('professional')

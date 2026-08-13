@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import {
@@ -24,6 +24,8 @@ import {
 } from '../../../database/entities';
 import type { AlumniProfile } from '../../alumni/entities/alumni.entity';
 import type { IAlumniRepository } from '../../alumni/interfaces/alumni.repository.interface';
+import { AlumniNotificationsService } from '../../alumni/services/alumni-notifications.service';
+import { AlumniNotificationType } from '../../../database/entities';
 import { PortalMediaService } from '../../media/portal-media.service';
 import {
   CreateEventDto,
@@ -35,9 +37,9 @@ import {
 } from '../dto/event.dto';
 
 type AlumniAudienceAttrs = {
-  campusId: string | null;
-  degreeProgramId: string | null;
-  graduationYear: number | null;
+  campusIds: string[];
+  degreeProgramIds: string[];
+  graduationYears: number[];
   city: string | null;
 };
 
@@ -63,6 +65,8 @@ export class EventService {
     private readonly notificationSender: INotificationSender,
     @Inject(PHOTO_STORAGE)
     private readonly objectStorage: IObjectStorage,
+    @Optional()
+    private readonly alumniNotificationsService?: AlumniNotificationsService,
   ) {}
 
   async uploadImage(file?: {
@@ -415,6 +419,19 @@ export class EventService {
     qb: ReturnType<Repository<EventEntity>['createQueryBuilder']>,
     audience: AlumniAudienceAttrs,
   ) {
+    // Match against ANY of the alumnus academic records (campus / program / year).
+    // Use IN (:...ids) — TypeORM expands arrays reliably (unlike ANY(:ids)).
+    const campusIds =
+      audience.campusIds.length > 0
+        ? audience.campusIds
+        : ['00000000-0000-0000-0000-000000000000'];
+    const degreeProgramIds =
+      audience.degreeProgramIds.length > 0
+        ? audience.degreeProgramIds
+        : ['00000000-0000-0000-0000-000000000000'];
+    const graduationYears =
+      audience.graduationYears.length > 0 ? audience.graduationYears : [-1];
+
     qb.andWhere(
       `(
         event.target_criteria IS NULL
@@ -425,8 +442,12 @@ export class EventService {
             OR jsonb_typeof(event.target_criteria->'campus_ids') <> 'array'
             OR jsonb_array_length(event.target_criteria->'campus_ids') = 0
             OR (
-              CAST(:campusId AS text) IS NOT NULL
-              AND event.target_criteria->'campus_ids' ? CAST(:campusId AS text)
+              :hasCampusIds = true
+              AND EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements_text(event.target_criteria->'campus_ids') AS c(id)
+                WHERE c.id IN (:...campusIds)
+              )
             )
           )
           AND (
@@ -434,8 +455,14 @@ export class EventService {
             OR jsonb_typeof(event.target_criteria->'degree_program_ids') <> 'array'
             OR jsonb_array_length(event.target_criteria->'degree_program_ids') = 0
             OR (
-              CAST(:degreeProgramId AS text) IS NOT NULL
-              AND event.target_criteria->'degree_program_ids' ? CAST(:degreeProgramId AS text)
+              :hasDegreeProgramIds = true
+              AND EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements_text(
+                  event.target_criteria->'degree_program_ids'
+                ) AS d(id)
+                WHERE d.id IN (:...degreeProgramIds)
+              )
             )
           )
           AND (
@@ -443,8 +470,12 @@ export class EventService {
             OR jsonb_typeof(event.target_criteria->'graduation_years') <> 'array'
             OR jsonb_array_length(event.target_criteria->'graduation_years') = 0
             OR (
-              CAST(:graduationYear AS integer) IS NOT NULL
-              AND event.target_criteria->'graduation_years' @> to_jsonb(CAST(:graduationYear AS integer))
+              :hasGraduationYears = true
+              AND EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(event.target_criteria->'graduation_years') AS y(value)
+                WHERE (y.value #>> '{}')::int IN (:...graduationYears)
+              )
             )
           )
           AND (
@@ -463,9 +494,12 @@ export class EventService {
         )
       )`,
       {
-        campusId: audience.campusId,
-        degreeProgramId: audience.degreeProgramId,
-        graduationYear: audience.graduationYear,
+        hasCampusIds: audience.campusIds.length > 0,
+        campusIds,
+        hasDegreeProgramIds: audience.degreeProgramIds.length > 0,
+        degreeProgramIds,
+        hasGraduationYears: audience.graduationYears.length > 0,
+        graduationYears,
         city: audience.city,
       },
     );
@@ -474,29 +508,40 @@ export class EventService {
   private async resolveAudienceAttrs(
     profile: AlumniProfile,
   ): Promise<AlumniAudienceAttrs> {
-    const primary = [...profile.academic].sort(
-      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-    )[0];
+    const degreeProgramIds = [
+      ...new Set(
+        profile.academic
+          .map((row) => row.degreeProgramId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
 
-    let campusId: string | null = null;
-    if (primary?.degreeProgramId) {
-      const dp = await this.degreeProgramRepo.findOne({
-        where: { id: primary.degreeProgramId },
+    const graduationYears = [
+      ...new Set(
+        profile.academic
+          .map((row) => Number.parseInt(String(row.graduationYear), 10))
+          .filter((year) => Number.isFinite(year)),
+      ),
+    ];
+
+    let campusIds: string[] = [];
+    if (degreeProgramIds.length > 0) {
+      const programs = await this.degreeProgramRepo.find({
+        where: { id: In(degreeProgramIds) },
       });
-      campusId = dp?.campusId ?? null;
+      campusIds = [
+        ...new Set(
+          programs
+            .map((program) => program.campusId)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
     }
 
-    const graduationYear = primary?.graduationYear
-      ? Number.parseInt(primary.graduationYear, 10)
-      : null;
-
     return {
-      campusId,
-      degreeProgramId: primary?.degreeProgramId ?? null,
-      graduationYear:
-        graduationYear !== null && Number.isFinite(graduationYear)
-          ? graduationYear
-          : null,
+      campusIds,
+      degreeProgramIds,
+      graduationYears,
       city: profile.alumni.city?.trim() || null,
     };
   }
@@ -511,8 +556,8 @@ export class EventService {
 
     if (hasValues(criteria.campus_ids)) {
       if (
-        !audience.campusId ||
-        !criteria.campus_ids!.includes(audience.campusId)
+        audience.campusIds.length === 0 ||
+        !audience.campusIds.some((id) => criteria.campus_ids!.includes(id))
       ) {
         return false;
       }
@@ -520,17 +565,22 @@ export class EventService {
 
     if (hasValues(criteria.degree_program_ids)) {
       if (
-        !audience.degreeProgramId ||
-        !criteria.degree_program_ids!.includes(audience.degreeProgramId)
+        audience.degreeProgramIds.length === 0 ||
+        !audience.degreeProgramIds.some((id) =>
+          criteria.degree_program_ids!.includes(id),
+        )
       ) {
         return false;
       }
     }
 
     if (hasValues(criteria.graduation_years)) {
+      const targetYears = criteria.graduation_years!
+        .map((year) => Number(year))
+        .filter((year) => Number.isFinite(year));
       if (
-        audience.graduationYear === null ||
-        !criteria.graduation_years!.includes(audience.graduationYear)
+        audience.graduationYears.length === 0 ||
+        !audience.graduationYears.some((year) => targetYears.includes(year))
       ) {
         return false;
       }
@@ -659,6 +709,15 @@ export class EventService {
         if (this.matchesTargetCriteria(event.targetCriteria, audience)) {
           eligible.push(profile);
         }
+      }
+
+      if (this.alumniNotificationsService && eligible.length > 0) {
+        await this.alumniNotificationsService.notifySpecificAlumni({
+          alumniIds: eligible.map((profile) => profile.alumni.id),
+          type: AlumniNotificationType.EVENT,
+          title: event.title,
+          referenceId: event.id,
+        });
       }
 
       const results = await Promise.allSettled(

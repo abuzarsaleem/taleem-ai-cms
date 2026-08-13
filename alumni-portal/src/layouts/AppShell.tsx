@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom"
+import { NavLink, useNavigate } from "react-router-dom"
 import {
   Bell,
   CalendarDays,
@@ -13,6 +13,7 @@ import {
 import { useState } from "react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { PortalRails } from "@/components/portal-rails"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import {
@@ -296,7 +297,7 @@ export function AppShell({
       </header>
 
       <main className="mx-auto w-full max-w-[1128px] px-2 py-4 sm:px-4 sm:py-6">
-        <Outlet />
+        <PortalRails fullName={fullName} photoUrl={photoUrl} />
       </main>
     </div>
   )

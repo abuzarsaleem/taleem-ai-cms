@@ -58,7 +58,7 @@ export function AnnouncementsPage() {
   }, [])
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">
           Announcements
@@ -97,6 +97,11 @@ export function AnnouncementsPage() {
               )}
             >
               <p className="font-semibold leading-snug">{item.title}</p>
+              {item.featured_alumni ? (
+                <p className="mt-1 text-xs font-medium text-primary">
+                  Featured · {item.featured_alumni.full_name}
+                </p>
+              ) : null}
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                 {item.content}
               </p>
@@ -159,7 +164,7 @@ export function AnnouncementDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="space-y-4">
       <Link
         to="/announcements"
         className="text-sm text-primary hover:underline"
@@ -183,6 +188,41 @@ export function AnnouncementDetailPage() {
               alt=""
               className="mb-4 max-h-72 w-full rounded-lg object-cover"
             />
+          ) : null}
+          {item.featured_alumni ? (
+            <Link
+              to={`/directory/${item.featured_alumni.alumni_id}`}
+              className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3 transition-colors hover:bg-muted"
+            >
+              {item.featured_alumni.photo_url ? (
+                <img
+                  src={item.featured_alumni.photo_url}
+                  alt=""
+                  className="size-12 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                  {item.featured_alumni.full_name
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((part) => part[0]?.toUpperCase() ?? "")
+                    .join("")}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Featured alumni
+                </p>
+                <p className="truncate text-sm font-semibold">
+                  {item.featured_alumni.full_name}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {[item.featured_alumni.degree, item.featured_alumni.graduation_year]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+            </Link>
           ) : null}
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
             {item.content}

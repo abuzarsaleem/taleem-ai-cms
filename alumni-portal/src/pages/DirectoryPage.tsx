@@ -120,7 +120,6 @@ export function DirectoryPage() {
               .filter((r) =>
                 [
                   "PENDING_ADMIN",
-                  "PENDING_ALUMNI",
                   "APPROVED",
                   "PENDING",
                 ].includes(r.status),
@@ -222,7 +221,7 @@ export function DirectoryPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">
           Directory

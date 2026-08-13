@@ -91,7 +91,7 @@ export function DirectoryDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="space-y-4">
       <Link to="/directory" className="text-sm text-primary hover:underline">
         Back to directory
       </Link>

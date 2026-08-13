@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -24,6 +24,8 @@ import {
 } from '../../../database/entities';
 import type { AlumniProfile } from '../../alumni/entities/alumni.entity';
 import type { IAlumniRepository } from '../../alumni/interfaces/alumni.repository.interface';
+import { AlumniNotificationsService } from '../../alumni/services/alumni-notifications.service';
+import { AlumniNotificationType } from '../../../database/entities';
 import { PortalMediaService } from '../../media/portal-media.service';
 import {
   AnnouncementListQueryDto,
@@ -48,6 +50,8 @@ export class AnnouncementService {
     private readonly notificationSender: INotificationSender,
     @Inject(PHOTO_STORAGE)
     private readonly objectStorage: IObjectStorage,
+    @Optional()
+    private readonly alumniNotificationsService?: AlumniNotificationsService,
   ) {}
 
   async uploadImage(file?: {
@@ -321,6 +325,14 @@ export class AnnouncementService {
       const active = profiles.filter(
         (p) => p.alumni.status === AlumniStatus.ACTIVE && p.alumni.email,
       );
+
+      if (this.alumniNotificationsService) {
+        await this.alumniNotificationsService.notifyAllActiveAlumni({
+          type: AlumniNotificationType.ANNOUNCEMENT,
+          title: announcement.title,
+          referenceId: announcement.id,
+        });
+      }
 
       const imageUrl =
         (await this.portalMediaService.resolvePublicUrl(

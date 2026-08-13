@@ -93,7 +93,6 @@ export class TypeOrmContactRequestRepository
         targetAlumniId,
         status: In([
           ContactRequestStatus.PENDING_ADMIN,
-          ContactRequestStatus.PENDING_ALUMNI,
           ContactRequestStatus.APPROVED,
         ]),
       },

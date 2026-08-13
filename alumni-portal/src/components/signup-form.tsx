@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import type { Value as E164Number } from "react-phone-number-input"
 import { toast } from "sonner"
 
@@ -65,11 +65,19 @@ const DEGREE_PROGRAMS = [
   },
 ]
 
+function errorMessage(err: unknown, fallback: string) {
+  if (err instanceof ApiError && err.message) return err.message
+  if (err instanceof Error && err.message) return err.message
+  return fallback
+}
+
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const [apiError, setApiError] = useState("")
   const [errors, setErrors] = useState<RegistrationErrors>({})
 
@@ -163,8 +171,7 @@ export function SignupForm({
           }
         } catch (err) {
           setErrors({
-            photo:
-              err instanceof ApiError ? err.message : "Photo upload failed",
+            photo: errorMessage(err, "Photo upload failed"),
           })
           return
         }
@@ -182,17 +189,22 @@ export function SignupForm({
         media_id: mediaId,
       })
 
+      setSubmitted(true)
+      setApiError("")
       toast.success("Registration submitted", {
         description:
-          result.message ||
+          result?.message ||
           "Your registration is pending approval. You will be notified once it is reviewed.",
         duration: 6000,
       })
-      resetForm()
-      form.reset()
+      try {
+        resetForm()
+        form.reset()
+      } catch {
+        /* native reset is optional after success */
+      }
     } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : "Registration failed"
+      const message = errorMessage(err, "Registration failed")
       setApiError(message)
       toast.error("Registration failed", {
         description: message,
@@ -207,6 +219,26 @@ export function SignupForm({
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
           <form className="p-6 md:p-8" onSubmit={onSubmit} noValidate>
+            {submitted ? (
+              <FieldGroup>
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <h1 className="text-2xl font-bold">Registration submitted</h1>
+                  <p className="text-balance text-muted-foreground">
+                    Your request is pending approval. You will be notified by
+                    email once it is reviewed.
+                  </p>
+                </div>
+                <Field>
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={() => navigate("/login")}
+                  >
+                    Go to login
+                  </Button>
+                </Field>
+              </FieldGroup>
+            ) : (
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Create an account</h1>
@@ -413,6 +445,7 @@ export function SignupForm({
                 Already have an account? <Link to="/login">Login</Link>
               </FieldDescription>
             </FieldGroup>
+            )}
           </form>
           <div className="relative hidden bg-muted md:block">
             <img

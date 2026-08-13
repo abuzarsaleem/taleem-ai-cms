@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { parseISO } from "date-fns"
+import { format, parseISO } from "date-fns"
+import { toast } from "sonner"
 
 import { ApiError } from "@/lib/api-client"
-import { cn } from "@/lib/utils"
+import { refreshPortalRails } from "@/lib/portal-events"
 import { eventsService } from "@/services/events.service"
 import type { EventItem } from "@/types/portal"
 import { Button } from "@/components/ui/button"
@@ -15,18 +16,121 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-function formatEventDate(isoDate: string) {
-  const date = parseISO(isoDate)
-  return {
-    month: date.toLocaleString("en-US", { month: "short" }).toUpperCase(),
-    day: String(date.getDate()).padStart(2, "0"),
+const RSVP_OPTIONS = [
+  { value: "GOING", label: "Going" },
+  { value: "MAYBE", label: "Maybe" },
+  { value: "NOT_GOING", label: "Not going" },
+] as const
+
+function formatEventMeta(event: EventItem) {
+  try {
+    const date = format(parseISO(event.event_date), "MMM d, yyyy")
+    const time = event.start_time?.slice(0, 5) ?? event.start_time
+    return `${date} · ${time} · ${event.venue}`
+  } catch {
+    return `${event.event_date} · ${event.start_time} · ${event.venue}`
   }
+}
+
+function EventCover({ event }: { event: EventItem }) {
+  if (event.image_url) {
+    return (
+      <img
+        src={event.image_url}
+        alt=""
+        className="aspect-[16/9] w-full rounded-lg object-cover"
+      />
+    )
+  }
+
+  return (
+    <div className="relative flex aspect-[16/9] w-full items-end overflow-hidden rounded-lg bg-[linear-gradient(160deg,oklch(0.42_0.1_245),oklch(0.36_0.07_220))] p-4">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,oklch(1_0_0/0.16),transparent_50%)]" />
+      <div className="relative">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-white/70 uppercase">
+          {event.event_type || "Event"}
+        </p>
+        <p className="mt-1 line-clamp-2 text-lg font-semibold text-white">
+          {event.title}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function EventCard({
+  event,
+  busy,
+  error,
+  onRsvp,
+  linkTitle = true,
+}: {
+  event: EventItem
+  busy: boolean
+  error?: string
+  onRsvp: (status: string) => void
+  linkTitle?: boolean
+}) {
+  return (
+    <article className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="space-y-3 p-4 sm:p-5">
+        <div>
+          {linkTitle ? (
+            <Link
+              to={`/events/${event.id}`}
+              className="text-[18px] font-semibold leading-snug text-foreground hover:text-primary hover:underline"
+            >
+              {event.title}
+            </Link>
+          ) : (
+            <h2 className="text-[18px] font-semibold leading-snug text-foreground">
+              {event.title}
+            </h2>
+          )}
+          <p className="mt-1 text-sm text-muted-foreground">
+            {formatEventMeta(event)}
+          </p>
+        </div>
+
+        <Link to={`/events/${event.id}`} className="block">
+          <EventCover event={event} />
+        </Link>
+
+        {event.description ? (
+          <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+            {event.description}
+          </p>
+        ) : null}
+
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+        <div className="flex flex-wrap gap-2 pt-0.5">
+          {RSVP_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              size="sm"
+              variant={
+                event.my_rsvp_status === option.value ? "default" : "outline"
+              }
+              disabled={busy}
+              className="rounded-md px-3"
+              onClick={() => onRsvp(option.value)}
+            >
+              {option.label.toUpperCase()}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </article>
+  )
 }
 
 export function EventsPage() {
   const [items, setItems] = useState<EventItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [rsvpBusyId, setRsvpBusyId] = useState<string | null>(null)
+  const [rsvpErrors, setRsvpErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -56,8 +160,39 @@ export function EventsPage() {
     }
   }, [])
 
+  async function setRsvp(event: EventItem, status: string) {
+    setRsvpBusyId(event.id)
+    setRsvpErrors((current) => {
+      const next = { ...current }
+      delete next[event.id]
+      return next
+    })
+    try {
+      if (event.my_rsvp_status) {
+        await eventsService.updateRsvp(event.id, status)
+      } else {
+        await eventsService.createRsvp(event.id, status)
+      }
+      const refreshed = await eventsService.getOne(event.id)
+      setItems((prev) =>
+        prev.map((item) => (item.id === event.id ? refreshed : item)),
+      )
+      refreshPortalRails()
+      toast.success(
+        `RSVP updated · ${
+          RSVP_OPTIONS.find((o) => o.value === status)?.label ?? status
+        }`,
+      )
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "RSVP failed"
+      setRsvpErrors((current) => ({ ...current, [event.id]: message }))
+    } finally {
+      setRsvpBusyId(null)
+    }
+  }
+
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">
           Events
@@ -68,9 +203,12 @@ export function EventsPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-[72px] animate-pulse rounded-lg bg-card" />
+        <div className="space-y-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[22rem] animate-pulse rounded-xl border border-border bg-card"
+            />
           ))}
         </div>
       ) : error ? (
@@ -81,44 +219,20 @@ export function EventsPage() {
           </CardHeader>
         </Card>
       ) : items.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           No upcoming events.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          {items.map((event, index) => {
-            const date = formatEventDate(event.event_date)
-            return (
-              <Link
-                key={event.id}
-                to={`/events/${event.id}`}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
-                  index < items.length - 1 && "border-b border-border",
-                )}
-              >
-                <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded bg-muted text-center">
-                  <span className="text-[10px] font-semibold tracking-wide text-muted-foreground">
-                    {date.month}
-                  </span>
-                  <span className="text-lg font-semibold leading-none">
-                    {date.day}
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{event.title}</p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {event.venue}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                  {event.my_rsvp_status
-                    ? event.my_rsvp_status.replace("_", " ")
-                    : "RSVP"}
-                </span>
-              </Link>
-            )
-          })}
+        <div className="mx-auto w-full max-w-[560px] space-y-4">
+          {items.map((event) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              busy={rsvpBusyId === event.id}
+              error={rsvpErrors[event.id]}
+              onRsvp={(status) => void setRsvp(event, status)}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -168,6 +282,7 @@ export function EventDetailPage() {
       }
       const refreshed = await eventsService.getOne(event.id)
       setEvent(refreshed)
+      refreshPortalRails()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "RSVP failed")
     } finally {
@@ -176,7 +291,9 @@ export function EventDetailPage() {
   }
 
   if (loading) {
-    return <div className="h-40 animate-pulse rounded-xl bg-muted" />
+    return (
+      <div className="mx-auto h-[22rem] w-full max-w-[560px] animate-pulse rounded-xl bg-muted" />
+    )
   }
 
   if (error && !event) {
@@ -193,40 +310,20 @@ export function EventDetailPage() {
   if (!event) return null
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <Link to="/events" className="text-sm text-primary hover:underline">
-        Back to events
+    <div className="mx-auto w-full max-w-[560px] space-y-3">
+      <Link
+        to="/events"
+        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+      >
+        ← Back to events
       </Link>
-      <Card>
-        <CardHeader>
-          <CardTitle>{event.title}</CardTitle>
-          <CardDescription>
-            {event.event_date} · {event.start_time} · {event.venue}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {event.description ? (
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {event.description}
-            </p>
-          ) : null}
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <div className="flex flex-wrap gap-2">
-            {["GOING", "MAYBE", "NOT_GOING"].map((status) => (
-              <Button
-                key={status}
-                variant={
-                  event.my_rsvp_status === status ? "default" : "outline"
-                }
-                disabled={saving}
-                onClick={() => void setRsvp(status)}
-              >
-                {status.replace("_", " ")}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <EventCard
+        event={event}
+        busy={saving}
+        error={error || undefined}
+        onRsvp={(status) => void setRsvp(status)}
+        linkTitle={false}
+      />
     </div>
   )
 }
