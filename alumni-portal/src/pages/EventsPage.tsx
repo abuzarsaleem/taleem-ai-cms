@@ -10,7 +10,6 @@ import type { EventItem } from "@/types/portal"
 import { Button } from "@/components/ui/button"
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
