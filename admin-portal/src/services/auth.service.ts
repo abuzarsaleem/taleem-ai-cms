@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api-client"
+import { encryptPassword } from "@/lib/password-encryption"
 import type { ApiResponse } from "@/types/api"
 
 export type LoginPayload = {
@@ -14,9 +15,14 @@ export type LoginResponse = {
 
 export const authService = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
+    const encryptedPassword = await encryptPassword(payload.password)
+
     const { data } = await apiClient.post<ApiResponse<LoginResponse>>(
       "/admin/auth/login",
-      payload,
+      {
+        email: payload.email,
+        password: encryptedPassword,
+      },
     )
     return data.data
   },

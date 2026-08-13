@@ -86,9 +86,12 @@ export class ContactRequestService {
     if (!request) {
       throw new ResourceNotFoundException('Contact request', requestId);
     }
-    if (request.status !== ContactRequestStatus.PENDING_ADMIN) {
+    if (
+      request.status !== ContactRequestStatus.PENDING_ADMIN &&
+      request.status !== ContactRequestStatus.PENDING_ALUMNI
+    ) {
       throw new BusinessException(
-        `Request is not awaiting admin review (status=${request.status})`,
+        `Request is not pending review (status=${request.status})`,
         HttpStatus.CONFLICT,
       );
     }

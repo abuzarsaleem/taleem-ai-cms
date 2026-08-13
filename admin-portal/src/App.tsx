@@ -1,37 +1,21 @@
-import { NavLink, Navigate, Outlet, Route, Routes } from 'react-router-dom'
-import { AuthProvider, useAuth } from './auth/AuthContext'
-import {
-  DashboardPage,
-  RegistrationDetailPage,
-  RegistrationsPage,
-} from './pages/AdminPages'
+import { Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './auth/AuthContext'
+import { AdminShell } from './components/layout/admin-shell'
+import AlumniDetailPage from './pages/AlumniDetailPage'
+import AlumniDirectoryPage from './pages/AlumniDirectoryPage'
+import AnnouncementDetailPage from './pages/AnnouncementDetailPage'
+import AnnouncementFormPage from './pages/AnnouncementFormPage'
+import AnnouncementsPage from './pages/AnnouncementsPage'
+import ContactRequestDetailPage from './pages/ContactRequestDetailPage'
+import ContactRequestsPage from './pages/ContactRequestsPage'
+import DashboardPage from './pages/DashboardPage'
+import EventDetailPage from './pages/EventDetailPage'
+import EventFormPage from './pages/EventFormPage'
+import EventsPage from './pages/EventsPage'
 import LoginPage from './pages/LoginPage'
+import RegistrationDetailPage from './pages/RegistrationDetailPage'
+import RegistrationsPage from './pages/RegistrationsPage'
 import { ThemeProvider } from './theme/ThemeProvider'
-
-function RequireAuth() {
-  const { token, clearSession, role } = useAuth()
-  if (!token) return <Navigate to="/login" replace />
-
-  return (
-    <div className="layout">
-      <aside className="sidebar">
-        <div className="brand">Taleem Admin</div>
-        <nav>
-          <NavLink to="/" end>
-            Dashboard
-          </NavLink>
-          <NavLink to="/registrations">Registrations</NavLink>
-          <button className="linkish" onClick={clearSession}>
-            Sign out ({role})
-          </button>
-        </nav>
-      </aside>
-      <main className="content">
-        <Outlet />
-      </main>
-    </div>
-  )
-}
 
 export default function App() {
   return (
@@ -39,12 +23,33 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route element={<RequireAuth />}>
+          <Route element={<AdminShell />}>
             <Route index element={<DashboardPage />} />
             <Route path="registrations" element={<RegistrationsPage />} />
             <Route
               path="registrations/:id"
               element={<RegistrationDetailPage />}
+            />
+            <Route path="alumni" element={<AlumniDirectoryPage />} />
+            <Route path="alumni/:id" element={<AlumniDetailPage />} />
+            <Route path="announcements" element={<AnnouncementsPage />} />
+            <Route path="announcements/new" element={<AnnouncementFormPage />} />
+            <Route
+              path="announcements/:id/edit"
+              element={<AnnouncementFormPage />}
+            />
+            <Route
+              path="announcements/:id"
+              element={<AnnouncementDetailPage />}
+            />
+            <Route path="events" element={<EventsPage />} />
+            <Route path="events/new" element={<EventFormPage />} />
+            <Route path="events/:id/edit" element={<EventFormPage />} />
+            <Route path="events/:id" element={<EventDetailPage />} />
+            <Route path="contact-requests" element={<ContactRequestsPage />} />
+            <Route
+              path="contact-requests/:id"
+              element={<ContactRequestDetailPage />}
             />
           </Route>
         </Routes>

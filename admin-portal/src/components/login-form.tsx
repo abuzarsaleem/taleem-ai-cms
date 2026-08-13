@@ -44,7 +44,13 @@ export function LoginForm({
       })
       navigate("/")
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Login failed")
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Login failed",
+      )
     } finally {
       setLoading(false)
     }
