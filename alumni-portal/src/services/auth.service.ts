@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api-client"
+import { encryptPassword } from "@/lib/password-crypto"
 import type { ApiResponse } from "@/types/api"
 
 export type LoginPayload = {
@@ -21,6 +22,7 @@ export type RegisterPayload = {
   degree_program_id: string
   registration_roll_number: string
   graduation_year: string
+  media_id?: string
   upload_id?: string
 }
 
@@ -33,16 +35,30 @@ export type RegisterResponse = {
 }
 
 export type UploadPhotoResponse = {
-  upload_id: string
+  media_id: string
   public_url: string
-  expires_at: string
+  upload_id?: string
+  expires_at?: string
+}
+
+export type ResetPasswordPayload = {
+  token: string
+  password: string
+}
+
+export type ActivateResponse = {
+  reset_token: string
 }
 
 export const authService = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
+    const encryptedPassword = await encryptPassword(payload.password)
     const { data } = await apiClient.post<ApiResponse<LoginResponse>>(
       "/auth/login",
-      payload,
+      {
+        email: payload.email,
+        password: encryptedPassword,
+      },
     )
     return data.data
   },
@@ -64,5 +80,32 @@ export const authService = {
       formData,
     )
     return data.data
+  },
+
+  async activate(token: string): Promise<ActivateResponse> {
+    const { data } = await apiClient.post<ApiResponse<ActivateResponse>>(
+      "/auth/activate",
+      { token },
+    )
+    return data.data
+  },
+
+  async resendActivation(email: string): Promise<void> {
+    await apiClient.post("/auth/resend-activation", { email })
+  },
+
+  async forgotPassword(email: string): Promise<{ message?: string }> {
+    const { data } = await apiClient.post<
+      ApiResponse<{ message?: string } | null>
+    >("/auth/forgot-password", { email })
+    return data.data ?? { message: data.message }
+  },
+
+  async resetPassword(payload: ResetPasswordPayload): Promise<void> {
+    const encryptedPassword = await encryptPassword(payload.password)
+    await apiClient.post("/auth/reset-password", {
+      token: payload.token,
+      password: encryptedPassword,
+    })
   },
 }

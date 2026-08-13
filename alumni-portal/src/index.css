@@ -4,43 +4,43 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
-  /* Core */
-  --background: oklch(0.985 0.006 250);
-  --foreground: oklch(0.18 0.025 255);
+  /* Core — LinkedIn-like cool canvas */
+  --background: oklch(0.955 0.008 250);
+  --foreground: oklch(0.22 0.02 255);
 
   /* Cards */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.025 255);
+  --card-foreground: oklch(0.22 0.02 255);
 
   /* Popovers */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.025 255);
+  --popover-foreground: oklch(0.22 0.02 255);
 
-  /* Primary - Taleem Indigo */
-  --primary: oklch(0.52 0.22 265);
+  /* Primary - Taleem deep blue (less purple) */
+  --primary: oklch(0.45 0.14 250);
   --primary-foreground: oklch(0.99 0.005 250);
 
   /* Secondary */
-  --secondary: oklch(0.95 0.025 250);
-  --secondary-foreground: oklch(0.28 0.06 260);
+  --secondary: oklch(0.94 0.012 250);
+  --secondary-foreground: oklch(0.28 0.04 255);
 
   /* Muted */
-  --muted: oklch(0.955 0.012 250);
-  --muted-foreground: oklch(0.52 0.035 255);
+  --muted: oklch(0.945 0.01 250);
+  --muted-foreground: oklch(0.48 0.02 255);
 
-  /* Accent - AI Cyan */
-  --accent: oklch(0.93 0.045 220);
-  --accent-foreground: oklch(0.30 0.09 235);
+  /* Accent */
+  --accent: oklch(0.94 0.02 230);
+  --accent-foreground: oklch(0.32 0.06 240);
 
   /* Destructive */
-  --destructive: oklch(0.60 0.20 25);
+  --destructive: oklch(0.55 0.2 25);
 
   /* Borders */
-  --border: oklch(0.90 0.018 250);
-  --input: oklch(0.90 0.018 250);
-  --ring: oklch(0.52 0.22 265);
+  --border: oklch(0.88 0.012 250);
+  --input: oklch(0.88 0.012 250);
+  --ring: oklch(0.45 0.14 250);
 
   /* Charts */
   --chart-1: oklch(0.52 0.22 265);
@@ -82,8 +82,8 @@
   --popover-foreground: oklch(0.94 0.015 250);
 
   /* Primary */
-  --primary: oklch(0.68 0.19 265);
-  --primary-foreground: oklch(0.12 0.025 255);
+  --primary: oklch(0.72 0.12 250);
+  --primary-foreground: oklch(0.14 0.02 255);
 
   /* Secondary */
   --secondary: oklch(0.22 0.035 255);
@@ -191,7 +191,15 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: "Source Sans 3", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1,
+  h2,
+  .font-display {
+    font-family: "Fraunces", "Source Sans 3", ui-serif, Georgia, serif;
+    font-optical-sizing: auto;
   }
 }

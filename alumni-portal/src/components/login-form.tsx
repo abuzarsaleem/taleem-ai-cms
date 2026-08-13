@@ -41,7 +41,7 @@ export function LoginForm({
         userId: data.user_id,
         role: data.role,
       })
-      navigate("/profile")
+      navigate("/home")
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Login failed")
     } finally {
