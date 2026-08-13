@@ -2,6 +2,7 @@ import {
   NotificationPayload,
   NotificationTemplateId,
 } from '../../../common/interfaces/notification-sender.interface';
+import { alumniPortalOrigin } from '../../../common/utils';
 
 export interface RenderedEmail {
   subject: string;
@@ -47,10 +48,7 @@ export function renderNotificationEmail(
   const category = v.category ?? '';
   const content = v.content ?? '';
   const imageUrl = v.imageUrl ?? '';
-  const portalUrl =
-    process.env.ALUMNI_PORTAL_URL ??
-    process.env.FRONTEND_URL ??
-    'http://localhost:5173';
+  const portalUrl = alumniPortalOrigin();
 
   switch (payload.templateId as NotificationTemplateId) {
     case 'approval_with_activation_link':

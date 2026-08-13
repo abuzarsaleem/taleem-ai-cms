@@ -29,12 +29,7 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:5174',
-      process.env.FRONTEND_URL,
-      process.env.ADMIN_PORTAL_URL,
-    ].filter(Boolean) as string[],
+    origin: corsOriginDelegate(collectCorsOrigins()),
     credentials: true,
   });
 
@@ -114,6 +109,55 @@ async function bootstrap() {
   if (process.env.OPEN_SWAGGER !== 'false') {
     openBrowser(swaggerUrl);
   }
+}
+
+function originFromUrl(value?: string): string | undefined {
+  if (!value) return undefined;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+function collectCorsOrigins(): Set<string> {
+  const extras = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => originFromUrl(value) ?? value);
+
+  return new Set(
+    [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'https://taleem-ai-cms.vercel.app',
+      originFromUrl(process.env.ADMIN_PORTAL_URL),
+      originFromUrl(process.env.ALUMNI_PORTAL_URL),
+      ...extras,
+    ].filter(Boolean) as string[],
+  );
+}
+
+function corsOriginDelegate(allowed: Set<string>) {
+  return (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void,
+  ) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    if (allowed.has(origin)) {
+      callback(null, true);
+      return;
+    }
+    if (/^https:\/\/taleem-ai-cms(?:-[a-z0-9-]+)?\.vercel\.app$/.test(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  };
 }
 
 function openBrowser(url: string): void {

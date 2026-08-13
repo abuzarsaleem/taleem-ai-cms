@@ -9,6 +9,7 @@ import { AlumniStatus, VerificationTokenType } from '../../../common/enums';
 import { BusinessException } from '../../../common/exceptions';
 import type { INotificationSender } from '../../../common/interfaces/notification-sender.interface';
 import {
+  alumniPortalLink,
   generateRawToken,
   hashPassword,
   hashToken,
@@ -63,12 +64,9 @@ export class PasswordResetService {
             expiresAt,
           });
 
-          const portalBase =
-            process.env.ALUMNI_PORTAL_URL ?? 'http://localhost:5173';
-          const resetBase = portalBase.includes('reset-password')
-            ? portalBase
-            : `${portalBase.replace(/\/$/, '')}/reset-password`;
-          const resetLink = `${resetBase}?token=${rawToken}`;
+          const resetLink = alumniPortalLink('/reset-password', {
+            token: rawToken,
+          });
 
           await this.notificationSender.send({
             to: user.email,

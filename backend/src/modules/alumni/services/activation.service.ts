@@ -11,7 +11,7 @@ import {
   ResourceNotFoundException,
 } from '../../../common/exceptions';
 import type { INotificationSender } from '../../../common/interfaces/notification-sender.interface';
-import { generateRawToken, hashToken } from '../../../common/utils';
+import { alumniPortalLink, generateRawToken, hashToken } from '../../../common/utils';
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
 import type { IUserRepository } from '../interfaces/user.repository.interface';
 import type { IVerificationTokenRepository } from '../interfaces/supporting.repository.interface';
@@ -58,9 +58,7 @@ export class ActivationService {
       expiresAt,
     });
 
-    const baseUrl =
-      process.env.ALUMNI_PORTAL_URL ?? 'http://localhost:5173/activate';
-    const activationLink = `${baseUrl}?token=${rawToken}`;
+    const activationLink = alumniPortalLink('/activate', { token: rawToken });
 
     await this.notificationSender.send({
       to: input.email,
