@@ -22,7 +22,7 @@ export class QrAlumniCardGenerator implements IAlumniCardGenerator {
   ): Promise<AlumniCardGenerationResult> {
     const verifyBase =
       process.env.ALUMNI_CARD_VERIFY_URL ??
-      `${process.env.PUBLIC_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`}/alumni/verify`;
+      `${process.env.ALUMNI_PORTAL_URL ?? 'http://localhost:5173'}/alumni/verify`;
     const qrContent = `${verifyBase}/${encodeURIComponent(profile.alumni.id)}`;
 
     // Sized for CR80 ID-card side placement (~22mm @ 150dpi)

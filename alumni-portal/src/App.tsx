@@ -16,6 +16,7 @@ import { ContactRequestsPage } from "./pages/ContactRequestsPage"
 import { DirectoryDetailPage } from "./pages/DirectoryDetailPage"
 import { DirectoryPage } from "./pages/DirectoryPage"
 import { EventDetailPage, EventsPage } from "./pages/EventsPage"
+import GatekeeperVerifyPage from "./pages/GatekeeperVerifyPage"
 import ForgotPasswordPage from "./pages/ForgotPasswordPage"
 import LoginPage from "./pages/LoginPage"
 import { ProfilePage } from "./pages/ProfilePage"
@@ -34,6 +35,10 @@ export default function App() {
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="activate" element={<ActivatePage />} />
+          <Route
+            path="alumni/verify/:alumniId"
+            element={<GatekeeperVerifyPage />}
+          />
 
           <Route element={<RequireAuth />}>
             <Route element={<AuthenticatedLayout />}>

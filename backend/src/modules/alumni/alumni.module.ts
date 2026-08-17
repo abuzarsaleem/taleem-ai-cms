@@ -27,6 +27,7 @@ import { MediaModule } from '../media/media.module';
 import { AlumniDirectoryController } from './controllers/alumni-directory.controller';
 import { AlumniMeController } from './controllers/alumni-me.controller';
 import { AuthOnboardingController } from './controllers/auth-onboarding.controller';
+import { PublicAlumniController } from './controllers/public-alumni.controller';
 import { InMemoryAlumniRepository } from './repositories/in-memory-alumni.repository';
 import { InMemoryContactRequestRepository } from './repositories/in-memory-contact-request.repository';
 import { InMemoryRegistrationRequestRepository } from './repositories/in-memory-registration-request.repository';
@@ -42,6 +43,7 @@ import { TypeOrmVerificationTokenRepository } from './repositories/typeorm-verif
 import { ActivationService } from './services/activation.service';
 import { AlumniDirectoryService } from './services/alumni-directory.service';
 import { AlumniNotificationsService } from './services/alumni-notifications.service';
+import { AlumniVerifyService } from './services/alumni-verify.service';
 import { ContactRequestService } from './services/contact-request.service';
 import { PasswordResetService } from './services/password-reset.service';
 import { PhotoUploadService } from './services/photo-upload.service';
@@ -79,6 +81,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
     AuthOnboardingController,
     AlumniMeController,
     AlumniDirectoryController,
+    PublicAlumniController,
   ],
   providers: [
     RegistrationService,
@@ -88,6 +91,7 @@ const dbEnabled = process.env.DB_ENABLED !== 'false';
     MeCareerService,
     PhotoUploadService,
     AlumniDirectoryService,
+    AlumniVerifyService,
     ContactRequestService,
     ...(dbEnabled ? [AlumniNotificationsService] : []),
     {
