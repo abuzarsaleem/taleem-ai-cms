@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ContactRequestStatus } from '../../../common/enums';
 
+export class DirectoryFilterOptionsDto {
+  @ApiProperty({ type: [String], example: ['Lahore', 'Karachi'] })
+  cities!: string[];
+
+  @ApiProperty({ type: [String], example: ['Pakistan', 'UAE'] })
+  countries!: string[];
+
+  @ApiProperty({ type: [String], example: ['2024', '2023'] })
+  graduation_years!: string[];
+}
+
 export class DirectoryAcademicSummaryDto {
   @ApiProperty()
   degree_program_id: string;

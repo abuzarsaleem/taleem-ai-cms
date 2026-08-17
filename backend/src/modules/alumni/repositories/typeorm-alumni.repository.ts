@@ -15,6 +15,7 @@ import {
 } from '../entities/alumni.entity';
 import {
   CreateAlumniInput,
+  AlumniDirectoryFilterOptions,
   AlumniDirectoryFilters,
   AlumniDirectoryPage,
   IAlumniRepository,
@@ -145,11 +146,75 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
 
     const qb = this.alumniRepo
       .createQueryBuilder('alumni')
+      .where('alumni.status = :status', { status: AlumniStatus.ACTIVE });
+
+    this.applyDirectoryFilters(qb, filters);
+
+    const total = await qb.clone().select('alumni.id').getCount();
+
+    const rows = await qb
       .leftJoinAndSelect('alumni.academicRecords', 'academic')
       .leftJoinAndSelect('alumni.professionalRecords', 'professional')
       .leftJoinAndSelect('alumni.photoMedia', 'photoMedia')
-      .where('alumni.status = :status', { status: AlumniStatus.ACTIVE });
+      .orderBy('alumni.fullName', 'ASC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getMany();
+    return {
+      items: rows
+        .map((row) => this.toProfile(row))
+        .filter((p): p is AlumniProfile => p !== null),
+      total,
+      page,
+      pageSize,
+    };
+  }
 
+  async listDirectoryFilterOptions(): Promise<AlumniDirectoryFilterOptions> {
+    const cityRows = await this.alumniRepo
+      .createQueryBuilder('alumni')
+      .select('alumni.city', 'value')
+      .where('alumni.status = :status', { status: AlumniStatus.ACTIVE })
+      .andWhere('alumni.city IS NOT NULL')
+      .andWhere("TRIM(alumni.city) <> ''")
+      .distinct(true)
+      .orderBy('alumni.city', 'ASC')
+      .getRawMany<{ value: string }>();
+
+    const countryRows = await this.alumniRepo
+      .createQueryBuilder('alumni')
+      .select('alumni.country', 'value')
+      .where('alumni.status = :status', { status: AlumniStatus.ACTIVE })
+      .andWhere('alumni.country IS NOT NULL')
+      .andWhere("TRIM(alumni.country) <> ''")
+      .distinct(true)
+      .orderBy('alumni.country', 'ASC')
+      .getRawMany<{ value: string }>();
+
+    const yearRows = await this.academicRepo
+      .createQueryBuilder('academic')
+      .innerJoin('academic.alumni', 'alumni')
+      .select('academic.graduationYear', 'value')
+      .where('alumni.status = :status', { status: AlumniStatus.ACTIVE })
+      .andWhere('academic.graduationYear IS NOT NULL')
+      .andWhere("TRIM(academic.graduationYear) <> ''")
+      .distinct(true)
+      .orderBy('academic.graduationYear', 'DESC')
+      .getRawMany<{ value: string }>();
+
+    return {
+      cities: uniqueTrimmed(cityRows.map((row) => row.value)),
+      countries: uniqueTrimmed(countryRows.map((row) => row.value)),
+      graduationYears: uniqueTrimmed(yearRows.map((row) => row.value)).sort(
+        (a, b) => Number(b) - Number(a) || b.localeCompare(a),
+      ),
+    };
+  }
+
+  private applyDirectoryFilters(
+    qb: ReturnType<Repository<AlumniEntity>['createQueryBuilder']>,
+    filters: AlumniDirectoryFilters,
+  ) {
     if (filters.excludeAlumniId) {
       qb.andWhere('alumni.id != :excludeId', {
         excludeId: filters.excludeAlumniId,
@@ -161,39 +226,35 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       });
     }
     if (filters.city?.trim()) {
-      qb.andWhere('LOWER(alumni.city) LIKE :city', {
+      qb.andWhere('LOWER(TRIM(alumni.city)) LIKE :city', {
         city: `%${filters.city.trim().toLowerCase()}%`,
       });
     }
     if (filters.country?.trim()) {
-      qb.andWhere('LOWER(alumni.country) LIKE :country', {
+      qb.andWhere('LOWER(TRIM(alumni.country)) LIKE :country', {
         country: `%${filters.country.trim().toLowerCase()}%`,
       });
     }
     if (filters.graduationYear?.trim()) {
-      qb.andWhere('academic.graduationYear = :graduationYear', {
-        graduationYear: filters.graduationYear.trim(),
-      });
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM alumni_academic_information gy
+          WHERE gy.alumni_id = alumni.id
+            AND TRIM(gy.graduation_year) = :graduationYear
+        )`,
+        { graduationYear: filters.graduationYear.trim() },
+      );
     }
     if (filters.degreeProgramId) {
-      qb.andWhere('academic.degreeProgramId = :degreeProgramId', {
-        degreeProgramId: filters.degreeProgramId,
-      });
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM alumni_academic_information dp
+          WHERE dp.alumni_id = alumni.id
+            AND dp.degree_program_id = :degreeProgramId
+        )`,
+        { degreeProgramId: filters.degreeProgramId },
+      );
     }
-
-    qb.orderBy('alumni.fullName', 'ASC')
-      .skip((page - 1) * pageSize)
-      .take(pageSize);
-
-    const [rows, total] = await qb.getManyAndCount();
-    return {
-      items: rows
-        .map((row) => this.toProfile(row))
-        .filter((p): p is AlumniProfile => p !== null),
-      total,
-      page,
-      pageSize,
-    };
   }
 
   async updateAlumni(id: string, patch: Partial<Alumni>): Promise<Alumni> {
@@ -459,4 +520,14 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
   private toDateString(value: Date): string {
     return value.toISOString().slice(0, 10);
   }
+}
+
+function uniqueTrimmed(values: Array<string | null | undefined>): string[] {
+  return [
+    ...new Set(
+      values
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
 }

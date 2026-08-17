@@ -9,6 +9,7 @@ import {
 } from '../entities/alumni.entity';
 import {
   CreateAlumniInput,
+  AlumniDirectoryFilterOptions,
   AlumniDirectoryFilters,
   AlumniDirectoryPage,
   IAlumniRepository,
@@ -148,6 +149,37 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
       page,
       pageSize,
     };
+  }
+
+  async listDirectoryFilterOptions(): Promise<AlumniDirectoryFilterOptions> {
+    const profiles = (await this.findAll()).filter(
+      (p) => p.alumni.status === AlumniStatus.ACTIVE,
+    );
+    const cities = [
+      ...new Set(
+        profiles
+          .map((p) => p.alumni.city?.trim())
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ].sort((a, b) => a.localeCompare(b));
+    const countries = [
+      ...new Set(
+        profiles
+          .map((p) => p.alumni.country?.trim())
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ].sort((a, b) => a.localeCompare(b));
+    const graduationYears = [
+      ...new Set(
+        profiles.flatMap((p) =>
+          p.academic
+            .map((row) => row.graduationYear?.trim())
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ),
+    ].sort((a, b) => Number(b) - Number(a) || b.localeCompare(a));
+
+    return { cities, countries, graduationYears };
   }
 
   async updateAlumni(id: string, patch: Partial<Alumni>): Promise<Alumni> {

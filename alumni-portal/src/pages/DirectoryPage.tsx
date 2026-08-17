@@ -24,7 +24,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { YearPicker } from "@/components/ui/year-picker"
 import { Input } from "@/components/ui/input"
+import { MAX_GRADUATION_YEAR, MIN_GRADUATION_YEAR } from "@/lib/registration-validation"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
@@ -77,6 +79,11 @@ export function DirectoryPage() {
   const [degreeLabels, setDegreeLabels] = useState<Map<string, string>>(
     new Map(),
   )
+  const [filterOptions, setFilterOptions] = useState<{
+    cities: string[]
+    countries: string[]
+    graduation_years: string[]
+  }>({ cities: [], countries: [], graduation_years: [] })
 
   const [name, setName] = useState("")
   const [graduationYear, setGraduationYear] = useState("")
@@ -107,6 +114,9 @@ export function DirectoryPage() {
     void catalogService.listDegreePrograms().then((programs) => {
       setDegreePrograms(programs)
       setDegreeLabels(new Map(programs.map((p) => [p.id, p.label])))
+    })
+    void directoryService.filterOptions().then(setFilterOptions).catch(() => {
+      /* directory still usable without filter option lists */
     })
     void profileService.getMyProfile().then((profile) => {
       setMyAlumniId(profile.alumni_id)
@@ -240,15 +250,34 @@ export function DirectoryPage() {
             onChange={(e) => setName(e.target.value)}
             placeholder="Name"
           />
-          <Input
-            value={graduationYear}
-            onChange={(e) => setGraduationYear(e.target.value)}
-            placeholder="Graduation year"
-          />
+          {filterOptions.graduation_years.length > 0 ? (
+            <select
+              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              value={graduationYear}
+              onChange={(e) => setGraduationYear(e.target.value)}
+              aria-label="Graduation year"
+            >
+              <option value="">All graduation years</option>
+              {filterOptions.graduation_years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <YearPicker
+              value={graduationYear}
+              onChange={setGraduationYear}
+              minYear={MIN_GRADUATION_YEAR}
+              maxYear={MAX_GRADUATION_YEAR}
+              placeholder="Graduation year"
+            />
+          )}
           <select
             className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
             value={degreeProgramId}
             onChange={(e) => setDegreeProgramId(e.target.value)}
+            aria-label="Degree program"
           >
             <option value="">All degree programs</option>
             {degreePrograms.map((program) => (
@@ -257,16 +286,48 @@ export function DirectoryPage() {
               </option>
             ))}
           </select>
-          <Input
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="City"
-          />
-          <Input
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            placeholder="Country"
-          />
+          {filterOptions.cities.length > 0 ? (
+            <select
+              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              aria-label="City"
+            >
+              <option value="">All cities</option>
+              {filterOptions.cities.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="City"
+            />
+          )}
+          {filterOptions.countries.length > 0 ? (
+            <select
+              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              aria-label="Country"
+            >
+              <option value="">All countries</option>
+              {filterOptions.countries.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              placeholder="Country"
+            />
+          )}
           <div className="flex gap-2">
             <Button type="submit" className="flex-1">
               Filter

@@ -29,6 +29,7 @@ import {
 import {
   ContactRequestResponseDto,
   DirectoryAlumniCardDto,
+  DirectoryFilterOptionsDto,
 } from '../dto/directory-response.dto';
 import { AlumniDirectoryService } from '../services/alumni-directory.service';
 import { ContactRequestService } from '../services/contact-request.service';
@@ -52,6 +53,17 @@ export class AlumniDirectoryController {
     @Query() query: DirectoryQueryDto,
   ) {
     const data = await this.directoryService.list(user.userId, query);
+    return ApiResponseDto.of(data);
+  }
+
+  @Get('directory/filter-options')
+  @ApiTags(SWAGGER_TAGS.ALUMNI)
+  @ApiOperation({
+    summary: 'Distinct city, country, and graduation year values for directory filters',
+  })
+  @ApiWrappedOkResponse(DirectoryFilterOptionsDto)
+  async listDirectoryFilterOptions() {
+    const data = await this.directoryService.filterOptions();
     return ApiResponseDto.of(data);
   }
 

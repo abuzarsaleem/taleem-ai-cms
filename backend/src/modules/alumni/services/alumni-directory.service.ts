@@ -59,6 +59,15 @@ export class AlumniDirectoryService {
     };
   }
 
+  async filterOptions() {
+    const options = await this.alumniRepository.listDirectoryFilterOptions();
+    return {
+      cities: options.cities,
+      countries: options.countries,
+      graduation_years: options.graduationYears,
+    };
+  }
+
   async getOne(viewerUserId: string, targetAlumniId: string) {
     const viewer = await this.alumniRepository.findByUserId(viewerUserId);
     if (!viewer) {
