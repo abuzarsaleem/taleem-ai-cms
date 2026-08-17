@@ -18,7 +18,7 @@ export const PAKISTAN_CITIES = [
 ] as const
 
 export function cityOptions(current?: string | null): string[] {
-  const cities = [...PAKISTAN_CITIES]
+  const cities: string[] = [...PAKISTAN_CITIES]
   const trimmed = current?.trim()
   if (
     trimmed &&
