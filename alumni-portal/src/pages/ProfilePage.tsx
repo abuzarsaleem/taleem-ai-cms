@@ -3,6 +3,12 @@ import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
 import { ApiError } from "@/lib/api-client"
+import {
+  cityOptions,
+  COUNTRIES,
+  countryValue,
+  selectedCity,
+} from "@/lib/locations"
 import { catalogService } from "@/services/catalog.service"
 import { careerService, profileService } from "@/services/profile.service"
 import type {
@@ -211,8 +217,37 @@ export function ProfilePage() {
               name="whatsapp_number"
               defaultValue={profile.whatsapp_number}
             />
-            <Field label="City" name="city" defaultValue={profile.city} />
-            <Field label="Country" name="country" defaultValue={profile.country} />
+            <div className="space-y-1.5">
+              <Label htmlFor="country">Country</Label>
+              <select
+                id="country"
+                name="country"
+                defaultValue={countryValue(profile.country)}
+                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              >
+                {COUNTRIES.map((country) => (
+                  <option key={country} value={country}>
+                    {country}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="city">City</Label>
+              <select
+                id="city"
+                name="city"
+                defaultValue={selectedCity(profile.city)}
+                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              >
+                <option value="">Select city</option>
+                {cityOptions(profile.city).map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+            </div>
             <Field label="Gender" name="gender" defaultValue={profile.gender} />
             <Field
               label="Date of birth"
