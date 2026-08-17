@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
 
+import { AuthBrandPanel } from "@/components/auth-brand-panel"
 import { cn } from "@/lib/utils"
 import { ApiError, apiRequest } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -51,14 +52,16 @@ export function ForgotPasswordForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardContent className="pt-6">
-          <form onSubmit={onSubmit}>
+      <Card className="overflow-hidden p-0 shadow-xl ring-foreground/8">
+        <CardContent className="grid p-0 md:grid-cols-2">
+          <form className="p-6 md:p-8" onSubmit={onSubmit}>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Forgot password</h1>
-                <p className="text-balance text-muted-foreground">
-                  Enter your email and we&apos;ll send a reset link
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Forgot password
+                </h1>
+                <p className="text-balance text-sm text-muted-foreground">
+                  Enter your email and we&apos;ll send a secure reset link
                 </p>
               </div>
               <Field>
@@ -67,8 +70,9 @@ export function ForgotPasswordForm({
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="you@example.com"
                   required
+                  className="h-10"
                 />
               </Field>
               {error ? (
@@ -77,20 +81,32 @@ export function ForgotPasswordForm({
                 </p>
               ) : null}
               {success ? (
-                <p className="text-sm text-primary" role="status">
+                <p className="text-sm text-[#0b4d3c]" role="status">
                   {success}
                 </p>
               ) : null}
               <Field>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
+                  disabled={loading}
+                >
                   {loading ? "Sending…" : "Send reset link"}
                 </Button>
               </Field>
               <FieldDescription className="text-center">
-                Remembered your password? <Link to="/login">Login</Link>
+                Remembered your password?{" "}
+                <Link to="/login" className="font-medium text-[#0b4d3c]">
+                  Login
+                </Link>
               </FieldDescription>
             </FieldGroup>
           </form>
+          <AuthBrandPanel
+            heading="Recover access securely"
+            description="Reset links expire automatically. We never ask you to paste a token into the page."
+          />
         </CardContent>
       </Card>
     </div>

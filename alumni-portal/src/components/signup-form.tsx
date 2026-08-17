@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom"
 import type { Value as E164Number } from "react-phone-number-input"
 import { toast } from "sonner"
 
+import { AuthBrandPanel } from "@/components/auth-brand-panel"
 import { cn } from "@/lib/utils"
 import { ApiError } from "@/lib/api"
 import {
@@ -216,7 +217,7 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0 shadow-xl ring-foreground/8">
         <CardContent className="grid p-0 md:grid-cols-2">
           <form className="p-6 md:p-8" onSubmit={onSubmit} noValidate>
             {submitted ? (
@@ -231,7 +232,8 @@ export function SignupForm({
                 <Field>
                   <Button
                     type="button"
-                    className="w-full"
+                    size="lg"
+                    className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
                     onClick={() => navigate("/login")}
                   >
                     Go to login
@@ -436,24 +438,24 @@ export function SignupForm({
               ) : null}
 
               <Field>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" size="lg" className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90" disabled={loading}>
                   {loading ? "Submitting…" : "Create account"}
                 </Button>
               </Field>
 
               <FieldDescription className="text-center">
-                Already have an account? <Link to="/login">Login</Link>
+                Already have an account?{" "}
+                <Link to="/login" className="font-medium text-[#0b4d3c]">
+                  Login
+                </Link>
               </FieldDescription>
             </FieldGroup>
             )}
           </form>
-          <div className="relative hidden bg-muted md:block">
-            <img
-              src="/placeholder.svg"
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
-          </div>
+          <AuthBrandPanel
+            heading="Join the alumni community"
+            description="Register once. After university approval, activate from your email and start using your alumni card."
+          />
         </CardContent>
       </Card>
     </div>

@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthContext"
+import { AuthBrandPanel } from "@/components/auth-brand-panel"
 import { cn } from "@/lib/utils"
 import { ApiError } from "@/lib/api"
 import { authService } from "@/services/auth.service"
@@ -20,9 +21,16 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { setSession } = useAuth()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const notice =
+    typeof location.state === "object" &&
+    location.state &&
+    "notice" in location.state
+      ? String((location.state as { notice?: string }).notice ?? "")
+      : ""
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -51,24 +59,35 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0 shadow-xl ring-foreground/8">
         <CardContent className="grid p-0 md:grid-cols-2">
           <form className="p-6 md:p-8" onSubmit={onSubmit}>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-balance text-muted-foreground">
-                  Login to your Taleem Alumni account
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Welcome back
+                </h1>
+                <p className="text-balance text-sm text-muted-foreground">
+                  Sign in to your Taleem Alumni account
                 </p>
               </div>
+              {notice ? (
+                <p
+                  className="rounded-lg bg-[#0b4d3c]/8 px-3 py-2 text-center text-sm text-[#0b4d3c]"
+                  role="status"
+                >
+                  {notice}
+                </p>
+              ) : null}
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="you@example.com"
                   required
+                  className="h-10"
                 />
               </Field>
               <Field>
@@ -76,12 +95,18 @@ export function LoginForm({
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   <Link
                     to="/forgot-password"
-                    className="ml-auto text-sm underline-offset-2 hover:underline"
+                    className="ml-auto text-sm text-[#0b4d3c] underline-offset-2 hover:underline"
                   >
-                    Forgot your password?
+                    Forgot password?
                   </Link>
                 </div>
-                <Input id="password" name="password" type="password" required />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  className="h-10"
+                />
               </Field>
               {error ? (
                 <p className="text-sm text-destructive" role="alert">
@@ -89,22 +114,24 @@ export function LoginForm({
                 </p>
               ) : null}
               <Field>
-                <Button type="submit" disabled={loading} className="w-full">
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={loading}
+                  className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
+                >
                   {loading ? "Signing in…" : "Login"}
                 </Button>
               </Field>
               <FieldDescription className="text-center">
-                Don&apos;t have an account? <Link to="/register">Sign up</Link>
+                Don&apos;t have an account?{" "}
+                <Link to="/register" className="font-medium text-[#0b4d3c]">
+                  Sign up
+                </Link>
               </FieldDescription>
             </FieldGroup>
           </form>
-          <div className="relative hidden bg-muted md:block">
-            <img
-              src="/placeholder.svg"
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
-          </div>
+          <AuthBrandPanel />
         </CardContent>
       </Card>
     </div>
