@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { AdminShell } from './components/layout/admin-shell'
+import { Toaster } from './components/ui/sonner'
 import AlumniDetailPage from './pages/AlumniDetailPage'
 import AlumniDirectoryPage from './pages/AlumniDirectoryPage'
 import AnnouncementDetailPage from './pages/AnnouncementDetailPage'
@@ -20,6 +21,7 @@ import { ThemeProvider } from './theme/ThemeProvider'
 export default function App() {
   return (
     <ThemeProvider>
+      <Toaster />
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import {
   ArrowLeftIcon,
   ImageIcon,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +20,8 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ApiError } from "@/lib/api"
+import { withNavTrail } from "@/lib/nav-trail"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   announcementService,
@@ -65,11 +68,13 @@ export default function AnnouncementDetailPage() {
   const { id } = useParams()
   const { token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [item, setItem] = useState<Announcement | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
     if (!token || !id) return
@@ -103,20 +108,19 @@ export default function AnnouncementDetailPage() {
 
   async function handleDelete() {
     if (!token || !item) return
-    const confirmed = window.confirm(
-      `Delete “${item.title}”? This cannot be undone.`,
-    )
-    if (!confirmed) return
 
     setBusy(true)
     setError("")
     try {
       await announcementService.remove(token, item.id)
+      setConfirmDelete(false)
+      toast.success("Announcement deleted")
       navigate("/announcements")
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Failed to delete announcement",
-      )
+      const message =
+        err instanceof ApiError ? err.message : "Failed to delete announcement"
+      setError(message)
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -196,7 +200,7 @@ export default function AnnouncementDetailPage() {
           <Button
             variant="destructive"
             disabled={busy}
-            onClick={() => void handleDelete()}
+            onClick={() => setConfirmDelete(true)}
           >
             <Trash2Icon />
             Delete
@@ -266,6 +270,7 @@ export default function AnnouncementDetailPage() {
                     value={
                       <Link
                         to={`/alumni/${item.featured_alumni.alumni_id}`}
+                        state={withNavTrail(location.pathname)}
                         className="text-primary underline-offset-4 hover:underline"
                       >
                         {item.featured_alumni.full_name}
@@ -278,6 +283,17 @@ export default function AnnouncementDetailPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete announcement"
+        description={`Delete “${item.title}”? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        busy={busy}
+        onOpenChange={setConfirmDelete}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

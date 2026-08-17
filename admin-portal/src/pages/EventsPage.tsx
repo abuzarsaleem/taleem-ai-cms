@@ -9,6 +9,8 @@ import {
 } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { ConfirmDialog } from "@/components/admin/confirm-dialog"
+import { TablePagination } from "@/components/admin/table-pagination"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -21,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ApiError } from "@/lib/api"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   eventService,
@@ -90,10 +93,11 @@ export default function EventsPage() {
 
   const [items, setItems] = useState<AdminEvent[]>([])
   const [total, setTotal] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(10)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<AdminEvent | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   async function load() {
     if (!token) return
@@ -103,7 +107,7 @@ export default function EventsPage() {
       const result = await eventService.list(token, {
         scope,
         page,
-        page_size: 20,
+        page_size: 10,
       })
       setItems(result.items)
       setTotal(result.total)
@@ -120,22 +124,23 @@ export default function EventsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, scope, page])
 
-  async function handleDelete(item: AdminEvent) {
-    if (!token) return
-    const confirmed = window.confirm(
-      `Delete “${item.title}”? This cannot be undone.`,
-    )
-    if (!confirmed) return
+  async function handleDelete() {
+    if (!token || !pendingDelete) return
 
-    setDeletingId(item.id)
+    setDeleting(true)
     setError("")
     try {
-      await eventService.remove(token, item.id)
+      await eventService.remove(token, pendingDelete.id)
+      setPendingDelete(null)
+      toast.success("Event deleted")
       await load()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to delete event")
+      const message =
+        err instanceof ApiError ? err.message : "Failed to delete event"
+      setError(message)
+      toast.error(message)
     } finally {
-      setDeletingId(null)
+      setDeleting(false)
     }
   }
 
@@ -152,8 +157,6 @@ export default function EventsPage() {
     params.set("page", String(nextPage))
     setSearchParams(params)
   }
-
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
@@ -217,6 +220,9 @@ export default function EventsPage() {
                   <TableHead className="hidden h-11 bg-muted/40 px-4 text-xs uppercase tracking-wide text-muted-foreground sm:table-cell">
                     Date
                   </TableHead>
+                  <TableHead className="hidden h-11 bg-muted/40 px-4 text-xs uppercase tracking-wide text-muted-foreground lg:table-cell">
+                    RSVP
+                  </TableHead>
                   <TableHead className="h-11 bg-muted/40 px-4 text-xs uppercase tracking-wide text-muted-foreground">
                     Status
                   </TableHead>
@@ -262,6 +268,15 @@ export default function EventsPage() {
                       {formatTime(item.start_time)}
                       {item.end_time ? `–${formatTime(item.end_time)}` : ""}
                     </TableCell>
+                    <TableCell className="hidden px-4 py-3 lg:table-cell">
+                      {item.rsvp_counts ? (
+                        <span className="tabular-nums text-sm font-medium">
+                          {item.rsvp_counts.total}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="px-4 py-3">
                       <Badge
                         className={cn(
@@ -293,12 +308,11 @@ export default function EventsPage() {
                           size="icon-sm"
                           variant="ghost"
                           className="text-destructive hover:text-destructive"
-                          disabled={deletingId === item.id}
+                          disabled={deleting && pendingDelete?.id === item.id}
                           onClick={(e) => {
                             e.stopPropagation()
-                            void handleDelete(item)
-                          }
-                          }
+                            setPendingDelete(item)
+                          }}
                         >
                           <Trash2Icon />
                           <span className="sr-only">Delete</span>
@@ -321,7 +335,7 @@ export default function EventsPage() {
                 {!items.length ? (
                   <TableRow className="hover:bg-transparent">
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="h-28 px-4 text-center text-muted-foreground"
                     >
                       No events found.
@@ -333,32 +347,28 @@ export default function EventsPage() {
           </div>
         )}
 
-        {!loading && totalPages > 1 ? (
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              Page {page} of {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => goToPage(page - 1)}
-              >
-                Previous
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page >= totalPages}
-                onClick={() => goToPage(page + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+        {!loading ? (
+          <TablePagination
+            page={page}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={goToPage}
+          />
         ) : null}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Delete event"
+        description={`Delete “${pendingDelete?.title ?? "this event"}”? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        busy={deleting}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setPendingDelete(null)
+        }}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

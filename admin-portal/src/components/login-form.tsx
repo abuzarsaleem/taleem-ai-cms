@@ -4,6 +4,7 @@ import { Navigate, useNavigate } from "react-router-dom"
 import { useAuth } from "@/auth/AuthContext"
 import { cn } from "@/lib/utils"
 import { ApiError } from "@/lib/api"
+import { toast } from "sonner"
 import { authService } from "@/services/auth.service"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -42,15 +43,17 @@ export function LoginForm({
         userId: data.user_id,
         role: data.role,
       })
+      toast.success("Signed in")
       navigate("/")
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Login failed",
-      )
+            : "Login failed"
+      setError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }

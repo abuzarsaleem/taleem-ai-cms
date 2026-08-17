@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { ChevronRightIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { TablePagination } from "@/components/admin/table-pagination"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -83,11 +84,15 @@ export default function RegistrationsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const statusParam = searchParams.get("status")
   const statusFilter =
-    statusParam === "PENDING" ||
-    statusParam === "APPROVED" ||
-    statusParam === "REJECTED"
-      ? statusParam
-      : ""
+    statusParam === "all"
+      ? ""
+      : statusParam === "PENDING" ||
+          statusParam === "APPROVED" ||
+          statusParam === "REJECTED"
+        ? statusParam
+        : "PENDING"
+  const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
+  const pageSize = 10
 
   const [items, setItems] = useState<RegistrationListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -123,12 +128,20 @@ export default function RegistrationsPage() {
   }, [token, statusFilter])
 
   function setStatus(next: RegistrationStatus | "") {
-    if (!next) {
-      setSearchParams({})
-      return
-    }
-    setSearchParams({ status: next })
+    const params = new URLSearchParams()
+    if (!next) params.set("status", "all")
+    else params.set("status", next)
+    params.set("page", "1")
+    setSearchParams(params)
   }
+
+  function goToPage(nextPage: number) {
+    const params = new URLSearchParams(searchParams)
+    params.set("page", String(nextPage))
+    setSearchParams(params)
+  }
+
+  const pagedItems = items.slice((page - 1) * pageSize, page * pageSize)
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
@@ -196,7 +209,7 @@ export default function RegistrationsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => (
+                {pagedItems.map((item) => (
                   <TableRow
                     key={item.registration_id}
                     className="group cursor-pointer"
@@ -290,6 +303,15 @@ export default function RegistrationsPage() {
             </Table>
           </div>
         )}
+
+        {!loading ? (
+          <TablePagination
+            page={page}
+            total={items.length}
+            pageSize={pageSize}
+            onPageChange={goToPage}
+          />
+        ) : null}
       </div>
     </div>
   )

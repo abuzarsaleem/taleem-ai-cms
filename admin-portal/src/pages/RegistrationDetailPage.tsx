@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeftIcon, QrCodeIcon, UserIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
+import { toast } from "sonner"
 import {
   degreeProgramLabel,
   formatDateTime,
@@ -72,6 +74,9 @@ export default function RegistrationDetailPage() {
   const [cnic, setCnic] = useState("")
   const [rejectionReason, setRejectionReason] = useState("")
   const [fieldError, setFieldError] = useState("")
+  const [confirmAction, setConfirmAction] = useState<"APPROVED" | "REJECTED" | null>(
+    null,
+  )
 
   async function load() {
     if (!token || !id) return
@@ -94,9 +99,7 @@ export default function RegistrationDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, token])
 
-  async function handleReview(status: "APPROVED" | "REJECTED") {
-    if (!token || !id || !item) return
-
+  function requestReview(status: "APPROVED" | "REJECTED") {
     if (!cnic.trim()) {
       setFieldError("CNIC is required to confirm this registration")
       return
@@ -106,6 +109,14 @@ export default function RegistrationDetailPage() {
       setFieldError("Rejection reason is required")
       return
     }
+
+    setFieldError("")
+    setConfirmAction(status)
+  }
+
+  async function handleReview() {
+    if (!token || !id || !item || !confirmAction) return
+    const status = confirmAction
 
     setBusy(true)
     setError("")
@@ -126,28 +137,30 @@ export default function RegistrationDetailPage() {
           result.notification_failed ? "activation email failed to send" : null,
           result.qr_failed ? "QR generation failed" : null,
         ].filter(Boolean)
-        setMessage(
-          notes.length
-            ? `Approved (${notes.join(", ")}).`
-            : "Registration approved.",
-        )
+        const successMessage = notes.length
+          ? `Approved (${notes.join(", ")}).`
+          : "Registration approved."
+        setMessage(successMessage)
+        toast.success(successMessage)
       } else {
-        setMessage(
-          result.notification_failed
-            ? "Rejected (notification failed to send)."
-            : "Registration rejected.",
-        )
+        const successMessage = result.notification_failed
+          ? "Rejected (notification failed to send)."
+          : "Registration rejected."
+        setMessage(successMessage)
+        toast.success(successMessage)
       }
 
+      setConfirmAction(null)
       await load()
     } catch (err) {
-      setError(
+      const failMessage =
         err instanceof ApiError
           ? err.message
           : status === "APPROVED"
             ? "Approve failed"
-            : "Reject failed",
-      )
+            : "Reject failed"
+      setError(failMessage)
+      toast.error(failMessage)
     } finally {
       setBusy(false)
     }
@@ -371,14 +384,14 @@ export default function RegistrationDetailPage() {
                   <div className="flex flex-col gap-2">
                     <Button
                       disabled={busy}
-                      onClick={() => void handleReview("APPROVED")}
+                      onClick={() => requestReview("APPROVED")}
                     >
                       {busy ? "Working…" : "Approve"}
                     </Button>
                     <Button
                       variant="destructive"
                       disabled={busy}
-                      onClick={() => void handleReview("REJECTED")}
+                      onClick={() => requestReview("REJECTED")}
                     >
                       Reject
                     </Button>
@@ -404,6 +417,30 @@ export default function RegistrationDetailPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmAction === "APPROVED"}
+        title="Approve registration"
+        description={`Approve ${item.full_name}? This will activate their alumni account.`}
+        confirmLabel="Approve"
+        busy={busy}
+        onOpenChange={(open) => {
+          if (!open && !busy) setConfirmAction(null)
+        }}
+        onConfirm={handleReview}
+      />
+      <ConfirmDialog
+        open={confirmAction === "REJECTED"}
+        title="Reject registration"
+        description={`Reject ${item.full_name}? This cannot be undone.`}
+        confirmLabel="Reject"
+        variant="destructive"
+        busy={busy}
+        onOpenChange={(open) => {
+          if (!open && !busy) setConfirmAction(null)
+        }}
+        onConfirm={handleReview}
+      />
     </div>
   )
 }

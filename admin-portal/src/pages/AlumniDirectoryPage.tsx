@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
-import { ChevronRightIcon, SearchIcon } from "lucide-react"
+import { ChevronRightIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { SearchableSelect } from "@/components/admin/searchable-select"
+import { TablePagination } from "@/components/admin/table-pagination"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,11 +18,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ApiError } from "@/lib/api"
-import { cn } from "@/lib/utils"
 import {
   alumniService,
   type AdminAlumniListItem,
 } from "@/services/alumni.service"
+import {
+  catalogService,
+  type CatalogDegreeProgram,
+} from "@/services/catalog.service"
 
 function initialsFromName(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -71,24 +76,48 @@ export default function AlumniDirectoryPage() {
 
   const search = searchParams.get("search") ?? ""
   const graduationYear = searchParams.get("graduation_year") ?? ""
+  const degreeProgramId = searchParams.get("degree_program_id") ?? ""
   const city = searchParams.get("city") ?? ""
+  const country = searchParams.get("country") ?? ""
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
 
   const [searchInput, setSearchInput] = useState(search)
   const [yearInput, setYearInput] = useState(graduationYear)
+  const [degreeProgramInput, setDegreeProgramInput] = useState(degreeProgramId)
   const [cityInput, setCityInput] = useState(city)
+  const [countryInput, setCountryInput] = useState(country)
 
+  const [degreePrograms, setDegreePrograms] = useState<CatalogDegreeProgram[]>(
+    [],
+  )
   const [items, setItems] = useState<AdminAlumniListItem[]>([])
   const [total, setTotal] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(10)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
     setSearchInput(search)
     setYearInput(graduationYear)
+    setDegreeProgramInput(degreeProgramId)
     setCityInput(city)
-  }, [search, graduationYear, city])
+    setCountryInput(country)
+  }, [search, graduationYear, degreeProgramId, city, country])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const programs = await catalogService.listDegreePrograms()
+        if (!cancelled) setDegreePrograms(programs)
+      } catch {
+        if (!cancelled) setDegreePrograms([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!token) return
@@ -102,9 +131,11 @@ export default function AlumniDirectoryPage() {
         const result = await alumniService.list(token, {
           search,
           graduation_year: graduationYear,
+          degree_program_id: degreeProgramId,
           city,
+          country,
           page,
-          page_size: 20,
+          page_size: 10,
         })
         if (!cancelled) {
           setItems(result.items)
@@ -127,14 +158,24 @@ export default function AlumniDirectoryPage() {
     return () => {
       cancelled = true
     }
-  }, [token, search, graduationYear, city, page])
+  }, [
+    token,
+    search,
+    graduationYear,
+    degreeProgramId,
+    city,
+    country,
+    page,
+  ])
 
   function applyFilters(event: React.FormEvent) {
     event.preventDefault()
     const next = new URLSearchParams()
     if (searchInput.trim()) next.set("search", searchInput.trim())
     if (yearInput.trim()) next.set("graduation_year", yearInput.trim())
+    if (degreeProgramInput) next.set("degree_program_id", degreeProgramInput)
     if (cityInput.trim()) next.set("city", cityInput.trim())
+    if (countryInput.trim()) next.set("country", countryInput.trim())
     next.set("page", "1")
     setSearchParams(next)
   }
@@ -142,7 +183,9 @@ export default function AlumniDirectoryPage() {
   function clearFilters() {
     setSearchInput("")
     setYearInput("")
+    setDegreeProgramInput("")
     setCityInput("")
+    setCountryInput("")
     setSearchParams({})
   }
 
@@ -151,8 +194,6 @@ export default function AlumniDirectoryPage() {
     next.set("page", String(nextPage))
     setSearchParams(next)
   }
-
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
@@ -171,31 +212,43 @@ export default function AlumniDirectoryPage() {
 
       <form
         onSubmit={applyFilters}
-        className="flex flex-col gap-3 px-4 lg:flex-row lg:items-end lg:px-6"
+        className="mx-4 grid gap-2 rounded-lg border border-border bg-card p-3 sm:grid-cols-2 lg:mx-6 lg:grid-cols-3"
       >
-        <div className="relative min-w-0 flex-1">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search name, email, phone…"
-            className="pl-8"
-          />
-        </div>
+        <Input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Name"
+        />
         <Input
           value={yearInput}
           onChange={(e) => setYearInput(e.target.value)}
           placeholder="Graduation year"
-          className="lg:w-40"
+        />
+        <SearchableSelect
+          placeholder="All degree programs"
+          searchPlaceholder="Search degree programs…"
+          value={degreeProgramInput}
+          onChange={setDegreeProgramInput}
+          emptyText="No degree programs found"
+          options={degreePrograms.map((program) => ({
+            value: program.id,
+            label: program.label,
+          }))}
         />
         <Input
           value={cityInput}
           onChange={(e) => setCityInput(e.target.value)}
           placeholder="City"
-          className="lg:w-40"
+        />
+        <Input
+          value={countryInput}
+          onChange={(e) => setCountryInput(e.target.value)}
+          placeholder="Country"
         />
         <div className="flex gap-2">
-          <Button type="submit">Search</Button>
+          <Button type="submit" className="flex-1">
+            Filter
+          </Button>
           <Button type="button" variant="outline" onClick={clearFilters}>
             Clear
           </Button>
@@ -317,31 +370,13 @@ export default function AlumniDirectoryPage() {
           </div>
         )}
 
-        {!loading && totalPages > 1 ? (
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              Page {page} of {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => goToPage(page - 1)}
-              >
-                Previous
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page >= totalPages}
-                className={cn(page >= totalPages && "opacity-50")}
-                onClick={() => goToPage(page + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+        {!loading ? (
+          <TablePagination
+            page={page}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={goToPage}
+          />
         ) : null}
       </div>
     </div>

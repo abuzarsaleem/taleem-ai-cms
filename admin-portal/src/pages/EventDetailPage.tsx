@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -27,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ApiError } from "@/lib/api"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   catalogService,
@@ -91,6 +93,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
     if (!token || !id) return
@@ -157,18 +160,19 @@ export default function EventDetailPage() {
 
   async function handleDelete() {
     if (!token || !item) return
-    const confirmed = window.confirm(
-      `Delete “${item.title}”? This cannot be undone.`,
-    )
-    if (!confirmed) return
 
     setBusy(true)
     setError("")
     try {
       await eventService.remove(token, item.id)
+      setConfirmDelete(false)
+      toast.success("Event deleted")
       navigate("/events")
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to delete event")
+      const message =
+        err instanceof ApiError ? err.message : "Failed to delete event"
+      setError(message)
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -247,7 +251,7 @@ export default function EventDetailPage() {
           <Button
             variant="destructive"
             disabled={busy}
-            onClick={() => void handleDelete()}
+            onClick={() => setConfirmDelete(true)}
           >
             <Trash2Icon />
             Delete
@@ -416,6 +420,17 @@ export default function EventDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete event"
+        description={`Delete “${item.title}”? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        busy={busy}
+        onOpenChange={setConfirmDelete}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

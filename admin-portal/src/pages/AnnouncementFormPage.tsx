@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeftIcon, ImageIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { FeaturedAlumniPicker } from "@/components/admin/featured-alumni-picker"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   announcementService,
@@ -55,6 +57,7 @@ export default function AnnouncementFormPage() {
   const [featuredAlumniLabel, setFeaturedAlumniLabel] = useState("")
   const [mediaId, setMediaId] = useState<string | undefined>()
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [confirmSave, setConfirmSave] = useState(false)
 
   useEffect(() => {
     if (!token || !id) return
@@ -125,6 +128,11 @@ export default function AnnouncementFormPage() {
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault()
     if (!token || !validate()) return
+    setConfirmSave(true)
+  }
+
+  async function handleConfirmedSave() {
+    if (!token) return
 
     setSaving(true)
     setError("")
@@ -140,19 +148,24 @@ export default function AnnouncementFormPage() {
 
       if (isEdit && id) {
         await announcementService.update(token, id, body)
+        setConfirmSave(false)
+        toast.success("Announcement updated")
         navigate(`/announcements/${id}`)
       } else {
         const created = await announcementService.create(token, body)
+        setConfirmSave(false)
+        toast.success("Announcement created")
         navigate(`/announcements/${created.id}`)
       }
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
           : isEdit
             ? "Failed to update announcement"
-            : "Failed to create announcement",
-      )
+            : "Failed to create announcement"
+      setError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }
@@ -357,6 +370,20 @@ export default function AnnouncementFormPage() {
           </Card>
         </div>
       </form>
+
+      <ConfirmDialog
+        open={confirmSave}
+        title={isEdit ? "Save announcement changes" : "Create announcement"}
+        description={
+          isEdit
+            ? `Save changes to “${title.trim() || "this announcement"}”?`
+            : `Create “${title.trim() || "this announcement"}”?`
+        }
+        confirmLabel={isEdit ? "Save changes" : "Create announcement"}
+        busy={saving}
+        onOpenChange={setConfirmSave}
+        onConfirm={handleConfirmedSave}
+      />
     </div>
   )
 }

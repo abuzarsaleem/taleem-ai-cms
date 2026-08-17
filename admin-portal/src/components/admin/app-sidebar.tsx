@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import {
   BookUserIcon,
@@ -12,6 +13,8 @@ import {
 } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { ConfirmDialog } from "@/components/admin/confirm-dialog"
+import { toast } from "sonner"
 import {
   Sidebar,
   SidebarContent,
@@ -145,13 +148,16 @@ export function AppSidebar() {
   const navigate = useNavigate()
   const { role, clearSession } = useAuth()
   const displayRole = roleLabel(role)
+  const [confirmLogout, setConfirmLogout] = useState(false)
 
   function handleLogout() {
     clearSession()
+    toast.success("Signed out")
     navigate("/login", { replace: true })
   }
 
   return (
+    <>
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/80">
       <SidebarHeader className="p-3 pb-2">
         <SidebarMenu>
@@ -218,7 +224,7 @@ export function AppSidebar() {
             <SidebarMenuButton
               tooltip="Logout"
               className="h-9 rounded-lg px-2.5 font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={handleLogout}
+              onClick={() => setConfirmLogout(true)}
             >
               <LogOutIcon className="size-4" />
               <span>Logout</span>
@@ -228,5 +234,15 @@ export function AppSidebar() {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
+    <ConfirmDialog
+      open={confirmLogout}
+      title="Log out"
+      description="Are you sure you want to log out of the admin console?"
+      confirmLabel="Log out"
+      variant="destructive"
+      onOpenChange={setConfirmLogout}
+      onConfirm={handleLogout}
+    />
+    </>
   )
 }

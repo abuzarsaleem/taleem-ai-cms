@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeftIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +17,8 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
+import { withNavTrail } from "@/lib/nav-trail"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   alumniService,
@@ -86,9 +89,11 @@ function AlumniLink({
   alumni?: AdminAlumniListItem
   alumniId: string
 }) {
+  const location = useLocation()
   return (
     <Link
       to={`/alumni/${alumniId}`}
+      state={withNavTrail(location.pathname, { alumni })}
       className="text-primary underline-offset-4 hover:underline"
     >
       {alumni?.full_name ?? alumniId}
@@ -120,6 +125,9 @@ export default function ContactRequestDetailPage() {
   const [message, setMessage] = useState("")
   const [rejectionReason, setRejectionReason] = useState("")
   const [fieldError, setFieldError] = useState("")
+  const [confirmAction, setConfirmAction] = useState<"APPROVE" | "REJECT" | null>(
+    null,
+  )
 
   useEffect(() => {
     if (!token || !id) return
@@ -169,13 +177,18 @@ export default function ContactRequestDetailPage() {
     }
   }, [token, id])
 
-  async function handleReview(action: "APPROVE" | "REJECT") {
-    if (!token || !item) return
-
+  function requestReview(action: "APPROVE" | "REJECT") {
     if (action === "REJECT" && !rejectionReason.trim()) {
       setFieldError("Rejection reason is required")
       return
     }
+    setFieldError("")
+    setConfirmAction(action)
+  }
+
+  async function handleReview() {
+    if (!token || !item || !confirmAction) return
+    const action = confirmAction
 
     setBusy(true)
     setError("")
@@ -190,19 +203,22 @@ export default function ContactRequestDetailPage() {
         action === "REJECT" ? rejectionReason.trim() : undefined,
       )
       setItem(updated)
-      setMessage(
+      setConfirmAction(null)
+      const successMessage =
         action === "APPROVE"
           ? "Contact request approved."
-          : "Contact request rejected.",
-      )
+          : "Contact request rejected."
+      setMessage(successMessage)
+      toast.success(successMessage)
     } catch (err) {
-      setError(
+      const failMessage =
         err instanceof ApiError
           ? err.message
           : action === "APPROVE"
             ? "Approve failed"
-            : "Reject failed",
-      )
+            : "Reject failed"
+      setError(failMessage)
+      toast.error(failMessage)
     } finally {
       setBusy(false)
     }
@@ -325,7 +341,7 @@ export default function ContactRequestDetailPage() {
               <>
                 <Button
                   disabled={busy}
-                  onClick={() => void handleReview("APPROVE")}
+                  onClick={() => requestReview("APPROVE")}
                 >
                   {busy ? "Working…" : "Approve"}
                 </Button>
@@ -350,7 +366,7 @@ export default function ContactRequestDetailPage() {
                 <Button
                   variant="destructive"
                   disabled={busy}
-                  onClick={() => void handleReview("REJECT")}
+                  onClick={() => requestReview("REJECT")}
                 >
                   Reject
                 </Button>
@@ -374,6 +390,30 @@ export default function ContactRequestDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={confirmAction === "APPROVE"}
+        title="Approve contact request"
+        description="Approve this request? Both alumni will be able to see each other's contact details."
+        confirmLabel="Approve"
+        busy={busy}
+        onOpenChange={(open) => {
+          if (!open && !busy) setConfirmAction(null)
+        }}
+        onConfirm={handleReview}
+      />
+      <ConfirmDialog
+        open={confirmAction === "REJECT"}
+        title="Reject contact request"
+        description="Reject this request? This cannot be undone."
+        confirmLabel="Reject"
+        variant="destructive"
+        busy={busy}
+        onOpenChange={(open) => {
+          if (!open && !busy) setConfirmAction(null)
+        }}
+        onConfirm={handleReview}
+      />
     </div>
   )
 }

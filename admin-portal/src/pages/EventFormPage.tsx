@@ -3,10 +3,14 @@ import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeftIcon, ImageIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
-import { MultiSelectChecklist } from "@/components/admin/multi-select-checklist"
+import { ConfirmDialog } from "@/components/admin/confirm-dialog"
+import { DatePicker, parseYmd, startOfDay } from "@/components/admin/date-picker"
+import { SearchableMultiSelect } from "@/components/admin/searchable-multi-select"
+import { TimePicker, parseHm } from "@/components/admin/time-picker"
 import { Button } from "@/components/ui/button"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -19,16 +23,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   catalogService,
   type CatalogCampus,
   type CatalogDegreeProgram,
 } from "@/services/catalog.service"
-import {
-  eventService,
-  type EventType,
-} from "@/services/event.service"
+import { eventService, type EventType } from "@/services/event.service"
 
 const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
   { value: "REUNION", label: "Reunion" },
@@ -46,9 +48,38 @@ type FormErrors = Partial<
   Record<"title" | "event_date" | "start_time" | "venue", string>
 >
 
+function todayYmd() {
+  return startOfDay(new Date())
+}
+
+function currentTimeHm() {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, "0")}:${String(
+    now.getMinutes(),
+  ).padStart(2, "0")}`
+}
+
+function isSameDay(date: Date, other: Date) {
+  return (
+    date.getFullYear() === other.getFullYear() &&
+    date.getMonth() === other.getMonth() &&
+    date.getDate() === other.getDate()
+  )
+}
+
+function minutesOf(value: string) {
+  const parsed = parseHm(value)
+  if (!parsed) return null
+  return parsed.hour * 60 + parsed.minute
+}
+
 function normalizeTime(value: string) {
   if (!value) return ""
   return value.length === 5 ? `${value}:00` : value
+}
+
+function countLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`
 }
 
 export default function EventFormPage() {
@@ -71,9 +102,10 @@ export default function EventFormPage() {
   const [endTime, setEndTime] = useState("")
   const [venue, setVenue] = useState("")
   const [guestSpeaker, setGuestSpeaker] = useState("")
-  const [isDraft, setIsDraft] = useState(false)
+  const [isPublished, setIsPublished] = useState(true)
   const [mediaId, setMediaId] = useState<string | undefined>()
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [confirmSave, setConfirmSave] = useState(false)
 
   const [campuses, setCampuses] = useState<CatalogCampus[]>([])
   const [degreePrograms, setDegreePrograms] = useState<CatalogDegreeProgram[]>(
@@ -110,14 +142,18 @@ export default function EventFormPage() {
           setEndTime(item.end_time ? item.end_time.slice(0, 5) : "")
           setVenue(item.venue)
           setGuestSpeaker(item.guest_speaker ?? "")
-          setIsDraft(item.is_draft)
+          setIsPublished(!item.is_draft)
           setImagePreview(item.image_url)
-          setCampusIds(item.target_criteria?.campus_ids ?? [])
-          setDegreeProgramIds(item.target_criteria?.degree_program_ids ?? [])
-          setGraduationYears(
-            (item.target_criteria?.graduation_years ?? []).map(String),
+          const nextCampusIds = item.target_criteria?.campus_ids ?? []
+          const nextProgramIds = item.target_criteria?.degree_program_ids ?? []
+          const nextYears = (item.target_criteria?.graduation_years ?? []).map(
+            String,
           )
-          setCities(item.target_criteria?.cities ?? [])
+          const nextCities = item.target_criteria?.cities ?? []
+          setCampusIds(nextCampusIds)
+          setDegreeProgramIds(nextProgramIds)
+          setGraduationYears(nextYears)
+          setCities(nextCities)
         }
       } catch (err) {
         if (!cancelled) {
@@ -137,6 +173,16 @@ export default function EventFormPage() {
     }
   }, [token, id])
 
+  const campusOptions = useMemo(
+    () =>
+      campuses.map((campus) => ({
+        value: campus.id,
+        label: campus.name,
+        hint: `${campus.code} · ${campus.city}`,
+      })),
+    [campuses],
+  )
+
   const cityOptions = useMemo(() => {
     const unique = Array.from(
       new Set(campuses.map((campus) => campus.city).filter(Boolean)),
@@ -151,6 +197,20 @@ export default function EventFormPage() {
     )
   }, [campusIds, degreePrograms])
 
+  const degreeProgramOptions = useMemo(
+    () =>
+      filteredDegreePrograms.map((program) => ({
+        value: program.id,
+        label: program.label,
+      })),
+    [filteredDegreePrograms],
+  )
+
+  const yearOptions = useMemo(
+    () => GRADUATION_YEARS.map((year) => ({ value: year, label: year })),
+    [],
+  )
+
   useEffect(() => {
     if (!campusIds.length) return
     setDegreeProgramIds((prev) =>
@@ -159,6 +219,48 @@ export default function EventFormPage() {
       ),
     )
   }, [campusIds, filteredDegreePrograms])
+
+  const hasAudienceFilters =
+    campusIds.length > 0 ||
+    degreeProgramIds.length > 0 ||
+    graduationYears.length > 0 ||
+    cities.length > 0
+
+  const audienceSummary = useMemo(() => {
+    if (!hasAudienceFilters) return "All alumni"
+    const parts: string[] = []
+    if (campusIds.length) {
+      parts.push(countLabel(campusIds.length, "campus", "campuses"))
+    }
+    if (degreeProgramIds.length) {
+      parts.push(countLabel(degreeProgramIds.length, "program", "programs"))
+    }
+    if (graduationYears.length) {
+      const sorted = [...graduationYears].sort()
+      if (sorted.length <= 3) {
+        parts.push(`class of ${sorted.join(", ")}`)
+      } else {
+        parts.push(countLabel(sorted.length, "year", "years"))
+      }
+    }
+    if (cities.length) {
+      parts.push(countLabel(cities.length, "city", "cities"))
+    }
+    return `Targeting ${parts.join(" · ")}`
+  }, [
+    campusIds.length,
+    cities.length,
+    degreeProgramIds.length,
+    graduationYears,
+    hasAudienceFilters,
+  ])
+
+  function clearAudience() {
+    setCampusIds([])
+    setDegreeProgramIds([])
+    setGraduationYears([])
+    setCities([])
+  }
 
   async function handleImageChange(file: File | null) {
     if (!token || !file) return
@@ -178,8 +280,30 @@ export default function EventFormPage() {
   function validate() {
     const next: FormErrors = {}
     if (title.trim().length < 3) next.title = "Title must be at least 3 characters"
-    if (!eventDate) next.event_date = "Event date is required"
-    if (!startTime) next.start_time = "Start time is required"
+    if (!eventDate) {
+      next.event_date = "Event date is required"
+    } else {
+      const selected = parseYmd(eventDate)
+      if (!selected || selected < todayYmd()) {
+        next.event_date = "Event date cannot be in the past"
+      }
+    }
+    if (!startTime) {
+      next.start_time = "Start time is required"
+    } else if (eventDate) {
+      const selected = parseYmd(eventDate)
+      if (selected && isSameDay(selected, new Date())) {
+        const startMinutes = minutesOf(startTime)
+        const nowMinutes = minutesOf(currentTimeHm())
+        if (
+          startMinutes != null &&
+          nowMinutes != null &&
+          startMinutes < nowMinutes
+        ) {
+          next.start_time = "Start time cannot be in the past"
+        }
+      }
+    }
     if (venue.trim().length < 2) next.venue = "Venue is required"
     setErrors(next)
     return Object.keys(next).length === 0
@@ -202,6 +326,11 @@ export default function EventFormPage() {
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault()
     if (!token || !validate()) return
+    setConfirmSave(true)
+  }
+
+  async function handleConfirmedSave() {
+    if (!token) return
 
     setSaving(true)
     setError("")
@@ -215,26 +344,31 @@ export default function EventFormPage() {
         end_time: endTime ? normalizeTime(endTime) : undefined,
         venue: venue.trim(),
         guest_speaker: guestSpeaker.trim() || undefined,
-        is_draft: isDraft,
+        is_draft: !isPublished,
         target_criteria: buildTargetCriteria(),
         ...(mediaId ? { media_id: mediaId } : {}),
       }
 
       if (isEdit && id) {
         await eventService.update(token, id, body)
+        setConfirmSave(false)
+        toast.success("Event updated")
         navigate(`/events/${id}`)
       } else {
         const created = await eventService.create(token, body)
+        setConfirmSave(false)
+        toast.success("Event created")
         navigate(`/events/${created.id}`)
       }
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
           : isEdit
             ? "Failed to update event"
-            : "Failed to create event",
-      )
+            : "Failed to create event"
+      setError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }
@@ -331,42 +465,57 @@ export default function EventFormPage() {
 
                 <Field data-invalid={!!errors.event_date || undefined}>
                   <FieldLabel htmlFor="event_date">Date</FieldLabel>
-                  <Input
+                  <DatePicker
                     id="event_date"
-                    type="date"
                     value={eventDate}
-                    onChange={(e) => {
-                      setEventDate(e.target.value)
-                      setErrors((prev) => ({ ...prev, event_date: undefined }))
-                    }}
+                    minDate={todayYmd()}
                     disabled={saving}
+                    placeholder="Pick event date"
+                    onChange={(next) => {
+                      setEventDate(next)
+                      setErrors((prev) => ({
+                        ...prev,
+                        event_date: undefined,
+                        start_time: undefined,
+                      }))
+                    }}
                   />
                   <FieldError>{errors.event_date}</FieldError>
                 </Field>
 
                 <Field data-invalid={!!errors.start_time || undefined}>
                   <FieldLabel htmlFor="start_time">Start time</FieldLabel>
-                  <Input
+                  <TimePicker
                     id="start_time"
-                    type="time"
                     value={startTime}
-                    onChange={(e) => {
-                      setStartTime(e.target.value)
-                      setErrors((prev) => ({ ...prev, start_time: undefined }))
-                    }}
                     disabled={saving}
+                    placeholder="Pick start time"
+                    minTime={
+                      eventDate &&
+                      parseYmd(eventDate) &&
+                      isSameDay(parseYmd(eventDate)!, new Date())
+                        ? currentTimeHm()
+                        : undefined
+                    }
+                    onChange={(next) => {
+                      setStartTime(next)
+                      setErrors((prev) => ({
+                        ...prev,
+                        start_time: undefined,
+                      }))
+                    }}
                   />
                   <FieldError>{errors.start_time}</FieldError>
                 </Field>
 
                 <Field>
                   <FieldLabel htmlFor="end_time">End time</FieldLabel>
-                  <Input
+                  <TimePicker
                     id="end_time"
-                    type="time"
                     value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
                     disabled={saving}
+                    placeholder="Optional end time"
+                    onChange={(next) => setEndTime(next)}
                   />
                 </Field>
               </div>
@@ -401,63 +550,74 @@ export default function EventFormPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Target criteria</CardTitle>
+              <CardTitle>Audience</CardTitle>
               <CardDescription>
-                Leave empty to target all alumni. Options come from catalog APIs.
+                Choose who should see this event. All is selected by default.
               </CardDescription>
+              {hasAudienceFilters ? (
+                <CardAction>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={saving}
+                    onClick={clearAudience}
+                  >
+                    Reset to all
+                  </Button>
+                </CardAction>
+              ) : null}
             </CardHeader>
-            <CardContent className="grid gap-5 md:grid-cols-2">
-              <MultiSelectChecklist
-                title="Campuses"
-                description="From GET /catalog/campuses"
-                values={campusIds}
-                disabled={saving}
-                onChange={setCampusIds}
-                options={campuses.map((campus) => ({
-                  value: campus.id,
-                  label: campus.name,
-                  hint: `${campus.code} · ${campus.city}`,
-                }))}
-              />
-
-              <MultiSelectChecklist
-                title="Degree programs"
-                description={
-                  campusIds.length
-                    ? "Filtered by selected campuses"
-                    : "From GET /catalog/degree-programs"
-                }
-                values={degreeProgramIds}
-                disabled={saving}
-                onChange={setDegreeProgramIds}
-                options={filteredDegreePrograms.map((program) => ({
-                  value: program.id,
-                  label: program.label,
-                }))}
-                emptyText="No degree programs found"
-              />
-
-              <MultiSelectChecklist
-                title="Graduation years"
-                description="Select one or more class years"
-                values={graduationYears}
-                disabled={saving}
-                onChange={setGraduationYears}
-                options={GRADUATION_YEARS.map((year) => ({
-                  value: year,
-                  label: year,
-                }))}
-              />
-
-              <MultiSelectChecklist
-                title="Cities"
-                description="Derived from campus cities in catalog"
-                values={cities}
-                disabled={saving}
-                onChange={setCities}
-                options={cityOptions}
-                emptyText="No cities found in campus catalog"
-              />
+            <CardContent className="flex flex-col gap-4">
+              <p className="text-sm font-medium">{audienceSummary}</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SearchableMultiSelect
+                  label="Campus"
+                  placeholder="All campuses"
+                  allLabel="All campuses"
+                  searchPlaceholder="Search campuses…"
+                  values={campusIds}
+                  disabled={saving}
+                  onChange={setCampusIds}
+                  options={campusOptions}
+                />
+                <SearchableMultiSelect
+                  label="Degree program"
+                  placeholder={
+                    campusIds.length
+                      ? "All programs on selected campuses"
+                      : "All degree programs"
+                  }
+                  allLabel="All programs"
+                  searchPlaceholder="Search programs…"
+                  values={degreeProgramIds}
+                  disabled={saving}
+                  onChange={setDegreeProgramIds}
+                  options={degreeProgramOptions}
+                  emptyText="No degree programs found"
+                />
+                <SearchableMultiSelect
+                  label="Graduation year"
+                  placeholder="All years"
+                  allLabel="All years"
+                  searchPlaceholder="Search years…"
+                  values={graduationYears}
+                  disabled={saving}
+                  onChange={setGraduationYears}
+                  options={yearOptions}
+                />
+                <SearchableMultiSelect
+                  label="City"
+                  placeholder="All cities"
+                  allLabel="All cities"
+                  searchPlaceholder="Search cities…"
+                  values={cities}
+                  disabled={saving}
+                  onChange={setCities}
+                  options={cityOptions}
+                  emptyText="No cities found"
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -466,20 +626,20 @@ export default function EventFormPage() {
           <Card>
             <CardHeader>
               <CardTitle>Publish</CardTitle>
-              <CardDescription>Draft or live event</CardDescription>
+              <CardDescription>Visibility settings</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                 <div>
-                  <Label htmlFor="is_draft">Save as draft</Label>
+                  <Label htmlFor="is_published">Published</Label>
                   <p className="text-xs text-muted-foreground">
-                    Drafts are hidden from alumni
+                    Show in the alumni feed
                   </p>
                 </div>
                 <Switch
-                  id="is_draft"
-                  checked={isDraft}
-                  onCheckedChange={setIsDraft}
+                  id="is_published"
+                  checked={isPublished}
+                  onCheckedChange={setIsPublished}
                   disabled={saving}
                 />
               </div>
@@ -535,6 +695,20 @@ export default function EventFormPage() {
           </Card>
         </div>
       </form>
+
+      <ConfirmDialog
+        open={confirmSave}
+        title={isEdit ? "Save event changes" : "Create event"}
+        description={
+          isEdit
+            ? `Save changes to “${title.trim() || "this event"}”?`
+            : `Create “${title.trim() || "this event"}”?`
+        }
+        confirmLabel={isEdit ? "Save changes" : "Create event"}
+        busy={saving}
+        onOpenChange={setConfirmSave}
+        onConfirm={handleConfirmedSave}
+      />
     </div>
   )
 }

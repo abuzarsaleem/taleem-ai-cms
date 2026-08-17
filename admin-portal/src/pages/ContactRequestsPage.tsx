@@ -1,8 +1,10 @@
-import { Fragment, useEffect, useMemo, useState } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { useEffect, useMemo, useState } from "react"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { CheckIcon, ChevronRightIcon, MailIcon, XIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { ConfirmDialog } from "@/components/admin/confirm-dialog"
+import { TablePagination } from "@/components/admin/table-pagination"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
@@ -17,6 +19,8 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
+import { withNavTrail } from "@/lib/nav-trail"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   alumniService,
@@ -95,6 +99,7 @@ function TableSkeleton() {
 export default function ContactRequestsPage() {
   const { token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const statusParam = searchParams.get("status")
   const statusFilter =
@@ -107,6 +112,8 @@ export default function ContactRequestsPage() {
           statusParam === "REJECTED_BY_ALUMNI"
         ? statusParam
         : ""
+  const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
+  const pageSize = 10
 
   const [items, setItems] = useState<ContactRequest[]>([])
   const [alumniById, setAlumniById] = useState<
@@ -115,7 +122,12 @@ export default function ContactRequestsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [pendingApprove, setPendingApprove] = useState<ContactRequest | null>(
+    null,
+  )
+  const [pendingReject, setPendingReject] = useState<ContactRequest | null>(
+    null,
+  )
   const [rejectionReason, setRejectionReason] = useState("")
   const [rejectError, setRejectError] = useState("")
 
@@ -151,60 +163,71 @@ export default function ContactRequestsPage() {
   }, [token, statusFilter])
 
   function setStatus(next: ContactRequestStatus | "") {
-    if (!next) {
-      setSearchParams({ status: "all" })
-      return
-    }
-    setSearchParams({ status: next })
+    const params = new URLSearchParams()
+    if (!next) params.set("status", "all")
+    else params.set("status", next)
+    params.set("page", "1")
+    setSearchParams(params)
+  }
+
+  function goToPage(nextPage: number) {
+    const params = new URLSearchParams(searchParams)
+    params.set("page", String(nextPage))
+    setSearchParams(params)
   }
 
   function alumniName(id: string) {
     return alumniById[id]?.full_name ?? id.slice(0, 8)
   }
 
-  async function handleApprove(item: ContactRequest) {
-    if (!token) return
-    const confirmed = window.confirm(
-      `Approve this contact request from ${alumniName(item.requester_alumni_id)} to ${alumniName(item.target_alumni_id)}?`,
-    )
-    if (!confirmed) return
+  const pagedItems = items.slice((page - 1) * pageSize, page * pageSize)
 
-    setBusyId(item.id)
+  async function handleApprove() {
+    if (!token || !pendingApprove) return
+
+    setBusyId(pendingApprove.id)
     setError("")
     try {
-      await contactRequestService.review(token, item.id, "APPROVE")
-      setRejectingId(null)
-      setRejectionReason("")
+      await contactRequestService.review(token, pendingApprove.id, "APPROVE")
+      setPendingApprove(null)
+      toast.success("Contact request approved")
       await load()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Approve failed")
+      const message =
+        err instanceof ApiError ? err.message : "Approve failed"
+      setError(message)
+      toast.error(message)
     } finally {
       setBusyId(null)
     }
   }
 
-  async function handleReject(item: ContactRequest) {
-    if (!token) return
+  async function handleReject() {
+    if (!token || !pendingReject) return
     if (!rejectionReason.trim()) {
       setRejectError("Rejection reason is required")
       return
     }
 
-    setBusyId(item.id)
+    setBusyId(pendingReject.id)
     setError("")
     setRejectError("")
     try {
       await contactRequestService.review(
         token,
-        item.id,
+        pendingReject.id,
         "REJECT",
         rejectionReason.trim(),
       )
-      setRejectingId(null)
+      setPendingReject(null)
       setRejectionReason("")
+      toast.success("Contact request rejected")
       await load()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Reject failed")
+      const message =
+        err instanceof ApiError ? err.message : "Reject failed"
+      setError(message)
+      toast.error(message)
     } finally {
       setBusyId(null)
     }
@@ -283,16 +306,14 @@ export default function ContactRequestsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => {
+                {pagedItems.map((item) => {
                   const isPending =
                     item.status === "PENDING_ADMIN" ||
                     item.status === "PENDING_ALUMNI"
-                  const isRejecting = rejectingId === item.id
                   const isBusy = busyId === item.id
 
                   return (
-                    <Fragment key={item.id}>
-                      <TableRow className="group">
+                    <TableRow key={item.id} className="group">
                         <TableCell className="px-4 py-3">
                           <div className="flex min-w-0 items-start gap-3">
                             <div className="mt-0.5 flex size-9 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
@@ -319,6 +340,9 @@ export default function ContactRequestsPage() {
                           <div className="text-sm">
                             <Link
                               to={`/alumni/${item.requester_alumni_id}`}
+                              state={withNavTrail(location.pathname, {
+                                alumni: alumniById[item.requester_alumni_id],
+                              })}
                               className="font-medium hover:underline"
                             >
                               {alumniName(item.requester_alumni_id)}
@@ -328,6 +352,9 @@ export default function ContactRequestsPage() {
                             </span>
                             <Link
                               to={`/alumni/${item.target_alumni_id}`}
+                              state={withNavTrail(location.pathname, {
+                                alumni: alumniById[item.target_alumni_id],
+                              })}
                               className="font-medium hover:underline"
                             >
                               {alumniName(item.target_alumni_id)}
@@ -354,7 +381,7 @@ export default function ContactRequestsPage() {
                                 <Button
                                   size="sm"
                                   disabled={isBusy}
-                                  onClick={() => void handleApprove(item)}
+                                  onClick={() => setPendingApprove(item)}
                                 >
                                   <CheckIcon />
                                   Approve
@@ -364,7 +391,7 @@ export default function ContactRequestsPage() {
                                   variant="destructive"
                                   disabled={isBusy}
                                   onClick={() => {
-                                    setRejectingId(item.id)
+                                    setPendingReject(item)
                                     setRejectionReason("")
                                     setRejectError("")
                                   }}
@@ -385,58 +412,9 @@ export default function ContactRequestsPage() {
                               <ChevronRightIcon />
                               <span className="sr-only">Open</span>
                             </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {isRejecting ? (
-                        <TableRow className="hover:bg-transparent">
-                          <TableCell colSpan={5} className="bg-muted/20 px-4 py-4">
-                            <div className="mx-auto flex max-w-2xl flex-col gap-3">
-                              <Field>
-                                <FieldLabel htmlFor={`reject-${item.id}`}>
-                                  Rejection reason
-                                </FieldLabel>
-                                <Textarea
-                                  id={`reject-${item.id}`}
-                                  value={rejectionReason}
-                                  onChange={(e) => {
-                                    setRejectionReason(e.target.value)
-                                    setRejectError("")
-                                  }}
-                                  placeholder="Explain why this request is rejected"
-                                  rows={3}
-                                  disabled={isBusy}
-                                />
-                                {rejectError ? (
-                                  <FieldError>{rejectError}</FieldError>
-                                ) : null}
-                              </Field>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="destructive"
-                                  disabled={isBusy}
-                                  onClick={() => void handleReject(item)}
-                                >
-                                  {isBusy ? "Rejecting…" : "Confirm reject"}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  disabled={isBusy}
-                                  onClick={() => {
-                                    setRejectingId(null)
-                                    setRejectionReason("")
-                                    setRejectError("")
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : null}
-                    </Fragment>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                   )
                 })}
 
@@ -454,7 +432,60 @@ export default function ContactRequestsPage() {
             </Table>
           </div>
         )}
+
+        {!loading ? (
+          <TablePagination
+            page={page}
+            total={items.length}
+            pageSize={pageSize}
+            onPageChange={goToPage}
+          />
+        ) : null}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingApprove)}
+        title="Approve contact request"
+        description={`Approve the request from ${pendingApprove ? alumniName(pendingApprove.requester_alumni_id) : "this alumni"} to ${pendingApprove ? alumniName(pendingApprove.target_alumni_id) : "the target alumni"}?`}
+        confirmLabel="Approve"
+        busy={Boolean(busyId && pendingApprove)}
+        onOpenChange={(open) => {
+          if (!open && !busyId) setPendingApprove(null)
+        }}
+        onConfirm={handleApprove}
+      />
+      <ConfirmDialog
+        open={Boolean(pendingReject)}
+        title="Reject contact request"
+        description={`Reject the request from ${pendingReject ? alumniName(pendingReject.requester_alumni_id) : "this alumni"}? A reason is required.`}
+        confirmLabel="Reject"
+        variant="destructive"
+        busy={Boolean(busyId && pendingReject)}
+        onOpenChange={(open) => {
+          if (!open && !busyId) {
+            setPendingReject(null)
+            setRejectionReason("")
+            setRejectError("")
+          }
+        }}
+        onConfirm={handleReject}
+      >
+        <Field>
+          <FieldLabel htmlFor="reject-reason">Rejection reason</FieldLabel>
+          <Textarea
+            id="reject-reason"
+            value={rejectionReason}
+            onChange={(e) => {
+              setRejectionReason(e.target.value)
+              setRejectError("")
+            }}
+            placeholder="Explain why this request is rejected"
+            rows={3}
+            disabled={Boolean(busyId)}
+          />
+          {rejectError ? <FieldError>{rejectError}</FieldError> : null}
+        </Field>
+      </ConfirmDialog>
     </div>
   )
 }
