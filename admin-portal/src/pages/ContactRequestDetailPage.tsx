@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeftIcon } from "lucide-react"
+import { Link, useLocation, useParams } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthContext"
+import { BackButton } from "@/components/admin/back-button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -93,7 +93,7 @@ function AlumniLink({
   return (
     <Link
       to={`/alumni/${alumniId}`}
-      state={withNavTrail(location.pathname, { alumni })}
+      state={withNavTrail(location, { alumni })}
       className="text-primary underline-offset-4 hover:underline"
     >
       {alumni?.full_name ?? alumniId}
@@ -109,7 +109,6 @@ function AlumniLink({
 export default function ContactRequestDetailPage() {
   const { id } = useParams()
   const { token } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
   const stateRequest =
     (location.state as LocationState | null)?.request ?? null
@@ -237,15 +236,7 @@ export default function ContactRequestDetailPage() {
   if (!item) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          render={<Link to="/contact-requests" />}
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        <BackButton fallback="/contact-requests" />
         <p className="text-sm text-destructive">
           {error || "Contact request not found"}
         </p>
@@ -259,15 +250,7 @@ export default function ContactRequestDetailPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          onClick={() => navigate("/contact-requests")}
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        <BackButton fallback="/contact-requests" />
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react"
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeftIcon, UserIcon } from "lucide-react"
+import { useLocation, useParams } from "react-router-dom"
+import { UserIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
-import { Button } from "@/components/ui/button"
+import { BackButton } from "@/components/admin/back-button"
 import {
   Card,
   CardContent,
@@ -14,7 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { ApiError } from "@/lib/api"
 import { degreeProgramLabel } from "@/lib/registration-utils"
-import { backToFromTrail, type NavTrailItem } from "@/lib/nav-trail"
+import { type NavTrailItem } from "@/lib/nav-trail"
 import { cn } from "@/lib/utils"
 import {
   alumniService,
@@ -89,12 +89,9 @@ function programFromList(item: AdminAlumniListItem | null) {
 export default function AlumniDetailPage() {
   const { id } = useParams()
   const { token } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
   const navState = (location.state as LocationState | null) ?? null
   const stateAlumni = navState?.alumni ?? null
-  const fromTrail = navState?.fromTrail
-  const backTo = backToFromTrail(fromTrail, "/alumni")
 
   const [listItem, setListItem] = useState<AdminAlumniListItem | null>(
     stateAlumni && stateAlumni.alumni_id === id ? stateAlumni : null,
@@ -165,15 +162,7 @@ export default function AlumniDetailPage() {
   if (!name) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          render={<Link to={backTo} />}
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        <BackButton fallback="/alumni" />
         <p className="text-sm text-destructive">
           {error || "Alumni not found"}
         </p>
@@ -212,15 +201,7 @@ export default function AlumniDetailPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          onClick={() => navigate(backTo)}
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        <BackButton fallback="/alumni" />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{name}</h1>
           <p className="text-muted-foreground">{email}</p>

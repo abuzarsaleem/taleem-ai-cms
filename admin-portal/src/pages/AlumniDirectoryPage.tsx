@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { ChevronRightIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
@@ -18,7 +18,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ApiError } from "@/lib/api"
-import { COUNTRIES, DEFAULT_COUNTRY, cityOptions } from "@/lib/locations"
+import { withNavTrail } from "@/lib/nav-trail"
+import { COUNTRIES, cityOptions, isPakistan } from "@/lib/locations"
 import {
   alumniService,
   type AdminAlumniListItem,
@@ -85,13 +86,14 @@ function TableSkeleton() {
 export default function AlumniDirectoryPage() {
   const { token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const search = searchParams.get("search") ?? ""
   const graduationYear = searchParams.get("graduation_year") ?? ""
   const degreeProgramId = searchParams.get("degree_program_id") ?? ""
-  const city = searchParams.get("city") ?? ""
   const country = searchParams.get("country") ?? ""
+  const city = isPakistan(country) ? (searchParams.get("city") ?? "") : ""
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
 
   const [searchInput, setSearchInput] = useState(search)
@@ -187,8 +189,10 @@ export default function AlumniDirectoryPage() {
     if (searchInput.trim()) next.set("search", searchInput.trim())
     if (yearInput.trim()) next.set("graduation_year", yearInput.trim())
     if (degreeProgramInput) next.set("degree_program_id", degreeProgramInput)
-    if (cityInput.trim()) next.set("city", cityInput.trim())
     if (countryInput.trim()) next.set("country", countryInput.trim())
+    if (isPakistan(countryInput) && cityInput.trim()) {
+      next.set("city", cityInput.trim())
+    }
     next.set("page", "1")
     setSearchParams(next)
   }
@@ -214,12 +218,6 @@ export default function AlumniDirectoryPage() {
         <h1 className="text-2xl font-bold tracking-tight">Alumni directory</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Search and browse active alumni
-          {!loading ? (
-            <span>
-              {" "}
-              · {total} result{total === 1 ? "" : "s"}
-            </span>
-          ) : null}
         </p>
       </div>
 
@@ -252,29 +250,33 @@ export default function AlumniDirectoryPage() {
           }))}
         />
         <SearchableSelect
-          placeholder="All cities"
-          searchPlaceholder="Search cities…"
-          value={cityInput}
-          onChange={(next) => {
-            setCityInput(next)
-            if (next && !countryInput) setCountryInput(DEFAULT_COUNTRY)
-          }}
-          emptyText="No cities found"
-          options={cityOptions(cityInput).map((item) => ({
-            value: item,
-            label: item,
-          }))}
-        />
-        <SearchableSelect
           placeholder="All countries"
           searchPlaceholder="Search countries…"
           value={countryInput}
-          onChange={setCountryInput}
+          onChange={(next) => {
+            setCountryInput(next)
+            if (!isPakistan(next)) setCityInput("")
+          }}
           emptyText="No countries found"
           options={COUNTRIES.map((item) => ({
             value: item,
             label: item,
           }))}
+        />
+        <SearchableSelect
+          placeholder={isPakistan(countryInput) ? "All cities" : "No cities"}
+          searchPlaceholder="Search cities…"
+          value={isPakistan(countryInput) ? cityInput : ""}
+          onChange={setCityInput}
+          emptyText="No cities"
+          options={
+            isPakistan(countryInput)
+              ? cityOptions(cityInput).map((item) => ({
+                  value: item,
+                  label: item,
+                }))
+              : []
+          }
         />
         <div className="flex gap-2">
           <Button type="submit" className="flex-1">
@@ -323,7 +325,7 @@ export default function AlumniDirectoryPage() {
                     className="group cursor-pointer"
                     onClick={() =>
                       navigate(`/alumni/${item.alumni_id}`, {
-                        state: { alumni: item },
+                        state: withNavTrail(location, { alumni: item }),
                       })
                     }
                   >
@@ -374,7 +376,7 @@ export default function AlumniDirectoryPage() {
                         render={
                           <Link
                             to={`/alumni/${item.alumni_id}`}
-                            state={{ alumni: item }}
+                            state={withNavTrail(location, { alumni: item })}
                             onClick={(e) => e.stopPropagation()}
                           />
                         }

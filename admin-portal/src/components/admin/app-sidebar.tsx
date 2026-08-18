@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import {
   BookUserIcon,
@@ -28,6 +28,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
@@ -94,6 +95,8 @@ function NavGroup({
   items: NavItem[]
   pathname: string
 }) {
+  const { isMobile, setOpenMobile } = useSidebar()
+
   return (
     <SidebarGroup className="px-2 py-1">
       <SidebarGroupLabel className="px-2 text-[11px] font-semibold tracking-[0.14em] text-sidebar-foreground/55 uppercase">
@@ -116,6 +119,9 @@ function NavGroup({
                       "bg-sidebar-accent text-white shadow-[inset_3px_0_0_0_var(--sidebar-primary)] hover:bg-sidebar-accent hover:text-white",
                   )}
                   render={<NavLink to={item.to} end={item.end} />}
+                  onClick={() => {
+                    if (isMobile) setOpenMobile(false)
+                  }}
                 >
                   <item.icon
                     className={cn(
@@ -146,9 +152,14 @@ function roleLabel(role: string | null) {
 export function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { isMobile, setOpenMobile } = useSidebar()
   const { role, clearSession } = useAuth()
   const displayRole = roleLabel(role)
   const [confirmLogout, setConfirmLogout] = useState(false)
+
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false)
+  }, [location.pathname, location.search, isMobile, setOpenMobile])
 
   function handleLogout() {
     clearSession()

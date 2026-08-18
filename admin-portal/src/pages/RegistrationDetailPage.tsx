@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeftIcon, QrCodeIcon, UserIcon } from "lucide-react"
+import { useParams } from "react-router-dom"
+import { QrCodeIcon, UserIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { BackButton } from "@/components/admin/back-button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -64,7 +65,6 @@ function DetailRow({
 export default function RegistrationDetailPage() {
   const { id } = useParams()
   const { token } = useAuth()
-  const navigate = useNavigate()
 
   const [item, setItem] = useState<RegistrationDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -171,15 +171,7 @@ export default function RegistrationDetailPage() {
   if (!item) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          render={<Link to="/registrations" />}
-        >
-          <ArrowLeftIcon />
-          Back to registrations
-        </Button>
+        <BackButton fallback="/registrations" />
         <p className="text-sm text-destructive">
           {error || "Registration not found"}
         </p>
@@ -194,15 +186,7 @@ export default function RegistrationDetailPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          onClick={() => navigate("/registrations")}
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        <BackButton fallback="/registrations" />
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">

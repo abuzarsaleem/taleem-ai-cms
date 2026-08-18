@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import {
   ArrowUpRightIcon,
   CalendarCheckIcon,
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ApiError } from "@/lib/api"
+import { withNavTrail } from "@/lib/nav-trail"
 import { cn } from "@/lib/utils"
 import {
   dashboardService,
@@ -104,6 +105,7 @@ function StatCard({
   to?: string
   tone?: "navy" | "cyan" | "amber" | "rose"
 }) {
+  const location = useLocation()
   const tones = {
     navy: "bg-[#081b45]/8 text-[#081b45] dark:bg-white/8 dark:text-white",
     cyan: "bg-[#00c2b2]/15 text-[#0a7d73] dark:bg-[#00c2b2]/15 dark:text-[#7ef0e6]",
@@ -145,16 +147,18 @@ function StatCard({
 
   if (!to) return content
   return (
-    <Link to={to} className="block outline-none">
+    <Link to={to} state={withNavTrail(location)} className="block outline-none">
       {content}
     </Link>
   )
 }
 
 function AnnouncementItem({ item }: { item: DashboardAnnouncement }) {
+  const location = useLocation()
   return (
     <Link
       to={`/announcements/${item.id}`}
+      state={withNavTrail(location)}
       className="flex gap-3 rounded-xl border border-border/80 bg-background/60 p-3.5 transition-colors hover:border-[#00c2b2]/40 hover:bg-[#00c2b2]/5"
     >
       <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#081b45]/8 text-[#081b45] dark:bg-white/8 dark:text-white">
@@ -182,6 +186,7 @@ function AnnouncementItem({ item }: { item: DashboardAnnouncement }) {
 
 export default function DashboardPage() {
   const { token } = useAuth()
+  const location = useLocation()
   const [data, setData] = useState<AdminDashboard | null>(null)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
@@ -288,7 +293,12 @@ export default function DashboardPage() {
               <Button
                 size="sm"
                 className="bg-[#00c2b2] text-[#042a2a] hover:bg-[#00d4c2]"
-                render={<Link to="/registrations?status=PENDING" />}
+                render={
+                  <Link
+                    to="/registrations?status=PENDING"
+                    state={withNavTrail(location)}
+                  />
+                }
               >
                 Review queue
                 <ArrowUpRightIcon />
@@ -297,7 +307,12 @@ export default function DashboardPage() {
                 size="sm"
                 variant="outline"
                 className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                render={<Link to="/announcements/new" />}
+                render={
+                  <Link
+                    to="/announcements/new"
+                    state={withNavTrail(location)}
+                  />
+                }
               >
                 <PlusIcon />
                 Announcement
@@ -306,7 +321,9 @@ export default function DashboardPage() {
                 size="sm"
                 variant="outline"
                 className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                render={<Link to="/events/new" />}
+                render={
+                  <Link to="/events/new" state={withNavTrail(location)} />
+                }
               >
                 <CalendarPlusIcon />
                 Event
@@ -365,6 +382,7 @@ export default function DashboardPage() {
               <Link
                 key={item.title}
                 to={item.to}
+                state={withNavTrail(location)}
                 className="flex items-center justify-between rounded-xl border border-border/80 px-3 py-3 transition-colors hover:border-[#00c2b2]/40 hover:bg-[#00c2b2]/5"
               >
                 <div className="flex items-center gap-3">
@@ -399,7 +417,7 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              render={<Link to="/events" />}
+              render={<Link to="/events" state={withNavTrail(location)} />}
             >
               View all
               <ArrowUpRightIcon />
@@ -449,7 +467,9 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              render={<Link to="/announcements" />}
+              render={
+                <Link to="/announcements" state={withNavTrail(location)} />
+              }
             >
               Open announcements
               <ArrowUpRightIcon />

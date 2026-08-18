@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import {
   CalendarDaysIcon,
   ChevronRightIcon,
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table"
 import { ApiError } from "@/lib/api"
 import { toast } from "sonner"
+import { withNavTrail } from "@/lib/nav-trail"
 import { cn } from "@/lib/utils"
 import {
   eventService,
@@ -32,9 +33,9 @@ import {
 } from "@/services/event.service"
 
 const SCOPES: Array<{ label: string; value: EventListScope }> = [
-  { label: "All", value: "all" },
   { label: "Upcoming", value: "upcoming" },
   { label: "Past", value: "past" },
+  { label: "All", value: "all" },
 ]
 
 function typeLabel(type: string) {
@@ -83,12 +84,11 @@ function TableSkeleton() {
 export default function EventsPage() {
   const { token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const scopeParam = searchParams.get("scope")
   const scope: EventListScope =
-    scopeParam === "upcoming" || scopeParam === "past" || scopeParam === "all"
-      ? scopeParam
-      : "all"
+    scopeParam === "past" || scopeParam === "all" ? scopeParam : "upcoming"
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
 
   const [items, setItems] = useState<AdminEvent[]>([])
@@ -146,7 +146,7 @@ export default function EventsPage() {
 
   function setScope(next: EventListScope) {
     const params = new URLSearchParams(searchParams)
-    if (next === "all") params.delete("scope")
+    if (next === "upcoming") params.delete("scope")
     else params.set("scope", next)
     params.set("page", "1")
     setSearchParams(params)
@@ -165,15 +165,9 @@ export default function EventsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Events</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Create and manage alumni events
-            {!loading ? (
-              <span>
-                {" "}
-                · {total} result{total === 1 ? "" : "s"}
-              </span>
-            ) : null}
           </p>
         </div>
-        <Button render={<Link to="/events/new" />}>
+        <Button render={<Link to="/events/new" state={withNavTrail(location)} />}>
           <PlusIcon />
           New event
         </Button>
@@ -236,7 +230,11 @@ export default function EventsPage() {
                   <TableRow
                     key={item.id}
                     className="group cursor-pointer"
-                    onClick={() => navigate(`/events/${item.id}`)}
+                    onClick={() =>
+                      navigate(`/events/${item.id}`, {
+                        state: withNavTrail(location),
+                      })
+                    }
                   >
                     <TableCell className="px-4 py-3">
                       <div className="flex min-w-0 items-center gap-3">
@@ -297,6 +295,7 @@ export default function EventsPage() {
                           render={
                             <Link
                               to={`/events/${item.id}/edit`}
+                              state={withNavTrail(location)}
                               onClick={(e) => e.stopPropagation()}
                             />
                           }
@@ -321,7 +320,12 @@ export default function EventsPage() {
                           size="icon-sm"
                           variant="ghost"
                           className="text-muted-foreground opacity-60 group-hover:opacity-100"
-                          render={<Link to={`/events/${item.id}`} />}
+                          render={
+                            <Link
+                              to={`/events/${item.id}`}
+                              state={withNavTrail(location)}
+                            />
+                          }
                           onClick={(e) => e.stopPropagation()}
                         >
                           <ChevronRightIcon />

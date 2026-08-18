@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeftIcon, ImageIcon } from "lucide-react"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
+import { ImageIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { BackButton } from "@/components/admin/back-button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { FeaturedAlumniPicker } from "@/components/admin/featured-alumni-picker"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
+import { trailStateFor } from "@/lib/nav-trail"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
@@ -42,6 +44,7 @@ export default function AnnouncementFormPage() {
   const isEdit = Boolean(id)
   const { token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
@@ -150,12 +153,18 @@ export default function AnnouncementFormPage() {
         await announcementService.update(token, id, body)
         setConfirmSave(false)
         toast.success("Announcement updated")
-        navigate(`/announcements/${id}`)
+        navigate(`/announcements/${id}`, {
+          replace: true,
+          state: trailStateFor(location, `/announcements/${id}`),
+        })
       } else {
         const created = await announcementService.create(token, body)
         setConfirmSave(false)
         toast.success("Announcement created")
-        navigate(`/announcements/${created.id}`)
+        navigate(`/announcements/${created.id}`, {
+          replace: true,
+          state: trailStateFor(location, `/announcements/${created.id}`),
+        })
       }
     } catch (err) {
       const message =
@@ -183,19 +192,9 @@ export default function AnnouncementFormPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          render={
-            <Link
-              to={isEdit && id ? `/announcements/${id}` : "/announcements"}
-            />
-          }
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        <BackButton
+          fallback={isEdit && id ? `/announcements/${id}` : "/announcements"}
+        />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             {isEdit ? "Edit announcement" : "New announcement"}

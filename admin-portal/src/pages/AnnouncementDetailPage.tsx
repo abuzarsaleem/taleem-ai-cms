@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import {
-  ArrowLeftIcon,
   ImageIcon,
   PencilIcon,
   Trash2Icon,
 } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { BackButton } from "@/components/admin/back-button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ApiError } from "@/lib/api"
-import { withNavTrail } from "@/lib/nav-trail"
+import { useBackNavigation, withNavTrail } from "@/lib/nav-trail"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
@@ -69,6 +69,7 @@ export default function AnnouncementDetailPage() {
   const { token } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const { backTo, backState } = useBackNavigation("/announcements")
 
   const [item, setItem] = useState<Announcement | null>(null)
   const [loading, setLoading] = useState(true)
@@ -115,7 +116,7 @@ export default function AnnouncementDetailPage() {
       await announcementService.remove(token, item.id)
       setConfirmDelete(false)
       toast.success("Announcement deleted")
-      navigate("/announcements")
+      navigate(backTo, backState ? { state: backState, replace: true } : { replace: true })
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Failed to delete announcement"
@@ -139,15 +140,7 @@ export default function AnnouncementDetailPage() {
   if (!item) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          render={<Link to="/announcements" />}
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        <BackButton fallback="/announcements" />
         <p className="text-sm text-destructive">
           {error || "Announcement not found"}
         </p>
@@ -159,15 +152,7 @@ export default function AnnouncementDetailPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-start sm:justify-between lg:px-6">
         <div className="flex flex-col gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            onClick={() => navigate("/announcements")}
-          >
-            <ArrowLeftIcon />
-            Back
-          </Button>
+          <BackButton fallback="/announcements" />
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight">{item.title}</h1>
@@ -192,7 +177,12 @@ export default function AnnouncementDetailPage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            render={<Link to={`/announcements/${item.id}/edit`} />}
+            render={
+              <Link
+                to={`/announcements/${item.id}/edit`}
+                state={withNavTrail(location)}
+              />
+            }
           >
             <PencilIcon />
             Edit
@@ -270,7 +260,7 @@ export default function AnnouncementDetailPage() {
                     value={
                       <Link
                         to={`/alumni/${item.featured_alumni.alumni_id}`}
-                        state={withNavTrail(location.pathname)}
+                        state={withNavTrail(location)}
                         className="text-primary underline-offset-4 hover:underline"
                       >
                         {item.featured_alumni.full_name}

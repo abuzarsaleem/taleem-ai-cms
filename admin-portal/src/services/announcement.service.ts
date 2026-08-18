@@ -70,7 +70,7 @@ export const announcementService = {
         params: {
           page: params.page ?? 1,
           page_size: params.page_size ?? 20,
-          include_drafts: params.include_drafts ?? true,
+          include_drafts: params.include_drafts ?? false,
         },
       },
     )

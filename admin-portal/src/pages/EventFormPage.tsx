@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeftIcon, ImageIcon } from "lucide-react"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
+import { ImageIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { BackButton } from "@/components/admin/back-button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { DatePicker, parseYmd, startOfDay } from "@/components/admin/date-picker"
 import { SearchableMultiSelect } from "@/components/admin/searchable-multi-select"
@@ -23,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
+import { trailStateFor } from "@/lib/nav-trail"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
@@ -87,6 +89,7 @@ export default function EventFormPage() {
   const isEdit = Boolean(id)
   const { token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -353,12 +356,18 @@ export default function EventFormPage() {
         await eventService.update(token, id, body)
         setConfirmSave(false)
         toast.success("Event updated")
-        navigate(`/events/${id}`)
+        navigate(`/events/${id}`, {
+          replace: true,
+          state: trailStateFor(location, `/events/${id}`),
+        })
       } else {
         const created = await eventService.create(token, body)
         setConfirmSave(false)
         toast.success("Event created")
-        navigate(`/events/${created.id}`)
+        navigate(`/events/${created.id}`, {
+          replace: true,
+          state: trailStateFor(location, `/events/${created.id}`),
+        })
       }
     } catch (err) {
       const message =
@@ -386,15 +395,7 @@ export default function EventFormPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          render={<Link to={isEdit && id ? `/events/${id}` : "/events"} />}
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        <BackButton fallback={isEdit && id ? `/events/${id}` : "/events"} />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             {isEdit ? "Edit event" : "New event"}

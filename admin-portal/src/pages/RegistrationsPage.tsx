@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { ChevronRightIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ApiError } from "@/lib/api"
+import { withNavTrail } from "@/lib/nav-trail"
 import {
   degreeProgramLabel,
   registrationStatusVariant,
@@ -81,6 +82,7 @@ function TableSkeleton() {
 export default function RegistrationsPage() {
   const { token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const statusParam = searchParams.get("status")
   const statusFilter =
@@ -150,12 +152,6 @@ export default function RegistrationsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Registrations</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Review and decide on alumni applications
-            {!loading ? (
-              <span className="text-muted-foreground/80">
-                {" "}
-                · {items.length} result{items.length === 1 ? "" : "s"}
-              </span>
-            ) : null}
           </p>
         </div>
 
@@ -214,7 +210,9 @@ export default function RegistrationsPage() {
                     key={item.registration_id}
                     className="group cursor-pointer"
                     onClick={() =>
-                      navigate(`/registrations/${item.registration_id}`)
+                      navigate(`/registrations/${item.registration_id}`, {
+                        state: withNavTrail(location),
+                      })
                     }
                   >
                     <TableCell className="px-4 py-3">
@@ -275,6 +273,7 @@ export default function RegistrationsPage() {
                         render={
                           <Link
                             to={`/registrations/${item.registration_id}`}
+                            state={withNavTrail(location)}
                             onClick={(e) => e.stopPropagation()}
                           />
                         }

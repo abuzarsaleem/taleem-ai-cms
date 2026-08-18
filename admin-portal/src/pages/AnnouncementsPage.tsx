@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import {
   ChevronRightIcon,
   MegaphoneIcon,
@@ -24,11 +24,20 @@ import {
 } from "@/components/ui/table"
 import { ApiError } from "@/lib/api"
 import { toast } from "sonner"
+import { withNavTrail } from "@/lib/nav-trail"
 import { cn } from "@/lib/utils"
 import {
   announcementService,
   type Announcement,
 } from "@/services/announcement.service"
+
+type AnnouncementStatusTab = "published" | "draft" | "all"
+
+const STATUS_FILTERS: Array<{ label: string; value: AnnouncementStatusTab }> = [
+  { label: "Published", value: "published" },
+  { label: "Draft", value: "draft" },
+  { label: "All", value: "all" },
+]
 
 function categoryLabel(category: string) {
   return category
@@ -72,8 +81,11 @@ function TableSkeleton() {
 export default function AnnouncementsPage() {
   const { token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
-  const includeDrafts = searchParams.get("drafts") !== "0"
+  const statusParam = searchParams.get("status")
+  const statusFilter: AnnouncementStatusTab =
+    statusParam === "draft" || statusParam === "all" ? statusParam : "published"
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
 
   const [items, setItems] = useState<Announcement[]>([])
@@ -89,14 +101,38 @@ export default function AnnouncementsPage() {
     setLoading(true)
     setError("")
     try {
-      const result = await announcementService.list(token, {
-        page,
-        page_size: 10,
-        include_drafts: includeDrafts,
-      })
-      setItems(result.items)
-      setTotal(result.total)
-      setPageSize(result.page_size)
+      if (statusFilter === "draft") {
+        const pageSize = 10
+        const collected: Announcement[] = []
+        let fetchedPage = 1
+        let remoteTotal = Number.POSITIVE_INFINITY
+
+        while (collected.length < remoteTotal && fetchedPage <= 20) {
+          const result = await announcementService.list(token, {
+            page: fetchedPage,
+            page_size: 100,
+            include_drafts: true,
+          })
+          collected.push(...result.items)
+          remoteTotal = result.total
+          if (result.items.length === 0) break
+          fetchedPage += 1
+        }
+
+        const drafts = collected.filter((item) => !item.is_published)
+        setItems(drafts.slice((page - 1) * pageSize, page * pageSize))
+        setTotal(drafts.length)
+        setPageSize(pageSize)
+      } else {
+        const result = await announcementService.list(token, {
+          page,
+          page_size: 10,
+          include_drafts: statusFilter === "all",
+        })
+        setItems(result.items)
+        setTotal(result.total)
+        setPageSize(result.page_size)
+      }
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -111,7 +147,7 @@ export default function AnnouncementsPage() {
   useEffect(() => {
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, page, includeDrafts])
+  }, [token, page, statusFilter])
 
   async function handleDelete() {
     if (!token || !pendingDelete) return
@@ -133,10 +169,9 @@ export default function AnnouncementsPage() {
     }
   }
 
-  function setDraftsFilter(next: boolean) {
-    const params = new URLSearchParams(searchParams)
-    if (next) params.delete("drafts")
-    else params.set("drafts", "0")
+  function setStatus(next: AnnouncementStatusTab) {
+    const params = new URLSearchParams()
+    if (next !== "published") params.set("status", next)
     params.set("page", "1")
     setSearchParams(params)
   }
@@ -154,46 +189,31 @@ export default function AnnouncementsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Announcements</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Create and manage alumni announcements
-            {!loading ? (
-              <span>
-                {" "}
-                · {total} result{total === 1 ? "" : "s"}
-              </span>
-            ) : null}
           </p>
         </div>
-        <Button render={<Link to="/announcements/new" />}>
+        <Button render={<Link to="/announcements/new" state={withNavTrail(location)} />}>
           <PlusIcon />
           New announcement
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 px-4 lg:px-6">
+      <div className="px-4 lg:px-6">
         <div className="inline-flex rounded-lg border bg-muted/40 p-1">
-          <button
-            type="button"
-            onClick={() => setDraftsFilter(true)}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-sm transition-colors",
-              includeDrafts
-                ? "bg-background font-medium text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => setDraftsFilter(false)}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-sm transition-colors",
-              !includeDrafts
-                ? "bg-background font-medium text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Published only
-          </button>
+          {STATUS_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => setStatus(filter.value)}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm transition-colors",
+                statusFilter === filter.value
+                  ? "bg-background font-medium text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -231,7 +251,11 @@ export default function AnnouncementsPage() {
                   <TableRow
                     key={item.id}
                     className="group cursor-pointer"
-                    onClick={() => navigate(`/announcements/${item.id}`)}
+                    onClick={() =>
+                      navigate(`/announcements/${item.id}`, {
+                        state: withNavTrail(location),
+                      })
+                    }
                   >
                     <TableCell className="px-4 py-3">
                       <div className="flex min-w-0 items-center gap-3">
@@ -283,6 +307,7 @@ export default function AnnouncementsPage() {
                           render={
                             <Link
                               to={`/announcements/${item.id}/edit`}
+                              state={withNavTrail(location)}
                               onClick={(e) => e.stopPropagation()}
                             />
                           }
@@ -307,7 +332,12 @@ export default function AnnouncementsPage() {
                           size="icon-sm"
                           variant="ghost"
                           className="text-muted-foreground opacity-60 group-hover:opacity-100"
-                          render={<Link to={`/announcements/${item.id}`} />}
+                          render={
+                            <Link
+                              to={`/announcements/${item.id}`}
+                              state={withNavTrail(location)}
+                            />
+                          }
                           onClick={(e) => e.stopPropagation()}
                         >
                           <ChevronRightIcon />

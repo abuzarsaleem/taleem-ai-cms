@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import {
-  ArrowLeftIcon,
   ImageIcon,
   PencilIcon,
   Trash2Icon,
 } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { BackButton } from "@/components/admin/back-button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ApiError } from "@/lib/api"
+import { useBackNavigation, withNavTrail } from "@/lib/nav-trail"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
@@ -83,6 +84,8 @@ export default function EventDetailPage() {
   const { id } = useParams()
   const { token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const { backTo, backState } = useBackNavigation("/events")
 
   const [item, setItem] = useState<AdminEvent | null>(null)
   const [rsvps, setRsvps] = useState<AdminRsvpListItem[]>([])
@@ -167,7 +170,7 @@ export default function EventDetailPage() {
       await eventService.remove(token, item.id)
       setConfirmDelete(false)
       toast.success("Event deleted")
-      navigate("/events")
+      navigate(backTo, backState ? { state: backState, replace: true } : { replace: true })
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Failed to delete event"
@@ -191,15 +194,7 @@ export default function EventDetailPage() {
   if (!item) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          render={<Link to="/events" />}
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        <BackButton fallback="/events" />
         <p className="text-sm text-destructive">{error || "Event not found"}</p>
       </div>
     )
@@ -211,15 +206,7 @@ export default function EventDetailPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-start sm:justify-between lg:px-6">
         <div className="flex flex-col gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            onClick={() => navigate("/events")}
-          >
-            <ArrowLeftIcon />
-            Back
-          </Button>
+          <BackButton fallback="/events" />
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight">{item.title}</h1>
@@ -244,7 +231,15 @@ export default function EventDetailPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" render={<Link to={`/events/${item.id}/edit`} />}>
+          <Button
+            variant="outline"
+            render={
+              <Link
+                to={`/events/${item.id}/edit`}
+                state={withNavTrail(location)}
+              />
+            }
+          >
             <PencilIcon />
             Edit
           </Button>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { CheckIcon, ChevronRightIcon, MailIcon, XIcon } from "lucide-react"
 
@@ -36,12 +36,9 @@ const STATUS_FILTERS: Array<{
   label: string
   value: ContactRequestStatus | ""
 }> = [
-  { label: "All", value: "" },
-  { label: "Pending admin", value: "PENDING_ADMIN" },
-  { label: "Pending alumni", value: "PENDING_ALUMNI" },
+  { label: "Pending", value: "PENDING_ADMIN" },
   { label: "Approved", value: "APPROVED" },
-  { label: "Rejected by admin", value: "REJECTED_BY_ADMIN" },
-  { label: "Rejected by alumni", value: "REJECTED_BY_ALUMNI" },
+  { label: "All", value: "" },
 ]
 
 function statusLabel(status: string) {
@@ -105,13 +102,9 @@ export default function ContactRequestsPage() {
   const statusFilter =
     statusParam === "all"
       ? ""
-      : statusParam === "PENDING_ADMIN" ||
-          statusParam === "PENDING_ALUMNI" ||
-          statusParam === "APPROVED" ||
-          statusParam === "REJECTED_BY_ADMIN" ||
-          statusParam === "REJECTED_BY_ALUMNI"
+      : statusParam === "PENDING_ADMIN" || statusParam === "APPROVED"
         ? statusParam
-        : ""
+        : "PENDING_ADMIN"
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
   const pageSize = 10
 
@@ -233,26 +226,12 @@ export default function ContactRequestsPage() {
     }
   }
 
-  const pendingCount = useMemo(
-    () => items.filter((item) => item.status === "PENDING_ADMIN").length,
-    [items],
-  )
-
   return (
     <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
         <h1 className="text-2xl font-bold tracking-tight">Contact requests</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Review alumni contact requests
-          {!loading ? (
-            <span>
-              {" "}
-              · {items.length} result{items.length === 1 ? "" : "s"}
-              {statusFilter === "" && pendingCount > 0
-                ? ` · ${pendingCount} pending admin`
-                : ""}
-            </span>
-          ) : null}
         </p>
       </div>
 
@@ -307,9 +286,7 @@ export default function ContactRequestsPage() {
               </TableHeader>
               <TableBody>
                 {pagedItems.map((item) => {
-                  const isPending =
-                    item.status === "PENDING_ADMIN" ||
-                    item.status === "PENDING_ALUMNI"
+                  const isPending = item.status === "PENDING_ADMIN"
                   const isBusy = busyId === item.id
 
                   return (
@@ -324,7 +301,9 @@ export default function ContactRequestsPage() {
                                 type="button"
                                 className="line-clamp-1 text-left font-medium hover:underline"
                                 onClick={() =>
-                                  navigate(`/contact-requests/${item.id}`)
+                                  navigate(`/contact-requests/${item.id}`, {
+                                    state: withNavTrail(location),
+                                  })
                                 }
                               >
                                 {item.request_reason}
@@ -340,7 +319,7 @@ export default function ContactRequestsPage() {
                           <div className="text-sm">
                             <Link
                               to={`/alumni/${item.requester_alumni_id}`}
-                              state={withNavTrail(location.pathname, {
+                              state={withNavTrail(location, {
                                 alumni: alumniById[item.requester_alumni_id],
                               })}
                               className="font-medium hover:underline"
@@ -352,7 +331,7 @@ export default function ContactRequestsPage() {
                             </span>
                             <Link
                               to={`/alumni/${item.target_alumni_id}`}
-                              state={withNavTrail(location.pathname, {
+                              state={withNavTrail(location, {
                                 alumni: alumniById[item.target_alumni_id],
                               })}
                               className="font-medium hover:underline"
@@ -406,7 +385,10 @@ export default function ContactRequestsPage() {
                               variant="ghost"
                               className="text-muted-foreground"
                               render={
-                                <Link to={`/contact-requests/${item.id}`} />
+                                <Link
+                                  to={`/contact-requests/${item.id}`}
+                                  state={withNavTrail(location)}
+                                />
                               }
                             >
                               <ChevronRightIcon />

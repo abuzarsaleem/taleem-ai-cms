@@ -81,9 +81,9 @@ export function SearchableSelect({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-(--anchor-width) min-w-72 gap-0 p-0"
+        className="w-(--anchor-width) min-w-72 gap-0 overflow-hidden p-0"
       >
-        <div className="relative border-b p-2">
+        <div className="relative shrink-0 border-b p-2">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -93,7 +93,8 @@ export function SearchableSelect({
             autoFocus
           />
         </div>
-        <div className="max-h-52 overflow-auto p-1">
+        <div className="max-h-60 overflow-y-auto p-1">
+          {options.length ? (
           <button
             type="button"
             disabled={disabled}
@@ -113,6 +114,7 @@ export function SearchableSelect({
             </span>
             <span className="text-sm font-medium">{placeholder}</span>
           </button>
+          ) : null}
           {filtered.length ? (
             filtered.map((option) => {
               const checked = option.value === value
