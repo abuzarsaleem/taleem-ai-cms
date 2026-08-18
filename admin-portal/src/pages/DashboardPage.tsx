@@ -4,12 +4,15 @@ import {
   ArrowUpRightIcon,
   CalendarCheckIcon,
   CalendarDaysIcon,
+  CalendarPlusIcon,
   CalendarXIcon,
   ClipboardListIcon,
   MailIcon,
   MegaphoneIcon,
+  PlusIcon,
   UserXIcon,
   UsersIcon,
+  type LucideIcon,
 } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
@@ -24,6 +27,7 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ApiError } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import {
   dashboardService,
   type AdminDashboard,
@@ -43,6 +47,14 @@ function formatDate(value: string | null) {
   }).format(new Date(value))
 }
 
+function formatLongDate(value = new Date()) {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(value)
+}
+
 function categoryLabel(category: string) {
   return category
     .toLowerCase()
@@ -51,70 +63,120 @@ function categoryLabel(category: string) {
     .join(" ")
 }
 
+function greeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return "Good morning"
+  if (hour < 17) return "Good afternoon"
+  return "Good evening"
+}
+
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <div className="flex flex-col gap-2 px-4 lg:px-6">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-4 w-72" />
+    <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
+      <div className="px-4 lg:px-6">
+        <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
       <div className="grid gap-4 px-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index} size="sm">
-            <CardHeader>
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-8 w-16" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-3 w-24" />
-            </CardContent>
-          </Card>
+          <Skeleton key={index} className="h-32 rounded-2xl" />
         ))}
       </div>
       <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton key={index} className="h-16 w-full" />
-            ))}
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <Skeleton className="h-5 w-44" />
-            <Skeleton className="h-4 w-56" />
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-20 w-full" />
-            ))}
-          </CardContent>
-        </Card>
+        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-72 rounded-2xl lg:col-span-2" />
       </div>
     </div>
   )
 }
 
+function StatCard({
+  title,
+  value,
+  hint,
+  icon: Icon,
+  to,
+  tone = "navy",
+}: {
+  title: string
+  value: number
+  hint: string
+  icon: LucideIcon
+  to?: string
+  tone?: "navy" | "cyan" | "amber" | "rose"
+}) {
+  const tones = {
+    navy: "bg-[#081b45]/8 text-[#081b45] dark:bg-white/8 dark:text-white",
+    cyan: "bg-[#00c2b2]/15 text-[#0a7d73] dark:bg-[#00c2b2]/15 dark:text-[#7ef0e6]",
+    amber: "bg-amber-500/12 text-amber-700 dark:text-amber-300",
+    rose: "bg-rose-500/12 text-rose-700 dark:text-rose-300",
+  }
+
+  const content = (
+    <Card
+      size="sm"
+      className={cn(
+        "h-full transition-shadow",
+        to && "hover:shadow-[0_8px_24px_rgb(8_27_69_/_0.08)]",
+      )}
+    >
+      <CardHeader className="gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <CardDescription className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+            {title}
+          </CardDescription>
+          <span
+            className={cn(
+              "flex size-9 items-center justify-center rounded-xl",
+              tones[tone],
+            )}
+          >
+            <Icon className="size-4" />
+          </span>
+        </div>
+        <CardTitle className="text-3xl font-semibold tracking-tight tabular-nums">
+          {formatCount(value)}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-xs text-muted-foreground">{hint}</p>
+      </CardContent>
+    </Card>
+  )
+
+  if (!to) return content
+  return (
+    <Link to={to} className="block outline-none">
+      {content}
+    </Link>
+  )
+}
+
 function AnnouncementItem({ item }: { item: DashboardAnnouncement }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border p-3">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium leading-snug">{item.title}</p>
-        <Badge variant="outline">{categoryLabel(item.category)}</Badge>
+    <Link
+      to={`/announcements/${item.id}`}
+      className="flex gap-3 rounded-xl border border-border/80 bg-background/60 p-3.5 transition-colors hover:border-[#00c2b2]/40 hover:bg-[#00c2b2]/5"
+    >
+      <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#081b45]/8 text-[#081b45] dark:bg-white/8 dark:text-white">
+        <MegaphoneIcon className="size-4" />
       </div>
-      {item.content ? (
-        <p className="line-clamp-2 text-xs text-muted-foreground">
-          {item.content}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="truncate text-sm font-medium">{item.title}</p>
+          <Badge variant="outline" className="shrink-0 font-normal">
+            {categoryLabel(item.category)}
+          </Badge>
+        </div>
+        {item.content ? (
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            {item.content}
+          </p>
+        ) : null}
+        <p className="mt-2 text-[11px] tracking-wide text-muted-foreground uppercase">
+          {formatDate(item.published_at)}
         </p>
-      ) : null}
-      <p className="text-xs text-muted-foreground">
-        {formatDate(item.published_at)}
-      </p>
-    </div>
+      </div>
+    </Link>
   )
 }
 
@@ -166,132 +228,240 @@ export default function DashboardPage() {
     )
   }
 
-  const primaryStats = [
-    {
-      title: "Total alumni",
-      value: data.alumni_count,
-      hint: "Registered alumni accounts",
-      icon: UsersIcon,
-    },
+  const attentionItems = [
     {
       title: "Pending registrations",
       value: data.pending_registrations_count,
-      hint: "Awaiting admin review",
+      to: "/registrations?status=PENDING",
       icon: ClipboardListIcon,
     },
     {
-      title: "Rejected requests",
-      value: data.rejected_requests_count,
-      hint: "Registration requests declined",
-      icon: UserXIcon,
-    },
-    {
-      title: "Pending contact requests",
+      title: "Contact requests",
       value: data.pending_contact_requests_count,
-      hint: "Awaiting contact review",
+      to: "/contact-requests",
       icon: MailIcon,
     },
   ]
+  const attentionTotal =
+    data.pending_registrations_count + data.pending_contact_requests_count
 
   const eventStats = [
     {
-      title: "Published events",
+      title: "Published",
       value: data.published_events_count,
       icon: CalendarDaysIcon,
     },
     {
-      title: "Active events",
+      title: "Active",
       value: data.active_events_count,
       icon: CalendarCheckIcon,
     },
     {
-      title: "Completed events",
+      title: "Completed",
       value: data.completed_events_count,
       icon: CalendarXIcon,
     },
   ]
+  const eventTotal =
+    data.published_events_count +
+    data.active_events_count +
+    data.completed_events_count
 
   return (
-    <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <div className="flex flex-col gap-2 px-4 lg:px-6">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Overview of alumni activity and pending actions.
-        </p>
+    <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
+      <div className="px-4 lg:px-6">
+        <section className="relative overflow-hidden rounded-2xl bg-[#081b45] px-5 py-6 text-white shadow-[0_18px_40px_rgb(8_27_69_/_0.18)] sm:px-7 sm:py-7">
+          <div className="pointer-events-none absolute -top-16 right-0 size-56 rounded-full bg-[#00c2b2]/25 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 left-1/3 size-48 rounded-full bg-[#47bfff]/20 blur-3xl" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-xl">
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-[#00c2b2] uppercase">
+                Taleem AI · Admin
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                {greeting()}
+              </h1>
+        
+              <p className="mt-3 text-xs text-white/50">{formatLongDate()}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                className="bg-[#00c2b2] text-[#042a2a] hover:bg-[#00d4c2]"
+                render={<Link to="/registrations?status=PENDING" />}
+              >
+                Review queue
+                <ArrowUpRightIcon />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                render={<Link to="/announcements/new" />}
+              >
+                <PlusIcon />
+                Announcement
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                render={<Link to="/events/new" />}
+              >
+                <CalendarPlusIcon />
+                Event
+              </Button>
+            </div>
+          </div>
+        </section>
       </div>
 
       <div className="grid gap-4 px-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
-        {primaryStats.map((stat) => (
-          <Card key={stat.title} size="sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardDescription>{stat.title}</CardDescription>
-                <stat.icon className="size-4 text-muted-foreground" />
-              </div>
-              <CardTitle className="text-2xl font-semibold tabular-nums">
-                {formatCount(stat.value)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">{stat.hint}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <StatCard
+          title="Total alumni"
+          value={data.alumni_count}
+          hint="Active alumni in the directory"
+          icon={UsersIcon}
+          to="/alumni"
+          tone="navy"
+        />
+        <StatCard
+          title="Pending registrations"
+          value={data.pending_registrations_count}
+          hint="Awaiting admin review"
+          icon={ClipboardListIcon}
+          to="/registrations?status=PENDING"
+          tone="amber"
+        />
+        <StatCard
+          title="Contact requests"
+          value={data.pending_contact_requests_count}
+          hint="Alumni introductions to review"
+          icon={MailIcon}
+          to="/contact-requests"
+          tone="cyan"
+        />
+        <StatCard
+          title="Rejected requests"
+          value={data.rejected_requests_count}
+          hint="Declined registration requests"
+          icon={UserXIcon}
+          tone="rose"
+        />
       </div>
 
       <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
-        <Card>
+        <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Events</CardTitle>
-            <CardDescription>Published, active, and completed</CardDescription>
+            <CardTitle>Needs attention</CardTitle>
+            <CardDescription>
+              {attentionTotal
+                ? "Work waiting on the admin team"
+                : "No pending reviews right now"}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {eventStats.map((stat) => (
-              <div
-                key={stat.title}
-                className="flex items-center justify-between rounded-lg border p-3"
+          <CardContent className="flex flex-col gap-2.5">
+            {attentionItems.map((item) => (
+              <Link
+                key={item.title}
+                to={item.to}
+                className="flex items-center justify-between rounded-xl border border-border/80 px-3 py-3 transition-colors hover:border-[#00c2b2]/40 hover:bg-[#00c2b2]/5"
               >
-                <div className="flex items-center gap-2">
-                  <stat.icon className="size-4 text-muted-foreground" />
-                  <span className="text-sm">{stat.title}</span>
+                <div className="flex items-center gap-3">
+                  <span className="flex size-9 items-center justify-center rounded-lg bg-[#081b45]/8 text-[#081b45] dark:bg-white/8 dark:text-white">
+                    <item.icon className="size-4" />
+                  </span>
+                  <span className="text-sm font-medium">{item.title}</span>
                 </div>
-                <span className="text-sm font-semibold tabular-nums">
-                  {formatCount(stat.value)}
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums",
+                    item.value > 0
+                      ? "bg-[#00c2b2]/15 text-[#0a7d73]"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {formatCount(item.value)}
                 </span>
-              </div>
+              </Link>
             ))}
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between gap-2">
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <MegaphoneIcon className="size-4" />
-                Latest announcements
-              </CardTitle>
+              <CardTitle>Events</CardTitle>
+              <CardDescription>
+                Published, live, and completed programmes
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link to="/events" />}
+            >
+              View all
+              <ArrowUpRightIcon />
+            </Button>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {eventStats.map((stat) => {
+              const pct = eventTotal
+                ? Math.round((stat.value / eventTotal) * 100)
+                : 0
+              return (
+                <div
+                  key={stat.title}
+                  className="rounded-xl border border-border/80 p-3.5"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <stat.icon className="size-4 text-[#00c2b2]" />
+                      <span className="text-sm font-medium">{stat.title}</span>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums">
+                      {formatCount(stat.value)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-[#00c2b2]"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="px-4 lg:px-6">
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
+            <div>
+              <CardTitle>Latest announcements</CardTitle>
               <CardDescription>
                 Recently published updates for alumni
               </CardDescription>
             </div>
-            {data.pending_registrations_count > 0 ? (
-              <Button
-                variant="outline"
-                size="sm"
-                render={<Link to="/registrations?status=PENDING" />}
-              >
-                Review registrations
-                <ArrowUpRightIcon />
-              </Button>
-            ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link to="/announcements" />}
+            >
+              Open announcements
+              <ArrowUpRightIcon />
+            </Button>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent className="flex flex-col gap-2.5">
             {data.latest_announcements.length ? (
               data.latest_announcements.map((item) => (
                 <AnnouncementItem key={item.id} item={item} />
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="py-8 text-center text-sm text-muted-foreground">
                 No announcements published yet.
               </p>
             )}

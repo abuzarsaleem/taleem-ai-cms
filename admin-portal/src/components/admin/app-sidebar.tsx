@@ -96,7 +96,7 @@ function NavGroup({
 }) {
   return (
     <SidebarGroup className="px-2 py-1">
-      <SidebarGroupLabel className="px-2 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground/80 uppercase">
+      <SidebarGroupLabel className="px-2 text-[11px] font-semibold tracking-[0.14em] text-sidebar-foreground/55 uppercase">
         {label}
       </SidebarGroupLabel>
       <SidebarGroupContent>
@@ -111,16 +111,16 @@ function NavGroup({
                   tooltip={item.title}
                   className={cn(
                     "h-9 rounded-lg px-2.5 font-medium text-sidebar-foreground/80",
-                    "hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground",
+                    "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     active &&
-                      "bg-primary/10 text-primary shadow-[inset_3px_0_0_0_var(--sidebar-primary)] hover:bg-primary/12 hover:text-primary",
+                      "bg-sidebar-accent text-white shadow-[inset_3px_0_0_0_var(--sidebar-primary)] hover:bg-sidebar-accent hover:text-white",
                   )}
                   render={<NavLink to={item.to} end={item.end} />}
                 >
                   <item.icon
                     className={cn(
                       "size-4",
-                      active ? "text-primary" : "text-muted-foreground",
+                      active ? "text-sidebar-primary" : "text-sidebar-foreground/70",
                     )}
                   />
                   <span>{item.title}</span>
@@ -167,15 +167,15 @@ export function AppSidebar() {
               className="h-12 rounded-xl px-2 hover:bg-transparent data-active:bg-transparent"
               render={<div />}
             >
-              <div className="flex size-9 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-sidebar-primary text-[#042a2a] shadow-[0_0_16px_rgb(0_194_178_/_0.45)]">
                 <GraduationCapIcon className="size-4" />
               </div>
               <div className="grid min-w-0 flex-1 text-left leading-tight">
-                <span className="truncate font-semibold tracking-tight">
-                  Taleem
+                <span className="truncate font-semibold tracking-tight text-white">
+                  Taleem AI
                 </span>
-                <span className="truncate text-[11px] text-muted-foreground">
-                  Alumni admin console
+                <span className="truncate text-[11px] text-sidebar-foreground/65">
+                  Alumni admin
                 </span>
               </div>
             </SidebarMenuButton>
@@ -206,15 +206,15 @@ export function AppSidebar() {
       <SidebarFooter className="p-3 pt-1">
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 rounded-xl border border-sidebar-border/80 bg-sidebar-accent/40 p-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
               <Avatar className="size-8 rounded-lg">
-                <AvatarFallback className="rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
+                <AvatarFallback className="rounded-lg bg-sidebar-primary text-xs font-semibold text-[#042a2a]">
                   AD
                 </AvatarFallback>
               </Avatar>
               <div className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate text-sm font-medium">Admin</span>
-                <span className="truncate text-[11px] text-muted-foreground">
+                <span className="truncate text-sm font-medium text-white">Admin</span>
+                <span className="truncate text-[11px] text-sidebar-foreground/65">
                   {displayRole}
                 </span>
               </div>
@@ -223,7 +223,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Logout"
-              className="h-9 rounded-lg px-2.5 font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="h-9 rounded-lg px-2.5 font-medium text-sidebar-foreground/80 hover:bg-white/8 hover:text-white"
               onClick={() => setConfirmLogout(true)}
             >
               <LogOutIcon className="size-4" />
