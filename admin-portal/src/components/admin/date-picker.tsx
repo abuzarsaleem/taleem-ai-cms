@@ -93,7 +93,7 @@ export function DatePicker({
           mode="single"
           selected={selected}
           defaultMonth={selected ?? min ?? new Date()}
-          onSelect={(date) => {
+          onSelect={(date: Date | undefined) => {
             if (!date) return
             onChange(toYmd(date))
             setOpen(false)

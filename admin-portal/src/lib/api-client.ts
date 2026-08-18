@@ -19,6 +19,24 @@ function extractErrorMessage(payload: unknown): string {
   return "Request failed"
 }
 
+type SessionGoneHandler = () => void
+
+let sessionGoneHandler: SessionGoneHandler | null = null
+let sessionGoneInFlight = false
+
+export function setSessionGoneHandler(handler: SessionGoneHandler | null) {
+  sessionGoneHandler = handler
+}
+
+function handleGoneStatus() {
+  if (sessionGoneInFlight) return
+  sessionGoneInFlight = true
+  sessionGoneHandler?.()
+  window.setTimeout(() => {
+    sessionGoneInFlight = false
+  }, 500)
+}
+
 export const apiClient = axios.create({
   baseURL:
     import.meta.env.VITE_API_BASE_URL ?? "https://taleem-ai-cms-production.up.railway.app/api/v1",
@@ -36,6 +54,11 @@ apiClient.interceptors.response.use(
       payload && typeof payload === "object"
         ? (payload as { code?: string }).code
         : undefined
+
+    if (status === 410) {
+      handleGoneStatus()
+    }
+
     throw new ApiError(status, extractErrorMessage(payload), code)
   },
 )

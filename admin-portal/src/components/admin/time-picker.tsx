@@ -40,13 +40,15 @@ function formatDisplay(value: string) {
   }).format(date)
 }
 
-function to12Hour(hour24: number) {
-  const period = hour24 >= 12 ? "PM" : "AM"
+type DayPeriod = "AM" | "PM"
+
+function to12Hour(hour24: number): { hour12: number; period: DayPeriod } {
+  const period: DayPeriod = hour24 >= 12 ? "PM" : "AM"
   const hour12 = hour24 % 12 || 12
   return { hour12, period }
 }
 
-function to24Hour(hour12: number, period: "AM" | "PM") {
+function to24Hour(hour12: number, period: DayPeriod) {
   if (period === "AM") return hour12 === 12 ? 0 : hour12
   return hour12 === 12 ? 12 : hour12 + 12
 }
@@ -70,7 +72,9 @@ export function TimePicker({
 }: TimePickerProps) {
   const [open, setOpen] = useState(false)
   const parsed = parseHm(value)
-  const selected = parsed ? to12Hour(parsed.hour) : { hour12: 9, period: "AM" as const }
+  const selected = parsed
+    ? to12Hour(parsed.hour)
+    : { hour12: 9, period: "AM" as const }
   const selectedMinute = parsed
     ? Math.round(parsed.minute / 5) * 5 === 60
       ? 0
@@ -79,13 +83,13 @@ export function TimePicker({
 
   const min = useMemo(() => (minTime ? parseHm(minTime) : null), [minTime])
 
-  function isDisabled(hour12: number, minute: number, period: "AM" | "PM") {
+  function isDisabled(hour12: number, minute: number, period: DayPeriod) {
     if (!min) return false
     const hour24 = to24Hour(hour12, period)
     return hour24 * 60 + minute < min.hour * 60 + min.minute
   }
 
-  function select(hour12: number, minute: number, period: "AM" | "PM") {
+  function select(hour12: number, minute: number, period: DayPeriod) {
     if (isDisabled(hour12, minute, period)) return
     onChange(toHm(to24Hour(hour12, period), minute))
   }

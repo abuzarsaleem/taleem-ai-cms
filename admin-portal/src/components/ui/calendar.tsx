@@ -41,7 +41,7 @@ function Calendar({
       captionLayout={captionLayout}
       locale={locale}
       formatters={{
-        formatMonthDropdown: (date) =>
+        formatMonthDropdown: (date: Date) =>
           date.toLocaleString(locale?.code, { month: "short" }),
         ...formatters,
       }}
@@ -98,7 +98,14 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Root: ({ className, rootRef, ...props }) => (
+        Root: ({
+          className,
+          rootRef,
+          ...props
+        }: {
+          className?: string
+          rootRef?: React.Ref<HTMLDivElement>
+        } & React.HTMLAttributes<HTMLDivElement>) => (
           <div
             data-slot="calendar"
             ref={rootRef}
@@ -106,7 +113,14 @@ function Calendar({
             {...props}
           />
         ),
-        Chevron: ({ className, orientation, ...props }) => {
+        Chevron: ({
+          className,
+          orientation,
+          ...props
+        }: {
+          className?: string
+          orientation?: "left" | "right" | "up" | "down"
+        } & React.SVGProps<SVGSVGElement>) => {
           if (orientation === "left") {
             return (
               <ChevronLeftIcon className={cn("size-4", className)} {...props} />
