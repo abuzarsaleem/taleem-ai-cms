@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ApiError } from "@/lib/api"
+import { COUNTRIES, DEFAULT_COUNTRY, cityOptions } from "@/lib/locations"
 import {
   alumniService,
   type AdminAlumniListItem,
@@ -26,6 +27,18 @@ import {
   catalogService,
   type CatalogDegreeProgram,
 } from "@/services/catalog.service"
+
+const GRADUATION_YEARS = Array.from({ length: 40 }, (_, index) => {
+  const year = new Date().getFullYear() + 1 - index
+  return String(year)
+})
+
+function yearOptions(current?: string) {
+  const years = [...GRADUATION_YEARS]
+  const trimmed = current?.trim()
+  if (trimmed && !years.includes(trimmed)) years.unshift(trimmed)
+  return years.map((year) => ({ value: year, label: year }))
+}
 
 function initialsFromName(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -219,10 +232,13 @@ export default function AlumniDirectoryPage() {
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Name"
         />
-        <Input
+        <SearchableSelect
+          placeholder="All graduation years"
+          searchPlaceholder="Search years…"
           value={yearInput}
-          onChange={(e) => setYearInput(e.target.value)}
-          placeholder="Graduation year"
+          onChange={setYearInput}
+          emptyText="No years found"
+          options={yearOptions(yearInput)}
         />
         <SearchableSelect
           placeholder="All degree programs"
@@ -235,15 +251,30 @@ export default function AlumniDirectoryPage() {
             label: program.label,
           }))}
         />
-        <Input
+        <SearchableSelect
+          placeholder="All cities"
+          searchPlaceholder="Search cities…"
           value={cityInput}
-          onChange={(e) => setCityInput(e.target.value)}
-          placeholder="City"
+          onChange={(next) => {
+            setCityInput(next)
+            if (next && !countryInput) setCountryInput(DEFAULT_COUNTRY)
+          }}
+          emptyText="No cities found"
+          options={cityOptions(cityInput).map((item) => ({
+            value: item,
+            label: item,
+          }))}
         />
-        <Input
+        <SearchableSelect
+          placeholder="All countries"
+          searchPlaceholder="Search countries…"
           value={countryInput}
-          onChange={(e) => setCountryInput(e.target.value)}
-          placeholder="Country"
+          onChange={setCountryInput}
+          emptyText="No countries found"
+          options={COUNTRIES.map((item) => ({
+            value: item,
+            label: item,
+          }))}
         />
         <div className="flex gap-2">
           <Button type="submit" className="flex-1">

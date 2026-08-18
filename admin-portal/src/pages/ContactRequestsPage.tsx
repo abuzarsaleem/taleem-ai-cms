@@ -315,8 +315,8 @@ export default function ContactRequestsPage() {
                   return (
                     <TableRow key={item.id} className="group">
                         <TableCell className="px-4 py-3">
-                          <div className="flex min-w-0 items-start gap-3">
-                            <div className="mt-0.5 flex size-9 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
                               <MailIcon className="size-4" />
                             </div>
                             <div className="min-w-0">

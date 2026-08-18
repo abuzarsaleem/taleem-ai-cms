@@ -47,11 +47,11 @@ export function LoginForm({
       navigate("/")
     } catch (err) {
       const message =
-        err instanceof ApiError
+        err instanceof ApiError && err.message.trim()
           ? err.message
-          : err instanceof Error
+          : err instanceof Error && err.message.trim()
             ? err.message
-            : "Login failed"
+            : "Invalid credentials"
       setError(message)
       toast.error(message)
     } finally {
@@ -93,9 +93,12 @@ export function LoginForm({
                 />
               </Field>
               {error ? (
-                <p className="text-sm text-destructive" role="alert">
+                <div
+                  className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                  role="alert"
+                >
                   {error}
-                </p>
+                </div>
               ) : null}
               <Field>
                 <Button type="submit" disabled={loading} className="w-full">

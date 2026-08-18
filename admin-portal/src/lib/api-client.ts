@@ -11,30 +11,75 @@ export class ApiError extends Error {
   }
 }
 
-function extractErrorMessage(payload: unknown): string {
-  if (!payload || typeof payload !== "object") return "Request failed"
-  const message = (payload as { message?: unknown }).message
-  if (Array.isArray(message)) return message.join(", ")
-  if (typeof message === "string") return message
+function fallbackMessage(status: number) {
+  if (status === 401) return "Invalid credentials"
+  if (status === 403) return "You don't have access to this resource"
+  if (status === 410) return "Session expired"
+  if (status === 423) return "Account temporarily locked"
   return "Request failed"
 }
 
-type SessionGoneHandler = () => void
+function extractErrorMessage(payload: unknown, status = 0): string {
+  if (typeof payload === "string") {
+    const trimmed = payload.trim()
+    if (!trimmed || trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) {
+      return fallbackMessage(status)
+    }
+    try {
+      return extractErrorMessage(JSON.parse(trimmed) as unknown, status)
+    } catch {
+      return trimmed
+    }
+  }
 
-let sessionGoneHandler: SessionGoneHandler | null = null
-let sessionGoneInFlight = false
+  if (payload && typeof payload === "object") {
+    const record = payload as {
+      message?: unknown
+      error?: unknown
+    }
 
-export function setSessionGoneHandler(handler: SessionGoneHandler | null) {
-  sessionGoneHandler = handler
+    if (typeof record.message === "string" && record.message.trim()) {
+      return record.message
+    }
+    if (Array.isArray(record.message)) {
+      const joined = record.message
+        .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        .join(", ")
+      if (joined) return joined
+    }
+    if (typeof record.error === "string" && record.error.trim()) {
+      return record.error
+    }
+    if (record.error && typeof record.error === "object") {
+      const nested = (record.error as { message?: unknown }).message
+      if (typeof nested === "string" && nested.trim()) return nested
+    }
+  }
+
+  return fallbackMessage(status)
 }
 
-function handleGoneStatus() {
-  if (sessionGoneInFlight) return
-  sessionGoneInFlight = true
-  sessionGoneHandler?.()
+type SessionExpiredHandler = () => void
+
+let sessionExpiredHandler: SessionExpiredHandler | null = null
+let sessionExpiredInFlight = false
+
+export function setSessionGoneHandler(handler: SessionExpiredHandler | null) {
+  sessionExpiredHandler = handler
+}
+
+function handleSessionExpired() {
+  if (sessionExpiredInFlight) return
+  sessionExpiredInFlight = true
+  sessionExpiredHandler?.()
   window.setTimeout(() => {
-    sessionGoneInFlight = false
+    sessionExpiredInFlight = false
   }, 500)
+}
+
+function isLoginRequest(error: AxiosError) {
+  const url = `${error.config?.baseURL ?? ""}${error.config?.url ?? ""}`
+  return url.includes("/auth/login")
 }
 
 export const apiClient = axios.create({
@@ -54,11 +99,12 @@ apiClient.interceptors.response.use(
       payload && typeof payload === "object"
         ? (payload as { code?: string }).code
         : undefined
+    const message = extractErrorMessage(payload, status)
 
-    if (status === 410) {
-      handleGoneStatus()
+    if ((status === 401 || status === 410) && !isLoginRequest(error)) {
+      handleSessionExpired()
     }
 
-    throw new ApiError(status, extractErrorMessage(payload), code)
+    return Promise.reject(new ApiError(status, message, code))
   },
 )
