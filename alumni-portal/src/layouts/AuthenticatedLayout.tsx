@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/auth/AuthContext"
 import { AppShell } from "@/layouts/AppShell"
 import { apiClient, ApiError } from "@/lib/api-client"
+import { PROFILE_UPDATED_EVENT } from "@/lib/portal-events"
 import type { ApiResponse } from "@/types/api"
 
 type ProfileSummary = {
@@ -35,8 +36,13 @@ export function AuthenticatedLayout() {
       }
     }
     void loadProfile()
+    function onUpdated() {
+      void loadProfile()
+    }
+    window.addEventListener(PROFILE_UPDATED_EVENT, onUpdated)
     return () => {
       cancelled = true
+      window.removeEventListener(PROFILE_UPDATED_EVENT, onUpdated)
     }
   }, [clearSession, navigate])
 

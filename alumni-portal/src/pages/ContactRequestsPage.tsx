@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { formatDistanceToNow, parseISO } from "date-fns"
 
+import { LinkWithFrom } from "@/components/page-breadcrumb"
+
 import { ApiError } from "@/lib/api-client"
 import { contactRequestService } from "@/services/contact-requests.service"
 import type { ContactRequest } from "@/types/portal"
@@ -25,6 +27,8 @@ function statusLabel(status: string) {
   switch (status) {
     case "PENDING_ADMIN":
       return "Pending admin review"
+    case "PENDING_ALUMNI":
+      return "Pending alumni response"
     case "APPROVED":
       return "Approved"
     case "REJECTED_BY_ADMIN":
@@ -36,25 +40,26 @@ function statusLabel(status: string) {
   }
 }
 
-function isSentPending(status: string) {
-  return status === "PENDING_ADMIN"
-}
-
-function isCompleted(status: string) {
+function isRequested(status: string) {
   return (
-    status === "APPROVED" ||
+    status === "PENDING_ADMIN" ||
+    status === "PENDING_ALUMNI" ||
     status === "REJECTED_BY_ADMIN" ||
     status === "REJECTED_BY_ALUMNI"
   )
 }
 
-type Tab = "sent" | "completed"
+function isContact(status: string) {
+  return status === "APPROVED"
+}
+
+type Tab = "contacts" | "requested"
 
 export function ContactRequestsPage() {
   const [items, setItems] = useState<ContactRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [tab, setTab] = useState<Tab>("sent")
+  const [tab, setTab] = useState<Tab>("contacts")
 
   useEffect(() => {
     let cancelled = false
@@ -83,26 +88,26 @@ export function ContactRequestsPage() {
   }, [])
 
   const visible = useMemo(() => {
-    if (tab === "sent") return items.filter((item) => isSentPending(item.status))
-    return items.filter((item) => isCompleted(item.status))
+    if (tab === "contacts") return items.filter((item) => isContact(item.status))
+    return items.filter((item) => isRequested(item.status))
   }, [items, tab])
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">
-          My requests
+          My Contacts
         </h1>
         <p className="text-sm text-muted-foreground">
-          Contact requests you’ve sent to alumni
+          People you’ve connected with, and requests still in progress
         </p>
       </div>
 
       <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
         {(
           [
-            { id: "sent" as const, label: "Sent requests" },
-            { id: "completed" as const, label: "Completed requests" },
+            { id: "contacts" as const, label: "Contacts" },
+            { id: "requested" as const, label: "Requested" },
           ] as const
         ).map((option) => (
           <button
@@ -137,9 +142,9 @@ export function ContactRequestsPage() {
       ) : visible.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-8 text-center">
           <p className="text-sm text-muted-foreground">
-            {tab === "sent"
-              ? "No sent requests awaiting review."
-              : "No completed requests yet."}
+            {tab === "contacts"
+              ? "No contacts yet."
+              : "No requested contacts yet."}
           </p>
           <Link
             to="/directory"
@@ -169,12 +174,12 @@ export function ContactRequestsPage() {
                   {relativeTime(item.created_at)}
                 </p>
               </div>
-              <Link
+              <LinkWithFrom
                 to={`/directory/${item.target_alumni_id}`}
                 className="shrink-0 text-xs font-semibold text-primary hover:underline"
               >
                 View alumni
-              </Link>
+              </LinkWithFrom>
             </div>
           ))}
         </div>

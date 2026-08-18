@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import type { Value as E164Number } from "react-phone-number-input"
-import { toast } from "sonner"
 
 import { AuthBrandPanel } from "@/components/auth-brand-panel"
+import { SearchableSelect } from "@/components/searchable-select"
 import { cn } from "@/lib/utils"
 import { ApiError } from "@/lib/api"
 import {
@@ -15,6 +15,8 @@ import {
   type RegistrationErrors,
 } from "@/lib/registration-validation"
 import { authService } from "@/services/auth.service"
+import { catalogService } from "@/services/catalog.service"
+import type { DegreeProgram } from "@/types/portal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -26,45 +28,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { PhoneInput } from "@/components/ui/phone-input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { YearPicker } from "@/components/ui/year-picker"
-
-const DEGREE_PROGRAMS = [
-  {
-    id: "55555555-5555-4555-8555-555555555501",
-    label: "BS Computer Science — Chak Shahzad",
-  },
-  {
-    id: "55555555-5555-4555-8555-555555555502",
-    label: "BS Software Engineering — Chak Shahzad",
-  },
-  {
-    id: "55555555-5555-4555-8555-555555555503",
-    label: "BS Artificial Intelligence — Chak Shahzad",
-  },
-  {
-    id: "55555555-5555-4555-8555-555555555504",
-    label: "BS Data Science — Chak Shahzad",
-  },
-  {
-    id: "55555555-5555-4555-8555-555555555505",
-    label: "MS Computer Science — Chak Shahzad",
-  },
-  {
-    id: "55555555-5555-4555-8555-555555555507",
-    label: "BBA Business Administration — Chak Shahzad",
-  },
-  {
-    id: "55555555-5555-4555-8555-555555555508",
-    label: "MBA — Chak Shahzad",
-  },
-]
 
 function errorMessage(err: unknown, fallback: string) {
   if (err instanceof ApiError && err.message) return err.message
@@ -87,14 +51,17 @@ export function SignupForm({
   const [cnic, setCnic] = useState("")
   const [rollNumber, setRollNumber] = useState("")
   const [photo, setPhoto] = useState<File | null>(null)
+  const [degreePrograms, setDegreePrograms] = useState<DegreeProgram[]>([])
   const [degreeProgramId, setDegreeProgramId] = useState("")
   const [graduationYear, setGraduationYear] = useState("")
   const [phoneNumber, setPhoneNumber] = useState<E164Number | undefined>()
   const [whatsappNumber, setWhatsappNumber] = useState<E164Number | undefined>()
 
-  const selectedProgramLabel =
-    DEGREE_PROGRAMS.find((program) => program.id === degreeProgramId)?.label ??
-    null
+  useEffect(() => {
+    void catalogService.listDegreePrograms().then(setDegreePrograms).catch(() => {
+      /* degree list is still required; submit validation will catch empty */
+    })
+  }, [])
 
   function clearFieldError(field: keyof RegistrationErrors) {
     setErrors((current) => {
@@ -178,7 +145,7 @@ export function SignupForm({
         }
       }
 
-      const result = await authService.register({
+      await authService.register({
         full_name: fullName.trim(),
         email: email.trim(),
         phone_number: phoneNumber || undefined,
@@ -192,12 +159,6 @@ export function SignupForm({
 
       setSubmitted(true)
       setApiError("")
-      toast.success("Registration submitted", {
-        description:
-          result?.message ||
-          "Your registration is pending approval. You will be notified once it is reviewed.",
-        duration: 6000,
-      })
       try {
         resetForm()
         form.reset()
@@ -207,9 +168,6 @@ export function SignupForm({
     } catch (err) {
       const message = errorMessage(err, "Registration failed")
       setApiError(message)
-      toast.error("Registration failed", {
-        description: message,
-      })
     } finally {
       setLoading(false)
     }
@@ -351,30 +309,21 @@ export function SignupForm({
                   data-invalid={!!errors.degree_program_id || undefined}
                 >
                   <FieldLabel htmlFor="degree_program_id">Degree program</FieldLabel>
-                  <Select
+                  <SearchableSelect
+                    id="degree_program_id"
                     value={degreeProgramId}
-                    onValueChange={(value) => {
-                      setDegreeProgramId(value ?? "")
+                    onChange={(value) => {
+                      setDegreeProgramId(value)
                       clearFieldError("degree_program_id")
                     }}
-                  >
-                    <SelectTrigger
-                      id="degree_program_id"
-                      className="w-full"
-                      aria-invalid={!!errors.degree_program_id}
-                    >
-                      <SelectValue placeholder="Select your program">
-                        {selectedProgramLabel}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DEGREE_PROGRAMS.map((program) => (
-                        <SelectItem key={program.id} value={program.id}>
-                          {program.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    options={degreePrograms.map((program) => ({
+                      value: program.id,
+                      label: program.label,
+                    }))}
+                    placeholder="Select your program"
+                    searchPlaceholder="Search program…"
+                    aria-invalid={!!errors.degree_program_id}
+                  />
                   <FieldError>{errors.degree_program_id}</FieldError>
                 </Field>
 

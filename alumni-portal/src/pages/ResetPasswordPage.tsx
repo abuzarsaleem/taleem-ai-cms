@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/field"
 import { useConsumeQueryToken } from "@/hooks/use-consume-query-token"
 import { ApiError } from "@/lib/api-client"
+import { validatePasswordStrength } from "@/lib/password-rules"
 import { authService } from "@/services/auth.service"
 
 const RESET_TOKEN_KEY = "taleem_password_reset"
@@ -40,6 +41,12 @@ export default function ResetPasswordPage() {
 
     if (password !== confirm) {
       setError("Passwords do not match")
+      setLoading(false)
+      return
+    }
+    const strengthError = validatePasswordStrength(password)
+    if (strengthError) {
+      setError(strengthError)
       setLoading(false)
       return
     }

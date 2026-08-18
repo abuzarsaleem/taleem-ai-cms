@@ -10,6 +10,7 @@ import { BusinessException } from '../../../common/exceptions';
 import type { INotificationSender } from '../../../common/interfaces/notification-sender.interface';
 import {
   alumniPortalLink,
+  assertPasswordStrength,
   generateRawToken,
   hashPassword,
   hashToken,
@@ -96,11 +97,7 @@ export class PasswordResetService {
 
   async resetPassword(token: string, password: string) {
     const plainPassword = this.passwordCryptoService.decryptPassword(password);
-    if (plainPassword.length < 8 || plainPassword.length > 128) {
-      throw new BusinessException(
-        'Password must be between 8 and 128 characters',
-      );
-    }
+    assertPasswordStrength(plainPassword);
 
     const record = await this.tokenRepository.findValidByHash(
       hashToken(token),

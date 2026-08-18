@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlumniIdCard } from '@/components/alumni-id-card';
+import { BrandLogo } from '@/components/brand-logo';
 import {
   verifyAlumniCard,
   type AlumniVerifyResponse,
@@ -60,11 +61,9 @@ export default function GatekeeperVerifyPage() {
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-amber-50">
       <header className="border-b border-emerald-900/10 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-800">
-              Taleem
-            </p>
-            <h1 className="text-lg font-semibold text-emerald-950 sm:text-xl">
+          <div className="min-w-0">
+            <BrandLogo className="h-10" />
+            <h1 className="mt-2 text-lg font-semibold text-emerald-950 sm:text-xl">
               Alumni verification
             </h1>
           </div>

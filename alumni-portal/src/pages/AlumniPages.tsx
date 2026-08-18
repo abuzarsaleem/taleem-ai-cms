@@ -1,4 +1,6 @@
 import { Link, Navigate } from 'react-router-dom'
+
+import { BrandLogo } from '@/components/brand-logo'
 import { useAuth } from '../auth/AuthContext'
 
 export function HomePage() {
@@ -7,6 +9,7 @@ export function HomePage() {
 
   return (
     <section className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-6 px-6 py-16">
+      <BrandLogo className="h-14" />
       <p className="text-sm font-medium text-primary">Taleem Alumni Network</p>
       <h1 className="text-4xl font-semibold tracking-tight">
         Stay connected with your institution.

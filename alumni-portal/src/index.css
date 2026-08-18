@@ -203,3 +203,21 @@
     font-optical-sizing: auto;
   }
 }
+
+@media print {
+  header,
+  [data-print-hide],
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body {
+    background: white !important;
+  }
+}

@@ -71,7 +71,7 @@ export function LoginForm({
                   Sign in to your Taleem Alumni account
                 </p>
               </div>
-              {notice ? (
+              {notice && !error ? (
                 <p
                   className="rounded-lg bg-[#0b4d3c]/8 px-3 py-2 text-center text-sm text-[#0b4d3c]"
                   role="status"

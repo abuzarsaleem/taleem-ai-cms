@@ -36,12 +36,13 @@ export function ForgotPasswordForm({
           email: form.get("email"),
         }),
       })
+      setError("")
       setSuccess(
         data.message ??
-          "If an account exists for that email, a reset link has been sent.",
+          "If an account exists for this email, a password reset link has been sent.",
       )
-      event.currentTarget.reset()
     } catch (err) {
+      setSuccess("")
       setError(
         err instanceof ApiError ? err.message : "Could not send reset email",
       )
@@ -79,8 +80,7 @@ export function ForgotPasswordForm({
                 <p className="text-sm text-destructive" role="alert">
                   {error}
                 </p>
-              ) : null}
-              {success ? (
+              ) : success ? (
                 <p className="text-sm text-[#0b4d3c]" role="status">
                   {success}
                 </p>

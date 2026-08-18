@@ -169,4 +169,11 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(255)
   linkedin_url?: string;
+
+  @ApiPropertyOptional({
+    description: 'media_id from POST /auth/upload-photo',
+  })
+  @IsOptional()
+  @IsUUID()
+  media_id?: string;
 }

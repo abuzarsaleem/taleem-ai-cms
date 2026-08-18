@@ -3,7 +3,11 @@ import {
   ALUMNI_REPOSITORY,
   PHOTO_STORAGE,
 } from '../../../common/constants/tokens';
-import { ResourceNotFoundException } from '../../../common/exceptions';
+import { PortalMediaType } from '../../../common/enums';
+import {
+  BusinessException,
+  ResourceNotFoundException,
+} from '../../../common/exceptions';
 import type { IObjectStorage } from '../../../common/interfaces/photo-storage.interface';
 import { UpdateProfileDto } from '../dto/f001.dto';
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
@@ -44,11 +48,25 @@ export class ProfileService {
       gender: dto.gender,
       dateOfBirth: dto.date_of_birth ? new Date(dto.date_of_birth) : undefined,
       linkedinUrl: dto.linkedin_url,
+      ...(dto.media_id
+        ? { photoMediaId: await this.requirePhotoMedia(dto.media_id) }
+        : {}),
     });
 
     this.logger.log(`ALUMNI_PROFILE_UPDATED alumniId=${profile.alumni.id}`);
     const updated = await this.alumniRepository.findById(profile.alumni.id);
     return this.toResponse(updated!);
+  }
+
+  private async requirePhotoMedia(mediaId: string) {
+    const media = await this.portalMediaService.requireById(mediaId);
+    if (
+      media.mediaType !== PortalMediaType.REGISTRATION_PHOTO &&
+      media.mediaType !== PortalMediaType.ALUMNI_PHOTO
+    ) {
+      throw new BusinessException('Uploaded file is not a valid profile photo');
+    }
+    return media.id;
   }
 
   private async toResponse(

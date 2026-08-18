@@ -1,18 +1,18 @@
-import { NavLink, useNavigate } from "react-router-dom"
+import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import {
   Bell,
   CalendarDays,
-  GraduationCap,
+  ChevronRight,
   Home,
   IdCard,
   LogOut,
   Megaphone,
-  Settings,
   Users,
 } from "lucide-react"
 import { useState } from "react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { BrandLogo } from "@/components/brand-logo"
 import { PortalRails } from "@/components/portal-rails"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
@@ -62,6 +62,7 @@ export function AppShell({
 }) {
   const { clearSession } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [meOpen, setMeOpen] = useState(false)
   const [notifyOpen, setNotifyOpen] = useState(false)
   const { summary, markSeen } = useNotifications()
@@ -75,18 +76,13 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border bg-card">
-        <div className="mx-auto flex h-[52px] max-w-[1128px] items-center gap-3 px-3 sm:px-4">
+      <header className="sticky top-0 z-40 border-b border-border bg-card print:hidden">
+        <div className="mx-auto flex h-14 max-w-[1128px] items-center gap-3 px-3 sm:px-4">
           <NavLink
             to="/home"
-            className="flex shrink-0 items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex shrink-0 items-center outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <div className="flex size-8 items-center justify-center rounded bg-primary text-primary-foreground shadow-sm">
-              <GraduationCap className="size-[18px]" />
-            </div>
-            <span className="hidden font-display text-[15px] font-semibold tracking-tight text-primary sm:inline">
-              Taleem
-            </span>
+            <BrandLogo className="h-9 max-w-[148px] sm:h-10 sm:max-w-[180px]" />
           </NavLink>
 
           <nav className="mx-auto flex h-full min-w-0 flex-1 items-stretch justify-center md:max-w-[520px]">
@@ -174,7 +170,11 @@ export function AppShell({
                           className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm hover:bg-muted"
                           onClick={() => {
                             setNotifyOpen(false)
-                            navigate(notificationHref(item))
+                            navigate(notificationHref(item), {
+                              state: {
+                                from: `${location.pathname}${location.search}`,
+                              },
+                            })
                           }}
                         >
                           <span className="mt-0.5 text-muted-foreground">
@@ -221,73 +221,76 @@ export function AppShell({
                   Me
                 </span>
               </PopoverTrigger>
-              <PopoverContent align="end" sideOffset={8} className="w-[280px] p-0">
-                <div className="border-b border-border p-3">
-                  <div className="flex items-center gap-3">
+              <PopoverContent
+                align="end"
+                sideOffset={8}
+                className="w-[300px] overflow-hidden p-0"
+              >
+                <div className="h-14 bg-[linear-gradient(105deg,oklch(0.42_0.12_250),oklch(0.48_0.08_220))]" />
+                <div className="-mt-8 px-4 pb-4">
+                  <div className="flex items-end gap-3">
                     {photoUrl ? (
                       <img
                         src={photoUrl}
                         alt=""
-                        className="size-12 rounded-full object-cover"
+                        className="size-16 rounded-full object-cover ring-2 ring-card"
                       />
                     ) : (
-                      <div className="flex size-12 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                      <div className="flex size-16 items-center justify-center rounded-full bg-primary text-base font-semibold text-primary-foreground ring-2 ring-card">
                         {initials(fullName)}
                       </div>
                     )}
-                    <div className="min-w-0">
-                      <p className="truncate text-[15px] font-semibold leading-tight">
+                    <div className="min-w-0 pb-1">
+                      <p className="truncate text-[16px] font-semibold leading-tight">
                         {fullName}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Alumni network
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Alumni member
                       </p>
                     </div>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-3 h-8 w-full rounded-full border-primary/40 text-primary hover:bg-primary/5"
+                    className="mt-3 h-8 w-full rounded-full border-primary/35 font-medium text-primary hover:bg-primary/8"
                     onClick={() => {
                       setMeOpen(false)
-                      navigate("/profile")
+                      navigate("/profile", { state: { openPersonal: true } })
                     }}
                   >
-                    View Profile
+                    View profile
                   </Button>
                 </div>
-                <div className="py-1">
+                <div className="border-t border-border px-2 py-2">
                   <button
                     type="button"
-                    className="flex w-full items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted"
+                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-muted"
                     onClick={() => {
                       setMeOpen(false)
                       navigate("/card")
                     }}
                   >
-                    <IdCard className="size-4 text-muted-foreground" />
-                    Alumni card
-                  </button>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted"
-                    onClick={() => {
-                      setMeOpen(false)
-                      navigate("/profile")
-                    }}
-                  >
-                    <Settings className="size-4 text-muted-foreground" />
-                    Settings & Privacy
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-500/12 text-violet-600 dark:text-violet-400">
+                      <IdCard className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1 text-left font-medium">
+                      Alumni card
+                    </span>
+                    <ChevronRight className="size-4 text-muted-foreground" />
                   </button>
                 </div>
-                <div className="border-t border-border py-1">
+                <div className="border-t border-border px-2 py-2">
                   <button
                     type="button"
-                    className="flex w-full items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted"
+                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-destructive transition-colors hover:bg-destructive/8"
                     onClick={logout}
                   >
-                    <LogOut className="size-4 text-muted-foreground" />
-                    Sign Out
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+                      <LogOut className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1 text-left font-medium">
+                      Sign out
+                    </span>
                   </button>
                 </div>
               </PopoverContent>

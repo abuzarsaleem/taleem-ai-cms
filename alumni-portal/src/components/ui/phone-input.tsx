@@ -40,6 +40,8 @@ const PhoneInput = React.forwardRef<
       countrySelectComponent={CountrySelect}
       inputComponent={InputComponent}
       smartCaret={false}
+      international
+      defaultCountry="PK"
       value={value || undefined}
       onChange={(next) => onChange?.(next || ("" as RPNInput.Value))}
       {...props}
@@ -92,11 +94,18 @@ function CountrySelect({
             type="button"
             variant="outline"
             disabled={disabled}
-            className="flex gap-1 rounded-s-lg rounded-e-none border-r-0 px-3 focus:z-10"
+            className="flex gap-1.5 rounded-s-lg rounded-e-none border-r-0 px-3 focus:z-10"
           />
         }
       >
-        <FlagComponent country={selectedCountry} countryName={selectedCountry} />
+        <FlagComponent
+          country={selectedCountry || "PK"}
+          countryName={selectedCountry || "Pakistan"}
+        />
+        <span className="text-xs font-medium tabular-nums">
+          +
+          {RPNInput.getCountryCallingCode(selectedCountry || "PK")}
+        </span>
         <ChevronsUpDownIcon
           className={cn(
             "-mr-2 size-4 opacity-50",
@@ -170,12 +179,27 @@ function CountrySelectOption({
   )
 }
 
+function countryFlagEmoji(country?: string) {
+  if (!country || country.length !== 2) return ""
+  return [...country.toUpperCase()]
+    .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+    .join("")
+}
+
 function FlagComponent({ country, countryName }: RPNInput.FlagProps) {
-  const Flag = flags[country]
+  const code = country || "PK"
+  const Flag = flags[code]
+  const emoji = countryFlagEmoji(code)
 
   return (
-    <span className="flex h-4 w-6 overflow-hidden rounded-sm bg-foreground/20 [&_svg]:size-full">
-      {Flag ? <Flag title={countryName} /> : null}
+    <span className="flex h-4 w-6 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted text-[14px] leading-none">
+      {Flag ? (
+        <span className="flex size-full [&_svg]:!h-full [&_svg]:!w-full [&_svg]:max-w-none">
+          <Flag title={countryName || code} />
+        </span>
+      ) : (
+        <span aria-hidden>{emoji || code}</span>
+      )}
     </span>
   )
 }

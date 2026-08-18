@@ -1,7 +1,9 @@
+import { Printer } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
 import { AlumniIdCard } from "@/components/alumni-id-card"
+import { PageBreadcrumb } from "@/components/page-breadcrumb"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -70,34 +72,53 @@ export function AlumniCardPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">
-          Alumni card
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Digital ID from your profile photo, academic details, and QR
-        </p>
+      <div className="no-print space-y-3">
+        <PageBreadcrumb
+          current="Alumni card"
+          fallback={{ label: "Home", to: "/home" }}
+        />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">
+              Alumni card
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Digital ID from your profile photo, academic details, and QR
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => window.print()}
+          >
+            <Printer className="size-4" />
+            Print card
+          </Button>
+        </div>
       </div>
 
-      <AlumniIdCard
-        data={{
-          fullName: profile.full_name,
-          photoUrl: profile.photo_url,
-          degreeLabel,
-          graduationYear: primaryAcademic?.graduation_year ?? null,
-          registrationRollNumber:
-            primaryAcademic?.registration_roll_number ?? null,
-        }}
-        showQr
-        qrCodeUrl={profile.qr_code}
-      />
+      <div id="printable-alumni-card">
+        <AlumniIdCard
+          data={{
+            fullName: profile.full_name,
+            photoUrl: profile.photo_url,
+            degreeLabel,
+            graduationYear: primaryAcademic?.graduation_year ?? null,
+            registrationRollNumber:
+              primaryAcademic?.registration_roll_number ?? null,
+          }}
+          showQr
+          qrCodeUrl={profile.qr_code}
+        />
+      </div>
 
-      <Card>
+      <Card className="no-print">
         <CardHeader>
           <CardTitle className="text-base">Card details</CardTitle>
           <CardDescription>
-            Rendered from your profile. Update personal or academic info under
-            Settings.
+            Rendered from your profile. Update personal or academic info from
+            your profile.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { format, parseISO } from "date-fns"
 import { toast } from "sonner"
 
+import { LinkWithFrom, PageBreadcrumb } from "@/components/page-breadcrumb"
 import { ApiError } from "@/lib/api-client"
 import { refreshPortalRails } from "@/lib/portal-events"
+import { RSVP_OPTIONS, rsvpButtonClass } from "@/lib/rsvp"
 import { eventsService } from "@/services/events.service"
 import type { EventItem } from "@/types/portal"
 import { Button } from "@/components/ui/button"
@@ -14,12 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-
-const RSVP_OPTIONS = [
-  { value: "GOING", label: "Going" },
-  { value: "MAYBE", label: "Maybe" },
-  { value: "NOT_GOING", label: "Not going" },
-] as const
+import { cn } from "@/lib/utils"
 
 function formatEventMeta(event: EventItem) {
   try {
@@ -75,12 +72,12 @@ function EventCard({
       <div className="space-y-3 p-4 sm:p-5">
         <div>
           {linkTitle ? (
-            <Link
+            <LinkWithFrom
               to={`/events/${event.id}`}
               className="text-[18px] font-semibold leading-snug text-foreground hover:text-primary hover:underline"
             >
               {event.title}
-            </Link>
+            </LinkWithFrom>
           ) : (
             <h2 className="text-[18px] font-semibold leading-snug text-foreground">
               {event.title}
@@ -91,9 +88,9 @@ function EventCard({
           </p>
         </div>
 
-        <Link to={`/events/${event.id}`} className="block">
+        <LinkWithFrom to={`/events/${event.id}`} className="block">
           <EventCover event={event} />
-        </Link>
+        </LinkWithFrom>
 
         {event.description ? (
           <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
@@ -108,11 +105,15 @@ function EventCard({
             <Button
               key={option.value}
               size="sm"
-              variant={
-                event.my_rsvp_status === option.value ? "default" : "outline"
-              }
+              variant="outline"
               disabled={busy}
-              className="rounded-md px-3"
+              className={cn(
+                "rounded-md px-3",
+                rsvpButtonClass(
+                  option.value,
+                  event.my_rsvp_status === option.value,
+                ),
+              )}
               onClick={() => onRsvp(option.value)}
             >
               {option.label.toUpperCase()}
@@ -310,12 +311,10 @@ export function EventDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-[560px] space-y-3">
-      <Link
-        to="/events"
-        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-      >
-        ← Back to events
-      </Link>
+      <PageBreadcrumb
+        current={event.title}
+        fallback={{ label: "Events", to: "/events" }}
+      />
       <EventCard
         event={event}
         busy={saving}

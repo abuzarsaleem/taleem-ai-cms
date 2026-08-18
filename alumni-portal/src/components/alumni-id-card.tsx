@@ -1,5 +1,4 @@
-import { GraduationCap } from 'lucide-react';
-
+import { BrandLogo } from '@/components/brand-logo';
 import { cn } from '@/lib/utils';
 
 export type AlumniIdCardData = {
@@ -79,18 +78,8 @@ export function AlumniIdCard({
         <CornerAccents />
 
         <div className="relative flex h-full flex-col items-center px-7 pt-9 pb-8">
-          <div className="flex w-full items-center justify-between gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#0b4d3c] text-[#c9a227] shadow-sm">
-              <GraduationCap className="size-5" strokeWidth={2.25} />
-            </div>
-            <div className="min-w-0 text-right">
-              <p className="font-display text-[17px] leading-none font-bold tracking-[0.04em] text-[#0b4d3c] uppercase">
-                Taleem
-              </p>
-              <p className="mt-1 text-[10px] font-semibold tracking-[0.22em] text-[#0b4d3c]/80 uppercase">
-                Alumni
-              </p>
-            </div>
+          <div className="flex w-full justify-center">
+            <BrandLogo className="h-11 max-w-[220px] object-center" />
           </div>
 
           <div className="mt-8">

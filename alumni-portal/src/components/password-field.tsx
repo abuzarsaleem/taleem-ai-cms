@@ -2,8 +2,9 @@ import { Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PASSWORD_HINT } from "@/lib/password-rules"
 
 type PasswordFieldProps = {
   id: string
@@ -46,6 +47,7 @@ export function PasswordField({
           {visible ? <EyeOff /> : <Eye />}
         </Button>
       </div>
+      <FieldDescription>{PASSWORD_HINT}</FieldDescription>
     </Field>
   )
 }

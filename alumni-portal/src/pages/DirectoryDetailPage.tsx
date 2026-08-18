@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { toast } from "sonner"
 
+import { PageBreadcrumb } from "@/components/page-breadcrumb"
 import { ApiError } from "@/lib/api-client"
 import { catalogService } from "@/services/catalog.service"
 import { contactRequestService } from "@/services/contact-requests.service"
@@ -92,9 +93,10 @@ export function DirectoryDetailPage() {
 
   return (
     <div className="space-y-4">
-      <Link to="/directory" className="text-sm text-primary hover:underline">
-        Back to directory
-      </Link>
+      <PageBreadcrumb
+        current={alumni.full_name}
+        fallback={{ label: "Directory", to: "/directory" }}
+      />
 
       <Card>
         <CardHeader className="flex-row items-center gap-4">
@@ -121,6 +123,40 @@ export function DirectoryDetailPage() {
             </CardDescription>
           </div>
         </CardHeader>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Contact</CardTitle>
+          <CardDescription>
+            {alumni.is_contact_revealed
+              ? "Contact details are visible for this alumni."
+              : "Contact details are masked until a request is approved."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
+          <p>
+            <span className="font-medium">Email:</span> {alumni.email || "—"}
+          </p>
+          <p>
+            <span className="font-medium">Phone:</span>{" "}
+            {alumni.phone_number || "—"}
+          </p>
+          <p>
+            <span className="font-medium">WhatsApp:</span>{" "}
+            {alumni.whatsapp_number || "—"}
+          </p>
+          <p>
+            <span className="font-medium">LinkedIn:</span>{" "}
+            {alumni.linkedin_url || "—"}
+          </p>
+          <p className="sm:col-span-2">
+            <span className="font-medium">Address:</span>{" "}
+            {[alumni.address, alumni.secondry_address]
+              .filter(Boolean)
+              .join(" / ") || "—"}
+          </p>
+        </CardContent>
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -178,40 +214,6 @@ export function DirectoryDetailPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact</CardTitle>
-          <CardDescription>
-            {alumni.is_contact_revealed
-              ? "Contact details are visible for this alumni."
-              : "Contact details are masked until a request is approved."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-          <p>
-            <span className="font-medium">Email:</span> {alumni.email || "—"}
-          </p>
-          <p>
-            <span className="font-medium">Phone:</span>{" "}
-            {alumni.phone_number || "—"}
-          </p>
-          <p>
-            <span className="font-medium">WhatsApp:</span>{" "}
-            {alumni.whatsapp_number || "—"}
-          </p>
-          <p>
-            <span className="font-medium">LinkedIn:</span>{" "}
-            {alumni.linkedin_url || "—"}
-          </p>
-          <p className="sm:col-span-2">
-            <span className="font-medium">Address:</span>{" "}
-            {[alumni.address, alumni.secondry_address]
-              .filter(Boolean)
-              .join(" / ") || "—"}
-          </p>
-        </CardContent>
-      </Card>
 
       {!alumni.is_contact_revealed ? (
         <Card>

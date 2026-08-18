@@ -1,7 +1,8 @@
 import { formatDistanceToNow, parseISO } from "date-fns"
-import { useEffect, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useParams } from "react-router-dom"
 
+import { LinkWithFrom, PageBreadcrumb } from "@/components/page-breadcrumb"
 import { ApiError } from "@/lib/api-client"
 import { announcementsService } from "@/services/announcements.service"
 import type { AnnouncementItem } from "@/types/portal"
@@ -64,7 +65,7 @@ function FeaturedAlumniRow({
     .join("")
 
   return (
-    <Link
+    <LinkWithFrom
       to={`/directory/${alumni.alumni_id}`}
       className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3 transition-colors hover:bg-muted/55"
       onClick={(event) => event.stopPropagation()}
@@ -89,7 +90,59 @@ function FeaturedAlumniRow({
           {[alumni.degree, alumni.graduation_year].filter(Boolean).join(" · ")}
         </p>
       </div>
-    </Link>
+    </LinkWithFrom>
+  )
+}
+
+function ExpandableText({
+  text,
+  clamp = true,
+}: {
+  text: string
+  clamp?: boolean
+}) {
+  const ref = useRef<HTMLParagraphElement>(null)
+  const [expanded, setExpanded] = useState(!clamp)
+  const [needsMore, setNeedsMore] = useState(false)
+
+  useLayoutEffect(() => {
+    if (!clamp || expanded) return
+    const el = ref.current
+    if (!el) return
+    setNeedsMore(el.scrollHeight > el.clientHeight + 2)
+  }, [text, clamp, expanded])
+
+  return (
+    <div className="relative">
+      <p
+        ref={ref}
+        className={
+          expanded
+            ? "text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap"
+            : "line-clamp-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap"
+        }
+      >
+        {text}
+      </p>
+      {needsMore && !expanded ? (
+        <button
+          type="button"
+          className="absolute right-0 bottom-0 bg-card pl-1 text-sm font-medium text-primary hover:underline"
+          onClick={() => setExpanded(true)}
+        >
+          Read more
+        </button>
+      ) : null}
+      {needsMore && expanded && clamp ? (
+        <button
+          type="button"
+          className="mt-1 text-sm font-medium text-primary hover:underline"
+          onClick={() => setExpanded(false)}
+        >
+          Show less
+        </button>
+      ) : null}
+    </div>
   )
 }
 
@@ -114,12 +167,12 @@ function AnnouncementCard({
       <div className="space-y-3 p-4 sm:p-5">
         <div>
           {linkTitle ? (
-            <Link
+            <LinkWithFrom
               to={`/announcements/${item.id}`}
               className="text-[18px] font-semibold leading-snug text-foreground hover:text-primary hover:underline"
             >
               {item.title}
-            </Link>
+            </LinkWithFrom>
           ) : (
             <h2 className="text-[18px] font-semibold leading-snug text-foreground">
               {item.title}
@@ -130,33 +183,16 @@ function AnnouncementCard({
           ) : null}
         </div>
 
-        <Link to={`/announcements/${item.id}`} className="block">
+        <LinkWithFrom to={`/announcements/${item.id}`} className="block">
           <AnnouncementCover item={item} />
-        </Link>
+        </LinkWithFrom>
 
         {item.featured_alumni ? (
           <FeaturedAlumniRow alumni={item.featured_alumni} />
         ) : null}
 
         {item.content ? (
-          <p
-            className={
-              clampContent
-                ? "line-clamp-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap"
-                : "text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap"
-            }
-          >
-            {item.content}
-          </p>
-        ) : null}
-
-        {linkTitle ? (
-          <Link
-            to={`/announcements/${item.id}`}
-            className="inline-flex text-sm font-medium text-primary hover:underline"
-          >
-            Read more
-          </Link>
+          <ExpandableText text={item.content} clamp={clampContent} />
         ) : null}
       </div>
     </article>
@@ -290,12 +326,10 @@ export function AnnouncementDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-[560px] space-y-3">
-      <Link
-        to="/announcements"
-        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-      >
-        ← Back to announcements
-      </Link>
+      <PageBreadcrumb
+        current={item.title}
+        fallback={{ label: "Announcements", to: "/announcements" }}
+      />
       <AnnouncementCard item={item} linkTitle={false} clampContent={false} />
     </div>
   )

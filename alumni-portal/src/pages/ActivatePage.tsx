@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useConsumeQueryToken } from "@/hooks/use-consume-query-token"
 import { ApiError } from "@/lib/api-client"
+import { validatePasswordStrength } from "@/lib/password-rules"
 import { authService } from "@/services/auth.service"
 
 const PENDING_RESET_KEY = "taleem_activation_reset"
@@ -94,6 +95,12 @@ export default function ActivatePage() {
     const confirm = String(form.get("confirm_password") ?? "")
     if (password !== confirm) {
       setError("Passwords do not match")
+      setLoading(false)
+      return
+    }
+    const strengthError = validatePasswordStrength(password)
+    if (strengthError) {
+      setError(strengthError)
       setLoading(false)
       return
     }
@@ -205,20 +212,23 @@ export default function ActivatePage() {
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Activate account
                 </h1>
-                <p className="text-balance text-sm text-muted-foreground">
-                  {error.toLowerCase().includes("already activated")
+                <p
+                  className={
+                    error && !error.toLowerCase().includes("already activated")
+                      ? "text-balance text-sm text-destructive"
+                      : "text-balance text-sm text-muted-foreground"
+                  }
+                >
+                  {error && error.toLowerCase().includes("already activated")
                     ? "This account is already active. Sign in to continue."
-                    : view === "error"
-                      ? "This link is invalid or expired. Request a new activation email."
-                      : "Use the activation link in your approval email. If you need a new one, enter your email below."}
+                    : error
+                      ? error
+                      : view === "error"
+                        ? "This link is invalid or expired. Request a new activation email."
+                        : "Use the activation link in your approval email. If you need a new one, enter your email below."}
                 </p>
               </div>
-              {error ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              ) : null}
-              {success ? (
+              {success && !error ? (
                 <p className="text-sm text-[#0b4d3c]" role="status">
                   {success}
                 </p>

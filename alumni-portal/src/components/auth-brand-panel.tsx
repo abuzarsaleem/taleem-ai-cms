@@ -1,4 +1,6 @@
-import { GraduationCap, ShieldCheck } from "lucide-react"
+import { ShieldCheck } from "lucide-react"
+
+import { BrandLogo } from "@/components/brand-logo"
 
 type AuthBrandPanelProps = {
   heading?: string
@@ -22,16 +24,8 @@ export function AuthBrandPanel({
       <div className="absolute right-8 bottom-8 h-16 w-16 border-r-2 border-b-2 border-[#c9a227]/70" />
 
       <div className="relative flex h-full min-h-[420px] flex-col justify-between p-10 text-white">
-        <div className="flex items-center gap-3">
-          <div className="flex size-11 items-center justify-center rounded-full bg-white/10 text-[#c9a227] ring-1 ring-[#c9a227]/40">
-            <GraduationCap className="size-5" strokeWidth={2.25} />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold tracking-[0.28em] text-[#c9a227] uppercase">
-              Taleem
-            </p>
-            <p className="text-sm text-white/70">Alumni Portal</p>
-          </div>
+        <div className="inline-flex w-fit rounded-lg bg-white px-3 py-2 shadow-sm">
+          <BrandLogo className="h-12" />
         </div>
 
         <div className="space-y-4">

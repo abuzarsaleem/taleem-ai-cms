@@ -8,9 +8,9 @@ import {
   Users,
 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
+import { LinkWithFrom } from "@/components/page-breadcrumb"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -28,6 +28,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
+import { RSVP_OPTIONS, rsvpButtonClass } from "@/lib/rsvp"
 import { contactRequestService } from "@/services/contact-requests.service"
 import {
   dashboardService,
@@ -37,12 +38,6 @@ import {
 } from "@/services/dashboard.service"
 import { eventsService } from "@/services/events.service"
 import type { AnnouncementItem, EventItem } from "@/types/portal"
-
-const RSVP_OPTIONS = [
-  { value: "GOING", label: "Going" },
-  { value: "MAYBE", label: "Tentative" },
-  { value: "NOT_GOING", label: "Not going" },
-] as const
 
 function initials(name: string) {
   return name
@@ -147,15 +142,15 @@ function EventFeedCard({
   return (
     <Surface>
       {event.image_url ? (
-        <Link to={`/events/${event.id}`} className="block">
+        <LinkWithFrom to={`/events/${event.id}`} className="block">
           <img
             src={event.image_url}
             alt=""
             className="aspect-[2.4/1] w-full object-cover"
           />
-        </Link>
+        </LinkWithFrom>
       ) : (
-        <Link
+        <LinkWithFrom
           to={`/events/${event.id}`}
           className="relative block aspect-[2.4/1] overflow-hidden bg-[linear-gradient(135deg,oklch(0.35_0.08_250),oklch(0.42_0.1_220)_55%,oklch(0.38_0.07_200))]"
         >
@@ -168,17 +163,17 @@ function EventFeedCard({
               {event.title}
             </p>
           </div>
-        </Link>
+        </LinkWithFrom>
       )}
 
       <div className="space-y-3 p-4">
         <div>
-          <Link
+          <LinkWithFrom
             to={`/events/${event.id}`}
             className="text-[17px] font-semibold leading-snug text-foreground hover:text-primary hover:underline"
           >
             {event.title}
-          </Link>
+          </LinkWithFrom>
           {event.description ? (
             <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
               {event.description}
@@ -210,9 +205,14 @@ function EventFeedCard({
             <PopoverTrigger
               render={
                 <Button
-                  variant={event.my_rsvp_status ? "default" : "outline"}
+                  variant="outline"
                   disabled={busy}
-                  className="h-9 gap-1.5 rounded-full px-4"
+                  className={cn(
+                    "h-9 gap-1.5 rounded-full px-4",
+                    event.my_rsvp_status
+                      ? rsvpButtonClass(event.my_rsvp_status, true)
+                      : undefined,
+                  )}
                 />
               }
             >
@@ -225,9 +225,11 @@ function EventFeedCard({
                   key={option.value}
                   type="button"
                   className={cn(
-                    "flex w-full rounded-md px-2.5 py-2 text-left text-sm hover:bg-muted",
-                    event.my_rsvp_status === option.value &&
-                      "bg-muted font-medium",
+                    "flex w-full rounded-md px-2.5 py-2 text-left text-sm",
+                    rsvpButtonClass(
+                      option.value,
+                      event.my_rsvp_status === option.value,
+                    ),
                   )}
                   onClick={() => {
                     setOpen(false)
@@ -238,13 +240,13 @@ function EventFeedCard({
                 </button>
               ))}
               <div className="my-1 border-t border-border" />
-              <Link
+              <LinkWithFrom
                 to={`/events/${event.id}`}
                 className="flex w-full rounded-md px-2.5 py-2 text-sm text-primary hover:bg-muted"
                 onClick={() => setOpen(false)}
               >
                 View details
-              </Link>
+              </LinkWithFrom>
             </PopoverContent>
           </Popover>
         </div>
@@ -270,12 +272,12 @@ function AnnouncementFeedCard({ item }: { item: AnnouncementItem }) {
             </p>
           </div>
         </div>
-        <Link
+        <LinkWithFrom
           to={`/announcements/${item.id}`}
           className="block text-[17px] font-semibold leading-snug hover:text-primary hover:underline"
         >
           {item.title}
-        </Link>
+        </LinkWithFrom>
         <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
           {item.content}
         </p>
@@ -303,9 +305,9 @@ function AlumniFeedCard({
   return (
     <Surface>
       <div className="flex items-start gap-3 p-4">
-        <Link to={`/directory/${alumni.alumni_id}`} className="shrink-0">
+        <LinkWithFrom to={`/directory/${alumni.alumni_id}`} className="shrink-0">
           <Avatar name={alumni.full_name} photoUrl={alumni.photo_url} />
-        </Link>
+        </LinkWithFrom>
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
             <Users className="size-3.5" />
@@ -313,12 +315,12 @@ function AlumniFeedCard({
           </div>
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
-              <Link
+              <LinkWithFrom
                 to={`/directory/${alumni.alumni_id}`}
                 className="text-[16px] font-semibold leading-tight hover:underline"
               >
                 {alumni.full_name}
-              </Link>
+              </LinkWithFrom>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {alumni.headline}
               </p>

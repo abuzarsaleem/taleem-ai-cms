@@ -1,10 +1,14 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { HttpStatus } from '@nestjs/common';
-import { USER_REPOSITORY } from '../../common/constants/tokens';
-import { UserRole } from '../../common/enums';
+import {
+  REGISTRATION_REQUEST_REPOSITORY,
+  USER_REPOSITORY,
+} from '../../common/constants/tokens';
+import { RegistrationStatus, UserRole } from '../../common/enums';
 import { BusinessException } from '../../common/exceptions';
 import { hashPassword, verifyPassword } from '../../common/utils';
+import type { IRegistrationRequestRepository } from '../alumni/interfaces/registration-request.repository.interface';
 import type { IUserRepository } from '../alumni/interfaces/user.repository.interface';
 import { PasswordCryptoService } from './password-crypto.service';
 
@@ -16,6 +20,8 @@ export class AuthService implements OnModuleInit {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
+    @Inject(REGISTRATION_REQUEST_REPOSITORY)
+    private readonly registrationRepository: IRegistrationRequestRepository,
     private readonly jwtService: JwtService,
     private readonly passwordCryptoService: PasswordCryptoService,
   ) {}
@@ -43,6 +49,28 @@ export class AuthService implements OnModuleInit {
     const plainPassword = this.passwordCryptoService.decryptPassword(password);
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
+      const registration = await this.registrationRepository.findByEmail(email);
+      if (registration?.status === RegistrationStatus.PENDING) {
+        throw new BusinessException(
+          'Your registration is pending admin approval. You will be notified by email once it is reviewed.',
+          HttpStatus.FORBIDDEN,
+          'REGISTRATION_PENDING',
+        );
+      }
+      if (registration?.status === RegistrationStatus.REJECTED) {
+        throw new BusinessException(
+          'Your registration was rejected. Please contact the alumni office for help.',
+          HttpStatus.FORBIDDEN,
+          'REGISTRATION_REJECTED',
+        );
+      }
+      if (registration?.status === RegistrationStatus.APPROVED) {
+        throw new BusinessException(
+          'Your account is approved but not activated yet. Check your email for the activation link.',
+          HttpStatus.FORBIDDEN,
+          'ACCOUNT_INACTIVE',
+        );
+      }
       throw new BusinessException(
         'Invalid credentials',
         HttpStatus.UNAUTHORIZED,
@@ -60,7 +88,7 @@ export class AuthService implements OnModuleInit {
 
     if (!user.isActive) {
       throw new BusinessException(
-        'Account is not active',
+        'Your account is not active. Check your email for the activation link.',
         HttpStatus.FORBIDDEN,
         'ACCOUNT_INACTIVE',
       );

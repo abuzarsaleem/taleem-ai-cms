@@ -3,3 +3,4 @@ export * from './registration-ref.util';
 export * from './crypto.util';
 export * from './degree-program-label.util';
 export * from './alumni-portal-url.util';
+export * from './password.util';

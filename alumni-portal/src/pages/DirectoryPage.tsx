@@ -1,8 +1,9 @@
 import { Send } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
+import { LinkWithFrom } from "@/components/page-breadcrumb"
+import { SearchableSelect } from "@/components/searchable-select"
 import { ApiError } from "@/lib/api-client"
 import { catalogService } from "@/services/catalog.service"
 import { contactRequestService } from "@/services/contact-requests.service"
@@ -251,19 +252,18 @@ export function DirectoryPage() {
             placeholder="Name"
           />
           {filterOptions.graduation_years.length > 0 ? (
-            <select
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+            <SearchableSelect
               value={graduationYear}
-              onChange={(e) => setGraduationYear(e.target.value)}
-              aria-label="Graduation year"
-            >
-              <option value="">All graduation years</option>
-              {filterOptions.graduation_years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+              onChange={setGraduationYear}
+              options={filterOptions.graduation_years.map((year) => ({
+                value: year,
+                label: year,
+              }))}
+              placeholder="All graduation years"
+              searchPlaceholder="Search year…"
+              allowEmpty
+              emptyLabel="All graduation years"
+            />
           ) : (
             <YearPicker
               value={graduationYear}
@@ -273,33 +273,31 @@ export function DirectoryPage() {
               placeholder="Graduation year"
             />
           )}
-          <select
-            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+          <SearchableSelect
             value={degreeProgramId}
-            onChange={(e) => setDegreeProgramId(e.target.value)}
-            aria-label="Degree program"
-          >
-            <option value="">All degree programs</option>
-            {degreePrograms.map((program) => (
-              <option key={program.id} value={program.id}>
-                {program.label}
-              </option>
-            ))}
-          </select>
+            onChange={setDegreeProgramId}
+            options={degreePrograms.map((program) => ({
+              value: program.id,
+              label: program.label,
+            }))}
+            placeholder="All degree programs"
+            searchPlaceholder="Search program…"
+            allowEmpty
+            emptyLabel="All degree programs"
+          />
           {filterOptions.cities.length > 0 ? (
-            <select
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+            <SearchableSelect
               value={city}
-              onChange={(e) => setCity(e.target.value)}
-              aria-label="City"
-            >
-              <option value="">All cities</option>
-              {filterOptions.cities.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
+              onChange={setCity}
+              options={filterOptions.cities.map((value) => ({
+                value,
+                label: value,
+              }))}
+              placeholder="All cities"
+              searchPlaceholder="Search city…"
+              allowEmpty
+              emptyLabel="All cities"
+            />
           ) : (
             <Input
               value={city}
@@ -308,19 +306,18 @@ export function DirectoryPage() {
             />
           )}
           {filterOptions.countries.length > 0 ? (
-            <select
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+            <SearchableSelect
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              aria-label="Country"
-            >
-              <option value="">All countries</option>
-              {filterOptions.countries.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
+              onChange={setCountry}
+              options={filterOptions.countries.map((value) => ({
+                value,
+                label: value,
+              }))}
+              placeholder="All countries"
+              searchPlaceholder="Search country…"
+              allowEmpty
+              emptyLabel="All countries"
+            />
           ) : (
             <Input
               value={country}
@@ -374,7 +371,7 @@ export function DirectoryPage() {
                     index < items.length - 1 && "border-b border-border",
                   )}
                 >
-                  <Link
+                  <LinkWithFrom
                     to={`/directory/${alumni.alumni_id}`}
                     className="flex min-w-0 flex-1 items-start gap-3"
                   >
@@ -407,7 +404,7 @@ export function DirectoryPage() {
                           .join(", ") || "Location unavailable"}
                       </p>
                     </div>
-                  </Link>
+                  </LinkWithFrom>
 
                   {!isSelf ? (
                     <div className="shrink-0">

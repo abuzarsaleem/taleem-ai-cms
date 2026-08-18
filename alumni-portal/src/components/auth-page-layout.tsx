@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { BrandLogo } from "@/components/brand-logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export function AuthPageLayout({ children }: { children: ReactNode }) {
@@ -12,6 +13,7 @@ export function AuthPageLayout({ children }: { children: ReactNode }) {
             "radial-gradient(70% 50% at 50% -10%, rgba(11,77,60,0.12), transparent 60%), radial-gradient(50% 40% at 100% 100%, rgba(201,162,39,0.12), transparent 55%)",
         }}
       />
+      <BrandLogo className="absolute top-4 left-4 z-10 h-9 md:top-6 md:left-6 md:h-11" />
       <ThemeToggle className="absolute top-4 right-4 z-10 md:top-6 md:right-6" />
       <div className="relative flex w-full justify-center">{children}</div>
     </div>

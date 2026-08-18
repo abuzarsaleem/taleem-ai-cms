@@ -87,6 +87,7 @@ export type UpdateProfilePayload = {
   gender?: string
   date_of_birth?: string
   linkedin_url?: string
+  media_id?: string
 }
 
 export type CreateProfessionalPayload = {

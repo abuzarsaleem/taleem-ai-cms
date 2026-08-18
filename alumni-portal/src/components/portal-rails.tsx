@@ -10,7 +10,9 @@ import { useCallback, useEffect, useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 
 import { EventThumb } from "@/components/event-thumb"
+import { LinkWithFrom } from "@/components/page-breadcrumb"
 import { PORTAL_RAILS_REFRESH_EVENT } from "@/lib/portal-events"
+import { rsvpChipClass } from "@/lib/rsvp"
 import { cn } from "@/lib/utils"
 import { contactRequestService } from "@/services/contact-requests.service"
 import { announcementsService } from "@/services/announcements.service"
@@ -24,19 +26,6 @@ function initials(name: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("")
-}
-
-function rsvpTone(status: string | null) {
-  if (status === "GOING") {
-    return "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
-  }
-  if (status === "MAYBE") {
-    return "bg-amber-500/12 text-amber-800 dark:text-amber-400"
-  }
-  if (status === "NOT_GOING") {
-    return "bg-muted text-muted-foreground"
-  }
-  return "bg-primary/10 text-primary"
 }
 
 function formatShortDate(isoDate: string) {
@@ -136,7 +125,7 @@ export function PortalRails({
 
   return (
     <div className="grid gap-4 md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[225px_minmax(0,1fr)_300px] lg:gap-6">
-      <aside className="order-1">
+      <aside className="order-1 print:hidden" data-print-hide>
         <div className="sticky top-[4.25rem] space-y-3">
           <Surface>
             <div className="h-14 bg-[linear-gradient(105deg,oklch(0.42_0.12_250),oklch(0.48_0.08_220))]" />
@@ -172,7 +161,7 @@ export function PortalRails({
               [
                 {
                   to: "/contact-requests",
-                  label: "My requests",
+                  label: "My Contacts",
                   meta:
                     shortcuts && shortcuts.contact_requests_total > 0
                       ? String(shortcuts.contact_requests_total)
@@ -246,7 +235,7 @@ export function PortalRails({
         <Outlet />
       </section>
 
-      <aside className="order-3">
+      <aside className="order-3 print:hidden" data-print-hide>
         <div className="sticky top-[4.25rem]">
           <Surface>
             <div className="flex items-center justify-between gap-2 px-4 pt-3.5 pb-2.5">
@@ -277,7 +266,7 @@ export function PortalRails({
               <ul className="py-1">
                 {myEvents.map((event) => (
                   <li key={event.id}>
-                    <Link
+                    <LinkWithFrom
                       to={`/events/${event.id}`}
                       className="flex items-start gap-3 px-3 py-2.5 transition-colors hover:bg-muted/60"
                     >
@@ -297,7 +286,7 @@ export function PortalRails({
                         <span
                           className={cn(
                             "mt-1.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide",
-                            rsvpTone(event.my_rsvp_status),
+                            rsvpChipClass(event.my_rsvp_status),
                           )}
                         >
                           {event.my_rsvp_status === "GOING"
@@ -309,7 +298,7 @@ export function PortalRails({
                                 : "RSVP"}
                         </span>
                       </div>
-                    </Link>
+                    </LinkWithFrom>
                   </li>
                 ))}
               </ul>
