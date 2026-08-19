@@ -4,7 +4,6 @@ import {
   BookUserIcon,
   CalendarDaysIcon,
   ClipboardListIcon,
-  GraduationCapIcon,
   LayoutDashboardIcon,
   LogOutIcon,
   MailIcon,
@@ -14,6 +13,7 @@ import {
 
 import { useAuth } from "@/auth/AuthContext"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
+import { BrandLogo } from "@/components/brand-logo"
 import { toast } from "sonner"
 import {
   Sidebar,
@@ -171,27 +171,9 @@ export function AppSidebar() {
     <>
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/80">
       <SidebarHeader className="p-3 pb-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              className="h-12 rounded-xl px-2 hover:bg-transparent data-active:bg-transparent"
-              render={<div />}
-            >
-              <div className="flex size-9 items-center justify-center rounded-xl bg-sidebar-primary text-[#042a2a] shadow-[0_0_16px_rgb(0_194_178_/_0.45)]">
-                <GraduationCapIcon className="size-4" />
-              </div>
-              <div className="grid min-w-0 flex-1 text-left leading-tight">
-                <span className="truncate font-semibold tracking-tight text-white">
-                  Taleem AI
-                </span>
-                <span className="truncate text-[11px] text-sidebar-foreground/65">
-                  Alumni admin
-                </span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex w-full items-center justify-center rounded-lg px-1 py-1 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-1">
+          <BrandLogo className="h-auto w-full object-contain object-center group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-auto" />
+        </div>
       </SidebarHeader>
 
       <SidebarSeparator className="mx-3" />

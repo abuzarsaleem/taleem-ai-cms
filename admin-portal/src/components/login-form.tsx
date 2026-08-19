@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react"
 import { Navigate, useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthContext"
+import { AuthBrandPanel } from "@/components/auth-brand-panel"
 import { cn } from "@/lib/utils"
 import { ApiError } from "@/lib/api"
 import { toast } from "sonner"
@@ -61,14 +62,16 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0 shadow-xl ring-foreground/8">
         <CardContent className="grid p-0 md:grid-cols-2">
           <form className="p-6 md:p-8" onSubmit={onSubmit}>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-balance text-muted-foreground">
-                  Login to your Taleem Admin account
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Welcome back
+                </h1>
+                <p className="text-balance text-sm text-muted-foreground">
+                  Sign in to your Taleem Admin account
                 </p>
               </div>
               <Field>
@@ -77,9 +80,9 @@ export function LoginForm({
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="admin@taleem.local"
-                  defaultValue="admin@taleem.local"
+                  placeholder="you@example.com"
                   required
+                  className="h-10"
                 />
               </Field>
               <Field>
@@ -88,32 +91,28 @@ export function LoginForm({
                   id="password"
                   name="password"
                   type="password"
-                  defaultValue="Admin@123"
                   required
+                  className="h-10"
                 />
               </Field>
               {error ? (
-                <div
-                  className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                  role="alert"
-                >
+                <p className="text-sm text-destructive" role="alert">
                   {error}
-                </div>
+                </p>
               ) : null}
               <Field>
-                <Button type="submit" disabled={loading} className="w-full">
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={loading}
+                  className="w-full"
+                >
                   {loading ? "Signing in…" : "Login"}
                 </Button>
               </Field>
             </FieldGroup>
           </form>
-          <div className="relative hidden bg-muted md:block">
-            <img
-              src="/placeholder.svg"
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
-          </div>
+          <AuthBrandPanel />
         </CardContent>
       </Card>
     </div>
