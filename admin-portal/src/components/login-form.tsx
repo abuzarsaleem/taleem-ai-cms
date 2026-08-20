@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { Navigate, useNavigate } from "react-router-dom"
+import { EyeIcon, EyeOffIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
 import { AuthBrandPanel } from "@/components/auth-brand-panel"
@@ -24,6 +25,7 @@ export function LoginForm({
   const { setSession, token } = useAuth()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   if (token) return <Navigate to="/" replace />
 
@@ -87,13 +89,25 @@ export function LoginForm({
               </Field>
               <Field>
                 <FieldLabel htmlFor="password">Password</FieldLabel>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  className="h-10"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    className="h-10 pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="absolute top-1/2 right-1.5 -translate-y-1/2 text-muted-foreground"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </Button>
+                </div>
               </Field>
               {error ? (
                 <p className="text-sm text-destructive" role="alert">
