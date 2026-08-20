@@ -410,7 +410,7 @@ export function DirectoryPage() {
         />
       </div>
 
-      <div className="relative space-y-8">
+      <div className="relative space-y-8 px-5 pt-5 sm:px-6 sm:pt-6">
         <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
           <div className="min-w-0 max-w-2xl">
             <p className="text-[11px] font-bold tracking-[0.18em] text-[#1e8f97] uppercase">

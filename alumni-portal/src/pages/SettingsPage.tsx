@@ -24,7 +24,7 @@ export function SettingsPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(54,186,188,0.14),transparent_55%),radial-gradient(ellipse_at_top_left,rgba(8,27,69,0.07),transparent_50%)]" />
       </div>
 
-      <div className="relative space-y-8">
+      <div className="relative space-y-8 px-5 pt-5 sm:px-6 sm:pt-6">
         <header className="max-w-xl">
           <p className="text-[11px] font-bold tracking-[0.18em] text-[#1e8f97] uppercase">
             Account control

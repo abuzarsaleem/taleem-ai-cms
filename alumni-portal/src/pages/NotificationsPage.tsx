@@ -1,5 +1,6 @@
 import { formatDistanceToNow, parseISO } from "date-fns"
 import { CalendarDays, Megaphone, Users } from "lucide-react"
+import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { PageHeader } from "@/components/portal/page-header"
@@ -36,6 +37,10 @@ function iconFor(type: NotificationItem["type"]) {
 export function NotificationsPage() {
   const navigate = useNavigate()
   const { summary, markSeen } = useNotifications()
+
+  useEffect(() => {
+    void markSeen()
+  }, [markSeen])
 
   return (
     <div>

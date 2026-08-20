@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthContext"
 import { AppShell } from "@/layouts/AppShell"
 import { apiClient, ApiError } from "@/lib/api-client"
 import { PROFILE_UPDATED_EVENT } from "@/lib/portal-events"
+import { NotificationsProvider } from "@/hooks/use-notifications"
 import type { ApiResponse } from "@/types/api"
 
 type ProfileSummary = {
@@ -46,5 +47,9 @@ export function AuthenticatedLayout() {
     }
   }, [clearSession, navigate])
 
-  return <AppShell fullName={fullName} photoUrl={photoUrl} />
+  return (
+    <NotificationsProvider>
+      <AppShell fullName={fullName} photoUrl={photoUrl} />
+    </NotificationsProvider>
+  )
 }
