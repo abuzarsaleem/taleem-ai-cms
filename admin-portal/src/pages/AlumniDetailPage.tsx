@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react"
 import { useLocation, useParams } from "react-router-dom"
-import { UserIcon } from "lucide-react"
+import {
+  BriefcaseIcon,
+  CheckIcon,
+  GraduationCapIcon,
+  UserIcon,
+  UserRoundIcon,
+  type LucideIcon,
+} from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
 import { BackButton } from "@/components/admin/back-button"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ApiError } from "@/lib/api"
@@ -25,26 +33,32 @@ type LocationState = {
 const STEPS = [
   {
     id: "personal",
-    number: "01",
-    title: "Personal",
-    heading: "Personal Information",
+    title: "Personal & Contact",
+    heading: "Personal Details",
     description: "Contact and identity details for this alumni.",
+    icon: UserRoundIcon,
   },
   {
     id: "educational",
-    number: "02",
-    title: "Educational",
-    heading: "Educational Information",
+    title: "Academic",
+    heading: "Academic Records",
     description: "Degree and academic records.",
+    icon: GraduationCapIcon,
   },
   {
     id: "professional",
-    number: "03",
     title: "Professional",
-    heading: "Professional Information",
+    heading: "Professional Details",
     description: "Work history and career details.",
+    icon: BriefcaseIcon,
   },
-] as const
+] as const satisfies ReadonlyArray<{
+  id: string
+  title: string
+  heading: string
+  description: string
+  icon: LucideIcon
+}>
 
 function DetailSkeleton() {
   return (
@@ -54,8 +68,9 @@ function DetailSkeleton() {
         <Skeleton className="h-8 w-64" />
         <Skeleton className="mt-2 h-4 w-48" />
       </div>
-      <div className="px-4 lg:px-6">
-        <Skeleton className="h-[32rem] w-full rounded-xl" />
+      <div className="grid gap-4 px-4 lg:grid-cols-[320px_1fr] lg:px-6">
+        <Skeleton className="h-[28rem] w-full rounded-xl" />
+        <Skeleton className="h-[28rem] w-full rounded-xl" />
       </div>
     </div>
   )
@@ -101,9 +116,8 @@ export default function AlumniDetailPage() {
   const navState = (location.state as LocationState | null) ?? null
   const stateAlumni = navState?.alumni ?? null
 
-  const [listItem, setListItem] = useState<AdminAlumniListItem | null>(
-    stateAlumni && stateAlumni.alumni_id === id ? stateAlumni : null,
-  )
+  const listItem =
+    stateAlumni && stateAlumni.alumni_id === id ? stateAlumni : null
   const [profile, setProfile] = useState<DirectoryAlumniProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -118,36 +132,15 @@ export default function AlumniDetailPage() {
       setLoading(true)
       setError("")
 
-      let nextListItem =
-        stateAlumni && stateAlumni.alumni_id === id ? stateAlumni : null
-
       try {
-        if (!nextListItem) {
-          const listed = await alumniService.list(token, {
-            page: 1,
-            page_size: 100,
-          })
-          nextListItem =
-            listed.items.find((item) => item.alumni_id === id) ?? null
-        }
-
-        if (!cancelled) setListItem(nextListItem)
-
-        try {
-          const directoryProfile = await alumniService.getDirectoryProfile(
-            token,
-            id,
-          )
-          if (!cancelled) setProfile(directoryProfile)
-        } catch {
-          if (!cancelled) setProfile(null)
-        }
-
-        if (!cancelled && !nextListItem) {
-          setError("Alumni not found")
-        }
+        const directoryProfile = await alumniService.getDirectoryProfile(
+          token,
+          id,
+        )
+        if (!cancelled) setProfile(directoryProfile)
       } catch (err) {
         if (!cancelled) {
+          setProfile(null)
           setError(
             err instanceof ApiError ? err.message : "Failed to load alumni",
           )
@@ -160,7 +153,7 @@ export default function AlumniDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [token, id, stateAlumni])
+  }, [token, id])
 
   if (loading) return <DetailSkeleton />
 
@@ -191,12 +184,6 @@ export default function AlumniDetailPage() {
     profile?.primary_graduation_year ??
     profile?.academic?.[0]?.graduation_year ??
     listItem?.graduation_year
-  const jobTitle =
-    profile?.professional?.[0]?.job_title ??
-    listItem?.professional?.job_title ??
-    profile?.primary_role ??
-    listItem?.professional?.role ??
-    null
 
   const professionalItems: DirectoryProfessional[] =
     profile?.professional?.length
@@ -209,6 +196,13 @@ export default function AlumniDetailPage() {
   const step = STEPS[stepIndex]
   const isFirst = stepIndex === 0
   const isLast = stepIndex === STEPS.length - 1
+  const rollNumber = listItem?.registration_roll_number
+
+  const sectionHasData = {
+    personal: Boolean(email || phone || address),
+    educational: academicItems.length > 0 || Boolean(listItem?.degree_program_id),
+    professional: professionalItems.length > 0,
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -216,123 +210,107 @@ export default function AlumniDetailPage() {
         <BackButton fallback="/alumni" />
       </div>
 
-      <div className="px-4 lg:px-6">
-        <div className="grid overflow-hidden ring-1 ring-foreground/10 md:grid-cols-[minmax(16rem,20rem)_1fr]">
-          <aside className="flex flex-col gap-8 bg-sidebar p-6 text-sidebar-foreground md:p-8">
-            <div>
-              <p className="text-[11px] font-medium tracking-[0.18em] text-sidebar-foreground/55 uppercase">
-                Alumni profile
-              </p>
-              <h1 className="mt-3 font-serif text-3xl leading-tight">
-                {name}
-              </h1>
-              <p className="mt-2 text-sm text-sidebar-foreground/70">
-                {email}
-              </p>
-            </div>
-
-            <nav className="flex flex-col gap-2" aria-label="Profile sections">
-              {STEPS.map((item, index) => {
-                const active = index === stepIndex
-                const done = index < stepIndex
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setStepIndex(index)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-3 text-left transition-colors",
-                      active
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-primary"
-                        : "text-sidebar-foreground/55 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                        active
-                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                          : done
-                            ? "border border-sidebar-primary text-sidebar-primary"
-                            : "border border-sidebar-foreground/25",
-                      )}
-                    >
-                      {item.number}
-                    </span>
-                    <span className="text-sm font-medium">{item.title}</span>
-                  </button>
-                )
-              })}
-            </nav>
-          </aside>
-
-          <section className="flex min-h-[28rem] flex-col bg-card p-6 text-card-foreground md:p-8">
-              <div>
-                <h2 className="font-serif text-2xl">{step.heading}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {step.description}
-                </p>
+      <div className="grid items-stretch gap-6 px-4 lg:grid-cols-[minmax(280px,320px)_1fr] lg:px-6">
+        <aside className="flex h-full flex-col gap-6 rounded-xl bg-card p-6 shadow-sm ring-1 ring-foreground/10">
+          <div className="flex flex-col items-center text-center">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={name}
+                className="size-28 rounded-full border-4 border-accent object-cover shadow-sm ring-4 ring-accent/15"
+              />
+            ) : (
+              <div className="flex size-28 items-center justify-center rounded-full border-4 border-accent bg-muted text-muted-foreground shadow-sm ring-4 ring-accent/15">
+                <UserIcon className="size-10" />
               </div>
+            )}
+            <h1 className="mt-4 text-xl font-semibold tracking-tight">{name}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {rollNumber ? `Roll ${rollNumber}` : email}
+            </p>
+            <Badge
+              variant="outline"
+              className="mt-3 border-accent/30 bg-accent/10 font-medium text-accent-foreground"
+            >
+              Alumni
+            </Badge>
+          </div>
 
-              <div className="mt-8 flex-1">
-            {step.id === "personal" ? (
-              <div className="grid gap-6">
-                <div className="flex items-center gap-4">
-                  {photoUrl ? (
-                    <img
-                      src={photoUrl}
-                      alt={`${name} profile`}
-                      className="size-20 rounded-lg border object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-20 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
-                      <UserIcon className="size-8" />
-                    </div>
+          <nav className="space-y-1" aria-label="Profile sections">
+            {STEPS.map((item, index) => {
+              const active = index === stepIndex
+              const Icon = item.icon
+              const done = sectionHasData[item.id]
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setStepIndex(index)}
+                  className={cn(
+                    "flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors",
+                    active
+                      ? "bg-primary/8 font-semibold text-primary ring-1 ring-primary/20"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                   )}
-                  <div>
-                    <p className="font-medium">{name}</p>
-                    {jobTitle ? (
-                      <p className="text-sm text-muted-foreground">{jobTitle}</p>
-                    ) : null}
-                  </div>
-                </div>
+                >
+                  <Icon className="size-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                  {done ? (
+                    <CheckIcon className="size-4 shrink-0 text-accent" />
+                  ) : null}
+                </button>
+              )
+            })}
+          </nav>
+        </aside>
 
-                <dl className="grid gap-4 sm:grid-cols-2">
-                  <ReadField
-                    label="Full name"
-                    value={name}
-                    className="sm:col-span-2"
-                  />
-                  <ReadField label="Email address" value={email} />
-                  <ReadField
-                    label="Mobile / WhatsApp"
-                    value={whatsapp || phone}
-                  />
-                  <ReadField label="Phone" value={phone} />
-                  <ReadField label="Location" value={locationLabel} />
-                  <ReadField
-                    label="LinkedIn"
-                    value={
-                      linkedinUrl ? (
-                        <a
-                          href={linkedinUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-primary underline-offset-4 hover:underline"
-                        >
-                          {linkedinUrl}
-                        </a>
-                      ) : null
-                    }
-                    className="sm:col-span-2"
-                  />
-                  <ReadField label="Address" value={address} />
-                  <ReadField
-                    label="Secondary address"
-                    value={secondaryAddress}
-                  />
-                </dl>
-              </div>
+        <section className="flex min-h-[28rem] flex-col rounded-xl bg-card p-6 shadow-sm ring-1 ring-foreground/10 md:p-8">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {step.heading}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {step.description}
+            </p>
+          </div>
+
+          <div className="mt-8 flex-1">
+            {step.id === "personal" ? (
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <ReadField
+                  label="Full name"
+                  value={name}
+                  className="sm:col-span-2"
+                />
+                <ReadField label="Email address" value={email} />
+                <ReadField
+                  label="Mobile / WhatsApp"
+                  value={whatsapp || phone}
+                />
+                <ReadField label="Phone" value={phone} />
+                <ReadField label="Location" value={locationLabel} />
+                <ReadField
+                  label="LinkedIn"
+                  value={
+                    linkedinUrl ? (
+                      <a
+                        href={linkedinUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline-offset-4 hover:underline"
+                      >
+                        {linkedinUrl}
+                      </a>
+                    ) : null
+                  }
+                  className="sm:col-span-2"
+                />
+                <ReadField label="Address" value={address} />
+                <ReadField
+                  label="Secondary address"
+                  value={secondaryAddress}
+                />
+              </dl>
             ) : null}
 
             {step.id === "educational" ? (
@@ -424,34 +402,28 @@ export default function AlumniDetailPage() {
                 </div>
               )
             ) : null}
-              </div>
+          </div>
 
-            <div className="mt-8 flex items-center justify-between border-t pt-5">
-              <p className="text-sm text-muted-foreground">
-                {stepIndex + 1} / {STEPS.length}
-              </p>
-              <div className="flex gap-2">
-                {!isFirst ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setStepIndex((current) => current - 1)}
-                  >
-                    Back
-                  </Button>
-                ) : null}
-                {!isLast ? (
-                  <Button
-                    type="button"
-                    onClick={() => setStepIndex((current) => current + 1)}
-                  >
-                    Continue
-                  </Button>
-                ) : null}
-              </div>
-              </div>
-            </section>
-        </div>
+          <div className="mt-8 flex items-center justify-end gap-2 border-t pt-5">
+            {!isFirst ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStepIndex((current) => current - 1)}
+              >
+                Back
+              </Button>
+            ) : null}
+            {!isLast ? (
+              <Button
+                type="button"
+                onClick={() => setStepIndex((current) => current + 1)}
+              >
+                Next
+              </Button>
+            ) : null}
+          </div>
+        </section>
       </div>
     </div>
   )

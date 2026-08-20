@@ -26,6 +26,8 @@ export type RegistrationAlumniSummary = {
 }
 
 export type RegistrationDetail = RegistrationListItem & {
+  reference_number?: string | null
+  degree_program_name?: string | null
   whatsapp_number: string | null
   rejection_reason: string | null
   reviewed_by: string | null

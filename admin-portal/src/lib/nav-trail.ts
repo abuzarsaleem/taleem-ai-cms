@@ -102,21 +102,45 @@ export function getBreadcrumbs(
   fromTrail?: NavTrailItem[],
 ): BreadcrumbItem[] {
   const pathCrumbs = getPathBreadcrumbs(pathname)
-  const nested = pathname.split("/").filter(Boolean).length > 1
+  if (!fromTrail?.length) return pathCrumbs
 
-  if (!fromTrail?.length || !nested) return pathCrumbs
+  const crumbs: BreadcrumbItem[] = []
+  const seenPaths = new Set<string>()
 
-  const currentLabel = pathCrumbs.at(-1)?.label ?? "Detail"
-  const seen = new Set<string>()
-  const trailCrumbs: BreadcrumbItem[] = []
+  const pushLink = (label: string, to: string) => {
+    const path = pathOf(to)
+    if (path === pathname) return
 
-  for (const item of fromTrail) {
-    if (pathOf(item.to) === pathname || seen.has(item.to)) continue
-    seen.add(item.to)
-    trailCrumbs.push({ label: item.label, to: item.to })
+    if (path === "/") {
+      if (crumbs.some((crumb) => crumb.to && pathOf(crumb.to) === "/" && crumb.label === label)) {
+        return
+      }
+    } else if (seenPaths.has(path)) {
+      return
+    } else {
+      seenPaths.add(path)
+    }
+
+    crumbs.push({ label, to })
   }
 
-  return [{ label: "Admin", to: "/" }, ...trailCrumbs, { label: currentLabel }]
+  pushLink("Admin", "/")
+
+  for (const item of fromTrail) {
+    pushLink(item.label, item.to)
+  }
+
+  for (const crumb of pathCrumbs.slice(1)) {
+    if (!crumb.to) {
+      if (crumbs.at(-1)?.label !== crumb.label) {
+        crumbs.push({ label: crumb.label })
+      }
+      continue
+    }
+    pushLink(crumb.label, crumb.to)
+  }
+
+  return crumbs
 }
 
 export function withNavTrail<T extends object>(

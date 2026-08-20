@@ -202,7 +202,15 @@ export default function RegistrationDetailPage() {
               {item.status}
             </Badge>
           </div>
-          <p className="text-muted-foreground">{item.email}</p>
+          <p className="text-muted-foreground">
+            {item.reference_number ? (
+              <span className="font-medium text-foreground">
+                {item.reference_number}
+              </span>
+            ) : null}
+            {item.reference_number ? " · " : null}
+            {item.email}
+          </p>
         </div>
       </div>
 
@@ -216,6 +224,10 @@ export default function RegistrationDetailPage() {
           </CardHeader>
           <CardContent>
             <dl>
+              <DetailRow
+                label="Reference no"
+                value={item.reference_number}
+              />
               <DetailRow label="Full name" value={item.full_name} />
               <DetailRow label="Email" value={item.email} />
               <DetailRow label="Phone" value={item.phone_number} />
@@ -228,7 +240,10 @@ export default function RegistrationDetailPage() {
               <DetailRow label="Graduation year" value={item.graduation_year} />
               <DetailRow
                 label="Degree program"
-                value={degreeProgramLabel(item.degree_program_id)}
+                value={
+                  item.degree_program_name ||
+                  degreeProgramLabel(item.degree_program_id)
+                }
               />
               {item.rejection_reason ? (
                 <DetailRow

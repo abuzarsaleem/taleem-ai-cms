@@ -118,7 +118,9 @@ function NavGroup({
                     active &&
                       "bg-sidebar-accent text-white shadow-[inset_3px_0_0_0_var(--sidebar-primary)] hover:bg-sidebar-accent hover:text-white",
                   )}
-                  render={<NavLink to={item.to} end={item.end} />}
+                  render={
+                    <NavLink to={item.to} end={item.end} state={null} />
+                  }
                   onClick={() => {
                     if (isMobile) setOpenMobile(false)
                   }}

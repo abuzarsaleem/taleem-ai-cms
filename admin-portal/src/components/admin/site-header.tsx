@@ -14,11 +14,13 @@ import {
 } from "@/components/ui/breadcrumb"
 import {
   getBreadcrumbs,
+  trailStateFor,
   type NavTrailState,
 } from "@/lib/nav-trail"
 
 export function SiteHeader() {
-  const { pathname, state } = useLocation()
+  const location = useLocation()
+  const { pathname, state } = location
   const fromTrail = (state as NavTrailState | null)?.fromTrail
   const crumbs = getBreadcrumbs(pathname, fromTrail)
 
@@ -37,7 +39,14 @@ export function SiteHeader() {
                   {isLast || !crumb.to ? (
                     <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                   ) : (
-                    <BreadcrumbLink render={<Link to={crumb.to} />}>
+                    <BreadcrumbLink
+                      render={
+                        <Link
+                          to={crumb.to}
+                          state={trailStateFor(location, crumb.to)}
+                        />
+                      }
+                    >
                       {crumb.label}
                     </BreadcrumbLink>
                   )}

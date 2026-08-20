@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation, useParams } from "react-router-dom"
-import { UserIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowRightIcon, UserIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
 import { BackButton } from "@/components/admin/back-button"
@@ -24,7 +24,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   alumniService,
-  type AdminAlumniListItem,
+  type DirectoryAlumniProfile,
 } from "@/services/alumni.service"
 import {
   contactRequestService,
@@ -76,6 +76,28 @@ function initialsFromName(name: string) {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
 }
 
+function fieldLabel(field: string) {
+  return field
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+}
+
+function requestedFieldsOf(item: ContactRequest) {
+  if (item.requested_fields?.length) return item.requested_fields
+  const match = item.request_reason.match(/Requested:\s*(.+)\s*$/i)
+  if (!match) return []
+  return match[1]
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+}
+
+function reasonText(reason: string) {
+  return reason.replace(/\n*\s*Requested:\s*.+$/i, "").trim() || reason
+}
+
 function DetailRow({
   label,
   value,
@@ -96,17 +118,25 @@ function PersonCard({
   description,
   alumni,
   alumniId,
+  fallbackName,
 }: {
   title: string
   description: string
-  alumni: AdminAlumniListItem | null
+  alumni: DirectoryAlumniProfile | null
   alumniId: string
+  fallbackName?: string | null
 }) {
   const location = useLocation()
-  const name = alumni?.full_name ?? "Unknown alumni"
+  const name = alumni?.full_name ?? fallbackName?.trim() ?? "Unknown alumni"
   const locationLabel = [alumni?.city, alumni?.country].filter(Boolean).join(", ")
-  const jobTitle = alumni?.professional?.job_title ?? alumni?.professional?.role
-  const company = alumni?.professional?.current_company
+  const jobTitle =
+    alumni?.professional?.[0]?.job_title ??
+    alumni?.professional?.[0]?.role ??
+    alumni?.primary_role
+  const company = alumni?.professional?.[0]?.current_company
+  const graduationYear =
+    alumni?.academic?.[0]?.graduation_year ??
+    alumni?.primary_graduation_year
 
   return (
     <Card>
@@ -121,19 +151,28 @@ function PersonCard({
               <AvatarImage src={alumni.photo_url} alt={name} />
             ) : null}
             <AvatarFallback className="rounded-lg text-base">
-              {alumni ? initialsFromName(name) : <UserIcon className="size-6" />}
+              {alumni || fallbackName ? (
+                initialsFromName(name)
+              ) : (
+                <UserIcon className="size-6" />
+              )}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <Link
               to={`/alumni/${alumniId}`}
-              state={withNavTrail(location, { alumni: alumni ?? undefined })}
+              state={withNavTrail(location)}
               className="font-semibold underline-offset-4 hover:underline"
             >
               {name}
             </Link>
             {jobTitle ? (
               <p className="text-sm text-muted-foreground">{jobTitle}</p>
+            ) : null}
+            {graduationYear ? (
+              <p className="text-sm text-muted-foreground">
+                Class of {graduationYear}
+              </p>
             ) : null}
           </div>
         </div>
@@ -143,6 +182,7 @@ function PersonCard({
           <DetailRow label="Phone" value={alumni?.phone_number} />
           <DetailRow label="WhatsApp" value={alumni?.whatsapp_number} />
           <DetailRow label="Location" value={locationLabel} />
+          <DetailRow label="Graduation year" value={graduationYear} />
           <DetailRow label="Company" value={company} />
         </dl>
       </CardContent>
@@ -160,8 +200,8 @@ export default function ContactRequestDetailPage() {
   const [item, setItem] = useState<ContactRequest | null>(
     stateRequest && stateRequest.id === id ? stateRequest : null,
   )
-  const [requester, setRequester] = useState<AdminAlumniListItem | null>(null)
-  const [target, setTarget] = useState<AdminAlumniListItem | null>(null)
+  const [requester, setRequester] = useState<DirectoryAlumniProfile | null>(null)
+  const [target, setTarget] = useState<DirectoryAlumniProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
@@ -175,39 +215,39 @@ export default function ContactRequestDetailPage() {
   useEffect(() => {
     if (!token || !id) return
 
+    const request = stateRequest && stateRequest.id === id ? stateRequest : null
+    if (!request) {
+      setItem(null)
+      setLoading(false)
+      setError("Contact request not found")
+      return
+    }
+
+    setItem(request)
+
     let cancelled = false
 
     void (async () => {
       setLoading(true)
       setError("")
       try {
-        const list = await contactRequestService.list(token)
-        const found = list.find((request) => request.id === id) ?? null
+        const [requesterProfile, targetProfile] = await Promise.all([
+          alumniService
+            .getDirectoryProfile(token, request.requester_alumni_id)
+            .catch(() => null),
+          alumniService
+            .getDirectoryProfile(token, request.target_alumni_id)
+            .catch(() => null),
+        ])
         if (cancelled) return
-        setItem(found)
-
-        if (found) {
-          const alumni = await alumniService
-            .list(token, { page: 1, page_size: 100 })
-            .catch(() => ({ items: [] as AdminAlumniListItem[] }))
-          if (cancelled) return
-          setRequester(
-            alumni.items.find(
-              (row) => row.alumni_id === found.requester_alumni_id,
-            ) ?? null,
-          )
-          setTarget(
-            alumni.items.find(
-              (row) => row.alumni_id === found.target_alumni_id,
-            ) ?? null,
-          )
-        }
+        setRequester(requesterProfile)
+        setTarget(targetProfile)
       } catch (err) {
         if (!cancelled) {
           setError(
             err instanceof ApiError
               ? err.message
-              : "Failed to load contact request",
+              : "Failed to load alumni details",
           )
         }
       } finally {
@@ -218,7 +258,7 @@ export default function ContactRequestDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [token, id])
+  }, [token, id, stateRequest])
 
   function requestReview(action: "APPROVE" | "REJECT") {
     if (action === "REJECT" && !rejectionReason.trim()) {
@@ -294,6 +334,7 @@ export default function ContactRequestDetailPage() {
 
   const canReview =
     item.status === "PENDING_ADMIN" || item.status === "PENDING_ALUMNI"
+  const requestedFields = requestedFieldsOf(item)
 
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -314,18 +355,27 @@ export default function ContactRequestDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 px-4 lg:grid-cols-2 lg:px-6">
+      <div className="grid items-stretch gap-4 px-4 lg:grid-cols-[1fr_auto_1fr] lg:px-6">
         <PersonCard
           title="Requester"
           description="Alumni who sent this request"
           alumni={requester}
           alumniId={item.requester_alumni_id}
+          fallbackName={item.requester_alumni_name}
         />
+        <div className="flex items-center justify-center py-1 lg:px-1">
+          <span className="flex size-10 items-center justify-center rounded-full border bg-card text-muted-foreground">
+            <ArrowDownIcon className="size-4 lg:hidden" />
+            <ArrowRightIcon className="hidden size-4 lg:block" />
+            <span className="sr-only">from requester to</span>
+          </span>
+        </div>
         <PersonCard
           title="To"
           description="Alumni they want to contact"
           alumni={target}
           alumniId={item.target_alumni_id}
+          fallbackName={item.target_alumni_name}
         />
       </div>
 
@@ -337,7 +387,30 @@ export default function ContactRequestDetailPage() {
           </CardHeader>
           <CardContent>
             <dl>
-              <DetailRow label="Reason" value={item.request_reason} />
+              <DetailRow
+                label="Reason"
+                value={reasonText(item.request_reason)}
+              />
+              <DetailRow
+                label="Requested"
+                value={
+                  requestedFields.length ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {requestedFields.map((field) => (
+                        <Badge
+                          key={field}
+                          variant="outline"
+                          className="font-normal capitalize"
+                        >
+                          {fieldLabel(field)}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    "—"
+                  )
+                }
+              />
               <DetailRow label="Status" value={statusLabel(item.status)} />
               {item.rejection_reason ? (
                 <DetailRow

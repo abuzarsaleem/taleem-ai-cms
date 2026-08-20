@@ -23,10 +23,6 @@ import { withNavTrail } from "@/lib/nav-trail"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
-  alumniService,
-  type AdminAlumniListItem,
-} from "@/services/alumni.service"
-import {
   contactRequestService,
   type ContactRequest,
   type ContactRequestStatus,
@@ -109,9 +105,6 @@ export default function ContactRequestsPage() {
   const pageSize = 10
 
   const [items, setItems] = useState<ContactRequest[]>([])
-  const [alumniById, setAlumniById] = useState<
-    Record<string, AdminAlumniListItem>
-  >({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -129,16 +122,8 @@ export default function ContactRequestsPage() {
     setLoading(true)
     setError("")
     try {
-      const [requests, alumni] = await Promise.all([
-        contactRequestService.list(token, statusFilter),
-        alumniService
-          .list(token, { page: 1, page_size: 100 })
-          .catch(() => ({ items: [] as AdminAlumniListItem[] })),
-      ])
+      const requests = await contactRequestService.list(token, statusFilter)
       setItems(requests)
-      const map: Record<string, AdminAlumniListItem> = {}
-      for (const item of alumni.items) map[item.alumni_id] = item
-      setAlumniById(map)
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -169,8 +154,17 @@ export default function ContactRequestsPage() {
     setSearchParams(params)
   }
 
-  function alumniName(id: string) {
-    return alumniById[id]?.full_name ?? id.slice(0, 8)
+  function partyName(
+    item: ContactRequest,
+    party: "requester" | "target",
+  ) {
+    const name =
+      party === "requester"
+        ? item.requester_alumni_name
+        : item.target_alumni_name
+    const id =
+      party === "requester" ? item.requester_alumni_id : item.target_alumni_id
+    return name?.trim() || id.slice(0, 8)
   }
 
   const pagedItems = items.slice((page - 1) * pageSize, page * pageSize)
@@ -302,15 +296,15 @@ export default function ContactRequestsPage() {
                                 className="line-clamp-1 text-left font-medium hover:underline"
                                 onClick={() =>
                                   navigate(`/contact-requests/${item.id}`, {
-                                    state: withNavTrail(location),
+                                    state: withNavTrail(location, { request: item }),
                                   })
                                 }
                               >
                                 {item.request_reason}
                               </button>
                               <div className="mt-0.5 text-xs text-muted-foreground md:hidden">
-                                {alumniName(item.requester_alumni_id)} →{" "}
-                                {alumniName(item.target_alumni_id)}
+                                {partyName(item, "requester")} →{" "}
+                                {partyName(item, "target")}
                               </div>
                             </div>
                           </div>
@@ -319,24 +313,20 @@ export default function ContactRequestsPage() {
                           <div className="text-sm">
                             <Link
                               to={`/alumni/${item.requester_alumni_id}`}
-                              state={withNavTrail(location, {
-                                alumni: alumniById[item.requester_alumni_id],
-                              })}
+                              state={withNavTrail(location)}
                               className="font-medium hover:underline"
                             >
-                              {alumniName(item.requester_alumni_id)}
+                              {partyName(item, "requester")}
                             </Link>
                             <span className="mx-1.5 text-muted-foreground">
                               →
                             </span>
                             <Link
                               to={`/alumni/${item.target_alumni_id}`}
-                              state={withNavTrail(location, {
-                                alumni: alumniById[item.target_alumni_id],
-                              })}
+                              state={withNavTrail(location)}
                               className="font-medium hover:underline"
                             >
-                              {alumniName(item.target_alumni_id)}
+                              {partyName(item, "target")}
                             </Link>
                           </div>
                         </TableCell>
@@ -387,7 +377,7 @@ export default function ContactRequestsPage() {
                               render={
                                 <Link
                                   to={`/contact-requests/${item.id}`}
-                                  state={withNavTrail(location)}
+                                  state={withNavTrail(location, { request: item })}
                                 />
                               }
                             >
@@ -428,7 +418,7 @@ export default function ContactRequestsPage() {
       <ConfirmDialog
         open={Boolean(pendingApprove)}
         title="Approve contact request"
-        description={`Approve the request from ${pendingApprove ? alumniName(pendingApprove.requester_alumni_id) : "this alumni"} to ${pendingApprove ? alumniName(pendingApprove.target_alumni_id) : "the target alumni"}?`}
+        description={`Approve the request from ${pendingApprove ? partyName(pendingApprove, "requester") : "this alumni"} to ${pendingApprove ? partyName(pendingApprove, "target") : "the target alumni"}?`}
         confirmLabel="Approve"
         busy={Boolean(busyId && pendingApprove)}
         onOpenChange={(open) => {
@@ -439,7 +429,7 @@ export default function ContactRequestsPage() {
       <ConfirmDialog
         open={Boolean(pendingReject)}
         title="Reject contact request"
-        description={`Reject the request from ${pendingReject ? alumniName(pendingReject.requester_alumni_id) : "this alumni"}? A reason is required.`}
+        description={`Reject the request from ${pendingReject ? partyName(pendingReject, "requester") : "this alumni"}? A reason is required.`}
         confirmLabel="Reject"
         variant="destructive"
         busy={Boolean(busyId && pendingReject)}

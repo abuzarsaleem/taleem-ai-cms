@@ -11,8 +11,11 @@ export type ContactRequestStatus =
 export type ContactRequest = {
   id: string
   requester_alumni_id: string
+  requester_alumni_name?: string | null
   target_alumni_id: string
+  target_alumni_name?: string | null
   request_reason: string
+  requested_fields?: string[]
   status: ContactRequestStatus
   admin_id: string | null
   rejection_reason: string | null
