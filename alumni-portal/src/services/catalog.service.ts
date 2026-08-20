@@ -1,10 +1,20 @@
 import { apiClient } from "@/lib/api-client"
 import type { ApiResponse } from "@/types/api"
-import type { DegreeProgram } from "@/types/portal"
+import type { Campus, DegreeProgram } from "@/types/portal"
 
 let cachedPrograms: DegreeProgram[] | null = null
+let cachedCampuses: Campus[] | null = null
 
 export const catalogService = {
+  async listCampuses(): Promise<Campus[]> {
+    if (cachedCampuses) return cachedCampuses
+    const { data } = await apiClient.get<ApiResponse<Campus[]>>(
+      "/catalog/campuses",
+    )
+    cachedCampuses = data.data
+    return cachedCampuses
+  },
+
   async listDegreePrograms(campusId?: string): Promise<DegreeProgram[]> {
     const { data } = await apiClient.get<ApiResponse<DegreeProgram[]>>(
       "/catalog/degree-programs",

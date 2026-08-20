@@ -26,6 +26,14 @@ export const profileService = {
     )
     return data.data
   },
+
+  /** Authenticated photo bytes — avoids storage CORS for PDF export. */
+  async getMyPhotoBlob(): Promise<Blob> {
+    const { data } = await apiClient.get<Blob>("/me/photo", {
+      responseType: "blob",
+    })
+    return data
+  },
 }
 
 export const careerService = {

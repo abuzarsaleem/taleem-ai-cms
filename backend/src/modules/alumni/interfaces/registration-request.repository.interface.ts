@@ -11,6 +11,7 @@ export interface CreateRegistrationRequestInput {
   registrationRollNumber: string;
   graduationYear: string;
   photoMediaId?: string | null;
+  referenceNumber: string;
 }
 
 export interface IRegistrationRequestRepository {
@@ -21,6 +22,7 @@ export interface IRegistrationRequestRepository {
   findByEmail(email: string): Promise<AlumniRegistrationRequest | null>;
   findByCnic(cnic: string): Promise<AlumniRegistrationRequest | null>;
   findAll(status?: RegistrationStatus): Promise<AlumniRegistrationRequest[]>;
+  nextReferenceNumber(year?: number): Promise<string>;
   update(
     id: string,
     patch: Partial<AlumniRegistrationRequest>,

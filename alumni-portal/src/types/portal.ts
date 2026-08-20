@@ -58,6 +58,7 @@ export type ProfileProfessional = {
 /** Matches Swagger AlumniProfileResponseDto */
 export type AlumniProfile = {
   alumni_id: string
+  public_alumni_code: string
   full_name: string
   email: string
   status: string
@@ -121,6 +122,13 @@ export type UpdateAcademicPayload = {
   cgpa?: number | null
 }
 
+export type Campus = {
+  id: string
+  code: string
+  name: string
+  city: string
+}
+
 export type DegreeProgram = {
   id: string
   degree_id: string
@@ -134,6 +142,7 @@ export type ContactRequest = {
   requester_alumni_id: string
   target_alumni_id: string
   request_reason: string
+  requested_fields: Array<"email" | "mobile" | "whatsapp">
   status: string
   admin_id: string | null
   rejection_reason: string | null

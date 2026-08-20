@@ -32,6 +32,36 @@ export class ProfileService {
     return this.toResponse(profile);
   }
 
+  /** Fetch profile photo bytes server-side (avoids browser CORS on object storage). */
+  async getMyPhotoBytes(userId: string): Promise<{
+    buffer: Buffer;
+    contentType: string;
+  }> {
+    const profile = await this.alumniRepository.findByUserId(userId);
+    if (!profile) {
+      throw new ResourceNotFoundException('Alumni profile for user', userId);
+    }
+    const photoUrl = await this.portalMediaService.resolvePublicUrl(
+      profile.alumni.photoMedia,
+    );
+    if (!photoUrl) {
+      throw new ResourceNotFoundException('Alumni photo for user', userId);
+    }
+
+    const response = await fetch(photoUrl);
+    if (!response.ok) {
+      this.logger.warn(
+        `PHOTO_PROXY_FAILED userId=${userId} status=${response.status}`,
+      );
+      throw new ResourceNotFoundException('Alumni photo for user', userId);
+    }
+    const contentType =
+      response.headers.get('content-type')?.split(';')[0]?.trim() ||
+      'image/jpeg';
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return { buffer, contentType };
+  }
+
   async updateMyProfile(userId: string, dto: UpdateProfileDto) {
     const profile = await this.alumniRepository.findByUserId(userId);
     if (!profile) {
@@ -82,6 +112,7 @@ export class ProfileService {
 
     return {
       alumni_id: a.id,
+      public_alumni_code: a.publicAlumniCode,
       full_name: a.fullName,
       email: a.email,
       status: a.status,

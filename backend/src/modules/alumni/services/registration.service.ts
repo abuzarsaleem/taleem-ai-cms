@@ -47,6 +47,9 @@ export class RegistrationService {
       photoMediaId = dto.media_id;
     }
 
+    const referenceNumber =
+      await this.registrationRepository.nextReferenceNumber();
+
     const created = await this.registrationRepository.create({
       fullName: dto.full_name,
       email: dto.email,
@@ -56,11 +59,12 @@ export class RegistrationService {
       degreeProgramId: dto.degree_program_id,
       registrationRollNumber: dto.registration_roll_number,
       graduationYear: dto.graduation_year,
+      referenceNumber,
       photoMediaId,
     });
 
     this.logger.log(
-      `ALUMNI_REGISTER_SUBMITTED requestId=${created.id} email=${created.email}`,
+      `ALUMNI_REGISTER_SUBMITTED requestId=${created.id} email=${created.email} reference=${created.referenceNumber}`,
     );
 
     const photo_url = await this.portalMediaService.resolvePublicUrl(
@@ -69,6 +73,7 @@ export class RegistrationService {
 
     return {
       registration_id: created.id,
+      reference_number: created.referenceNumber,
       status: created.status,
       submitted_at: created.createdAt,
       photo_url,

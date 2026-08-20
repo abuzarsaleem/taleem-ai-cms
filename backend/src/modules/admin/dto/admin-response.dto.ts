@@ -8,6 +8,9 @@ export class RegistrationListItemDto {
   @ApiProperty()
   registration_id: string;
 
+  @ApiProperty({ example: 'ALM-2026-0003847' })
+  reference_number: string;
+
   @ApiProperty()
   full_name: string;
 
@@ -49,6 +52,9 @@ export class RegistrationListItemDto {
 export class RegistrationAlumniSummaryDto {
   @ApiProperty()
   alumni_id: string;
+
+  @ApiProperty({ example: 'ALM-2026-0003847' })
+  public_alumni_code: string;
 
   @ApiProperty({ enum: AlumniStatus })
   status: AlumniStatus;

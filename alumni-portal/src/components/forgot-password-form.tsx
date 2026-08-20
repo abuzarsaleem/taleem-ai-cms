@@ -1,23 +1,16 @@
 import { useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
 
-import { AuthBrandPanel } from "@/components/auth-brand-panel"
-import { cn } from "@/lib/utils"
-import { ApiError, apiRequest } from "@/lib/api"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
+  AuthFieldLabel,
+  AuthFlowLayout,
+} from "@/components/auth-flow-layout"
+import { Button } from "@/components/ui/button"
+import { Field, FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { ApiError, apiRequest } from "@/lib/api"
 
-export function ForgotPasswordForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function ForgotPasswordForm() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
@@ -30,12 +23,15 @@ export function ForgotPasswordForm({
 
     const form = new FormData(event.currentTarget)
     try {
-      const data = await apiRequest<{ message?: string }>("/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({
-          email: form.get("email"),
-        }),
-      })
+      const data = await apiRequest<{ message?: string }>(
+        "/auth/forgot-password",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: form.get("email"),
+          }),
+        },
+      )
       setError("")
       setSuccess(
         data.message ??
@@ -52,63 +48,64 @@ export function ForgotPasswordForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0 shadow-xl ring-foreground/8">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8" onSubmit={onSubmit}>
-            <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Forgot password
-                </h1>
-                <p className="text-balance text-sm text-muted-foreground">
-                  Enter your email and we&apos;ll send a secure reset link
-                </p>
-              </div>
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  required
-                  className="h-10"
-                />
-              </Field>
-              {error ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              ) : success ? (
-                <p className="text-sm text-[#0b4d3c]" role="status">
-                  {success}
-                </p>
-              ) : null}
-              <Field>
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
-                  disabled={loading}
-                >
-                  {loading ? "Sending…" : "Send reset link"}
-                </Button>
-              </Field>
-              <FieldDescription className="text-center">
-                Remembered your password?{" "}
-                <Link to="/login" className="font-medium text-[#0b4d3c]">
-                  Login
-                </Link>
-              </FieldDescription>
-            </FieldGroup>
-          </form>
-          <AuthBrandPanel
-            heading="Recover access securely"
-            description="Reset links expire automatically. We never ask you to paste a token into the page."
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <AuthFlowLayout
+      eyebrow="Account recovery"
+      title="Reset password"
+      description="Enter your email and we will send a secure reset link. Tokens are never shown on screen."
+    >
+      <form onSubmit={onSubmit} className="mx-auto w-full max-w-md">
+        <FieldGroup className="gap-5">
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-[#1e8f97] uppercase">
+              Forgot password
+            </p>
+            <h2 className="font-display mt-2 text-2xl font-semibold tracking-tight text-primary">
+              Recover access
+            </h2>
+          </div>
+
+          <Field>
+            <AuthFieldLabel htmlFor="email">Email</AuthFieldLabel>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              className="h-11"
+            />
+          </Field>
+
+          {error ? (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          ) : success ? (
+            <p
+              className="rounded-xl border border-[#159570]/25 bg-[#159570]/8 px-3 py-2 text-sm text-[#0f6b52]"
+              role="status"
+            >
+              {success}
+            </p>
+          ) : null}
+
+          <Button
+            type="submit"
+            size="lg"
+            disabled={loading}
+            className="h-11 w-full tracking-wide uppercase"
+          >
+            {loading ? "Sending…" : "Send reset link"}
+          </Button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Remembered your password?{" "}
+            <Link to="/login" className="font-semibold text-primary">
+              Login
+            </Link>
+          </p>
+        </FieldGroup>
+      </form>
+    </AuthFlowLayout>
   )
 }

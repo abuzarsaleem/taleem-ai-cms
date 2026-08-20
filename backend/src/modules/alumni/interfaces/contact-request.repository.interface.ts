@@ -5,6 +5,7 @@ export class AlumniContactRequest {
   requesterAlumniId: string;
   targetAlumniId: string;
   requestReason: string;
+  requestedFields: string[];
   status: ContactRequestStatus;
   adminId: string | null;
   rejectionReason: string | null;
@@ -16,6 +17,7 @@ export interface CreateContactRequestInput {
   requesterAlumniId: string;
   targetAlumniId: string;
   requestReason: string;
+  requestedFields: string[];
 }
 
 export interface IContactRequestRepository {

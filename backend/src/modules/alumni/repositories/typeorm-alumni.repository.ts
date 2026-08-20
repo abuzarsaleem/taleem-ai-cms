@@ -50,6 +50,7 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       country: null,
       linkedinUrl: null,
       qrCode: '',
+      publicAlumniCode: input.publicAlumniCode,
       photoMediaId: input.photoMediaId ?? null,
     });
     const saved = await this.alumniRepo.save(alumni);
@@ -472,6 +473,7 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
       country: entity.country,
       linkedinUrl: entity.linkedinUrl,
       qrCode: entity.qrCode,
+      publicAlumniCode: entity.publicAlumniCode,
       photoMediaId: entity.photoMediaId,
       photoMedia: entity.photoMedia
         ? {

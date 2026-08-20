@@ -14,6 +14,7 @@ export interface CreateAlumniInput {
   whatsappNumber?: string | null;
   cnicNationalId: string;
   photoMediaId?: string | null;
+  publicAlumniCode: string;
   academic: {
     degreeProgramId: string;
     registrationRollNumber: string;

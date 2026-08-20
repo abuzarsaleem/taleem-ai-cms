@@ -19,6 +19,7 @@ export class Alumni {
   country: string | null;
   linkedinUrl: string | null;
   qrCode: string;
+  publicAlumniCode: string;
   photoMediaId: string | null;
   photoMedia?: PortalMediaRef | null;
   createdAt: Date;

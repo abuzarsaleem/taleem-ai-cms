@@ -16,6 +16,12 @@ export class RegisterResponseDto {
   @ApiProperty()
   registration_id: string;
 
+  @ApiProperty({
+    example: 'ALM-2026-0003847',
+    description: 'Human-readable registration / lifelong alumni code',
+  })
+  reference_number: string;
+
   @ApiProperty({ enum: RegistrationStatus })
   status: RegistrationStatus;
 

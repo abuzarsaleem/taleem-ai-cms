@@ -76,6 +76,7 @@ export class RegistrationReviewService {
       alumni: alumni
         ? {
             alumni_id: alumni.alumni.id,
+            public_alumni_code: alumni.alumni.publicAlumniCode,
             status: alumni.alumni.status,
             user_id: alumni.alumni.userId,
             photo_url: await this.portalMediaService.resolvePublicUrl(
@@ -125,6 +126,7 @@ export class RegistrationReviewService {
   private async toListItem(request: AlumniRegistrationRequest) {
     return {
       registration_id: request.id,
+      reference_number: request.referenceNumber,
       full_name: request.fullName,
       email: request.email,
       phone_number: request.phoneNumber,

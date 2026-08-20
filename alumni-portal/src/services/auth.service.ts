@@ -27,6 +27,7 @@ export type RegisterPayload = {
 
 export type RegisterResponse = {
   registration_id: string
+  reference_number: string
   status: string
   submitted_at: string
   photo_url?: string | null
@@ -68,6 +69,7 @@ export const authService = {
     return (
       data.data ?? {
         registration_id: "",
+        reference_number: "",
         status: "PENDING",
         submitted_at: new Date().toISOString(),
         message: data.message || "Registration submitted",

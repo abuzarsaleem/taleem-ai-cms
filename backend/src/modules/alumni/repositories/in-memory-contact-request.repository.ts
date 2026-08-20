@@ -22,6 +22,7 @@ export class InMemoryContactRequestRepository
       requesterAlumniId: input.requesterAlumniId,
       targetAlumniId: input.targetAlumniId,
       requestReason: input.requestReason.trim(),
+      requestedFields: [...input.requestedFields],
       status: ContactRequestStatus.PENDING_ADMIN,
       adminId: null,
       rejectionReason: null,

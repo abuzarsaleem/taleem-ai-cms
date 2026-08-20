@@ -44,6 +44,7 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
       country: null,
       linkedinUrl: null,
       qrCode: '',
+      publicAlumniCode: input.publicAlumniCode,
       photoMediaId: input.photoMediaId ?? null,
       createdAt: now,
       updatedAt: now,

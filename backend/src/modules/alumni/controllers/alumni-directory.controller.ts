@@ -91,6 +91,7 @@ export class AlumniDirectoryController {
       user.userId,
       dto.target_alumni_id,
       dto.request_reason,
+      dto.requested_fields,
     );
     return ApiResponseDto.of(data, 'Contact request submitted');
   }

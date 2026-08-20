@@ -94,6 +94,13 @@ export class ContactRequestResponseDto {
   @ApiProperty()
   request_reason: string;
 
+  @ApiProperty({
+    isArray: true,
+    enum: ['email', 'mobile', 'whatsapp'],
+    example: ['email', 'mobile'],
+  })
+  requested_fields: string[];
+
   @ApiProperty({ enum: ContactRequestStatus })
   status: ContactRequestStatus;
 

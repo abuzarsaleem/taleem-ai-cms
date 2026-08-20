@@ -97,6 +97,10 @@ export class AlumniEntity {
   @Column({ name: 'qr_code', type: 'text', default: '' })
   qrCode: string;
 
+  @Index({ unique: true })
+  @Column({ name: 'public_alumni_code', type: 'varchar', length: 32 })
+  publicAlumniCode: string;
+
   @Column({ name: 'photo_media_id', type: 'uuid', nullable: true })
   photoMediaId: string | null;
 

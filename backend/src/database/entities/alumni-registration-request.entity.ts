@@ -62,6 +62,10 @@ export class AlumniRegistrationRequestEntity {
   @Column({ name: 'graduation_year', type: 'varchar', length: 20 })
   graduationYear: string;
 
+  @Index({ unique: true })
+  @Column({ name: 'reference_number', type: 'varchar', length: 32 })
+  referenceNumber: string;
+
   @Column({ name: 'photo_media_id', type: 'uuid', nullable: true })
   photoMediaId: string | null;
 

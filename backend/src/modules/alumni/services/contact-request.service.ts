@@ -4,7 +4,10 @@ import {
   CONTACT_REQUEST_REPOSITORY,
   NOTIFICATION_SENDER,
 } from '../../../common/constants/tokens';
-import { ContactRequestStatus } from '../../../common/enums';
+import {
+  ContactRequestedField,
+  ContactRequestStatus,
+} from '../../../common/enums';
 import {
   BusinessException,
   ResourceNotFoundException,
@@ -27,7 +30,12 @@ export class ContactRequestService {
     private readonly notificationSender: INotificationSender,
   ) {}
 
-  async create(viewerUserId: string, targetAlumniId: string, reason: string) {
+  async create(
+    viewerUserId: string,
+    targetAlumniId: string,
+    reason: string,
+    requestedFields: ContactRequestedField[],
+  ) {
     const requester = await this.requireAlumniByUser(viewerUserId);
     if (requester.alumni.id === targetAlumniId) {
       throw new BusinessException('Cannot request contact with yourself');
@@ -50,14 +58,17 @@ export class ContactRequestService {
       );
     }
 
+    const uniqueFields = [...new Set(requestedFields)];
+
     const created = await this.contactRequestRepository.create({
       requesterAlumniId: requester.alumni.id,
       targetAlumniId,
       requestReason: reason,
+      requestedFields: uniqueFields,
     });
 
     this.logger.log(
-      `CONTACT_REQUEST_CREATED id=${created.id} requester=${requester.alumni.id} target=${targetAlumniId}`,
+      `CONTACT_REQUEST_CREATED id=${created.id} requester=${requester.alumni.id} target=${targetAlumniId} fields=${uniqueFields.join(',')}`,
     );
 
     return this.toResponse(created);
@@ -158,6 +169,7 @@ export class ContactRequestService {
     requesterAlumniId: string;
     targetAlumniId: string;
     requestReason: string;
+    requestedFields: string[];
     status: ContactRequestStatus;
     adminId: string | null;
     rejectionReason: string | null;
@@ -169,6 +181,7 @@ export class ContactRequestService {
       requester_alumni_id: row.requesterAlumniId,
       target_alumni_id: row.targetAlumniId,
       request_reason: row.requestReason,
+      requested_fields: row.requestedFields ?? [],
       status: row.status,
       admin_id: row.adminId,
       rejection_reason: row.rejectionReason,

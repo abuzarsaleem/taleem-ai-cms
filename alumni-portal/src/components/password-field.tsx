@@ -1,8 +1,9 @@
 import { Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
 
+import { AuthFieldLabel } from "@/components/auth-flow-layout"
 import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { PASSWORD_HINT } from "@/lib/password-rules"
 
@@ -25,7 +26,7 @@ export function PasswordField({
 
   return (
     <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <AuthFieldLabel htmlFor={id}>{label}</AuthFieldLabel>
       <div className="relative">
         <Input
           id={id}
@@ -34,7 +35,7 @@ export function PasswordField({
           autoComplete={autoComplete}
           minLength={minLength}
           required
-          className="h-10 pr-10"
+          className="h-11 pr-10"
         />
         <Button
           type="button"

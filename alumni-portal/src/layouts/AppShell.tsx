@@ -1,48 +1,23 @@
-import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import {
   Bell,
   CalendarDays,
-  ChevronRight,
+  ContactRound,
   Home,
   IdCard,
   LogOut,
   Megaphone,
+  Search,
+  Settings,
+  User,
   Users,
 } from "lucide-react"
 import { useState } from "react"
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthContext"
 import { BrandLogo } from "@/components/brand-logo"
-import { PortalRails } from "@/components/portal-rails"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Button } from "@/components/ui/button"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { useNotifications } from "@/hooks/use-notifications"
 import { cn } from "@/lib/utils"
-import type { NotificationItem } from "@/services/notifications.service"
-
-const primaryNav = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/directory", label: "Directory", icon: Users },
-  { to: "/events", label: "Events", icon: CalendarDays },
-  { to: "/announcements", label: "Announcements", icon: Megaphone },
-] as const
-
-function notificationHref(item: NotificationItem) {
-  if (item.type === "alumni") return `/directory/${item.id}`
-  if (item.type === "event") return `/events/${item.id}`
-  return `/announcements/${item.id}`
-}
-
-function notificationLabel(item: NotificationItem) {
-  if (item.type === "alumni") return `New alumni · ${item.title}`
-  if (item.type === "event") return `Event · ${item.title}`
-  return `Announcement · ${item.title}`
-}
 
 function initials(name: string) {
   return name
@@ -51,6 +26,92 @@ function initials(name: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("")
+}
+
+type NavItem = {
+  to: string
+  label: string
+  icon: typeof Home
+  end?: boolean
+}
+
+const workspaceNav: NavItem[] = [
+  { to: "/home", label: "Dashboard", icon: Home, end: true },
+  { to: "/profile", label: "My Profile", icon: User },
+  { to: "/directory", label: "Directory", icon: Users },
+  { to: "/contact-requests", label: "My Contacts", icon: ContactRound },
+  { to: "/events", label: "Events", icon: CalendarDays },
+  { to: "/announcements", label: "Announcements", icon: Megaphone },
+]
+
+const identityNav: NavItem[] = [
+  { to: "/card", label: "Digital ID", icon: IdCard },
+]
+
+const accountNav: NavItem[] = [
+  { to: "/notifications", label: "Notifications", icon: Bell },
+  { to: "/settings", label: "Settings", icon: Settings },
+]
+
+const mobileNav: NavItem[] = [
+  { to: "/home", label: "Home", icon: Home, end: true },
+  { to: "/directory", label: "Directory", icon: Users },
+  { to: "/events", label: "Events", icon: CalendarDays },
+  { to: "/card", label: "ID", icon: IdCard },
+  { to: "/profile", label: "You", icon: User },
+]
+
+function SidebarLink({ item, badge }: { item: NavItem; badge?: number }) {
+  const Icon = item.icon
+  return (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      className={({ isActive }) =>
+        cn(
+          "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors",
+          isActive
+            ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-white",
+        )
+      }
+    >
+      <Icon className="size-[18px] shrink-0 opacity-90" strokeWidth={1.75} />
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {badge && badge > 0 ? (
+        <span className="rounded-full bg-[#ef5c67] px-1.5 py-0.5 text-[10px] font-bold text-white">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
+    </NavLink>
+  )
+}
+
+function NavSection({
+  label,
+  items,
+  unread,
+}: {
+  label: string
+  items: NavItem[]
+  unread?: number
+}) {
+  return (
+    <>
+      <p className="px-3 pt-4 pb-2 text-[10px] font-semibold tracking-[0.14em] text-[#91a4c8] uppercase">
+        {label}
+      </p>
+      <nav className="space-y-0.5">
+        {items.map((item) => (
+          <SidebarLink
+            key={item.to}
+            item={item}
+            badge={item.to === "/notifications" ? unread : undefined}
+          />
+        ))}
+      </nav>
+    </>
+  )
 }
 
 export function AppShell({
@@ -63,245 +124,159 @@ export function AppShell({
   const { clearSession } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [meOpen, setMeOpen] = useState(false)
-  const [notifyOpen, setNotifyOpen] = useState(false)
-  const { summary, markSeen } = useNotifications()
+  const [search, setSearch] = useState("")
+  const { summary } = useNotifications()
   const unread = summary.unread_count
 
   function logout() {
-    setMeOpen(false)
     clearSession()
     navigate("/login")
   }
 
+  function onSearchSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    const term = search.trim()
+    if (term) {
+      navigate(`/directory?name=${encodeURIComponent(term)}`)
+    } else {
+      navigate("/directory")
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border bg-card print:hidden">
-        <div className="mx-auto flex h-14 max-w-[1128px] items-center gap-3 px-3 sm:px-4">
-          <NavLink
-            to="/home"
-            className="flex shrink-0 items-center outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <BrandLogo className="h-9 max-w-[148px] sm:h-10 sm:max-w-[180px]" />
+      {/* Sidebar — desktop */}
+      <aside className="portal-sidebar fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col px-3.5 py-5 text-sidebar-foreground md:flex print:hidden">
+        <div className="px-1 pb-5">
+          <NavLink to="/home" className="block outline-none">
+            <BrandLogo onDark className="h-10 max-w-[200px]" />
           </NavLink>
+          <p className="mt-2 px-1.5 text-[10px] text-[#91a4c8]">
+            University Network
+          </p>
+        </div>
 
-          <nav className="mx-auto flex h-full min-w-0 flex-1 items-stretch justify-center md:max-w-[520px]">
-            {primaryNav.map((item) => {
-              const Icon = item.icon
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    cn(
-                      "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium transition-colors",
-                      isActive
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <Icon
-                        className="size-5 sm:size-[22px]"
-                        strokeWidth={isActive ? 2.25 : 1.75}
-                      />
-                      <span className="max-w-full truncate leading-none">
-                        {item.label}
-                      </span>
-                      <span
-                        aria-hidden
-                        className={cn(
-                          "absolute inset-x-2 bottom-0 h-[2px] rounded-t-full bg-foreground transition-opacity",
-                          isActive ? "opacity-100" : "opacity-0",
-                        )}
-                      />
-                    </>
-                  )}
-                </NavLink>
-              )
-            })}
-          </nav>
+        <div className="mt-2 flex-1 overflow-y-auto">
+          <NavSection label="Workspace" items={workspaceNav} />
+          <NavSection label="Identity" items={identityNav} />
+          <NavSection
+            label="Account"
+            items={accountNav}
+            unread={unread}
+          />
+        </div>
 
-          <div className="flex h-full shrink-0 items-center gap-0.5 border-l border-border pl-2 sm:pl-3">
-            <ThemeToggle />
-            <Popover
-              open={notifyOpen}
-              onOpenChange={(open) => {
-                setNotifyOpen(open)
-                if (open) markSeen()
-              }}
+        <div className="mt-auto border-t border-sidebar-border pt-4">
+          <div className="flex items-center gap-2.5 rounded-[14px] bg-white/8 p-2.5">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt=""
+                className="size-9 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#d7f4f2] to-[#b8d4ff] text-xs font-extrabold text-primary">
+                {initials(fullName)}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-white">
+                {fullName.split(/\s+/)[0] ?? fullName}
+              </p>
+              <p className="text-[11px] text-[#9fb0ce]">Verified Alumni</p>
+            </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-lg p-1.5 text-[#9fb0ce] hover:bg-white/10 hover:text-white"
+              aria-label="Sign out"
             >
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="relative size-9 text-muted-foreground"
-                    aria-label="Notifications"
-                  />
-                }
-              >
-                <Bell className="size-5" />
-                {unread > 0 ? (
-                  <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
-                    {unread > 99 ? "99+" : unread}
-                  </span>
-                ) : null}
-              </PopoverTrigger>
-              <PopoverContent align="end" sideOffset={8} className="w-[320px] p-0">
-                <div className="border-b border-border px-3 py-2.5">
-                  <p className="text-sm font-semibold">Notifications</p>
-                  <p className="text-xs text-muted-foreground">
-                    New alumni, events, and announcements
-                  </p>
-                </div>
-                {summary.items.length === 0 ? (
-                  <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                    You’re all caught up
-                  </p>
-                ) : (
-                  <ul className="max-h-80 overflow-y-auto">
-                    {summary.items.map((item) => (
-                      <li key={`${item.type}-${item.id}`}>
-                        <button
-                          type="button"
-                          className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm hover:bg-muted"
-                          onClick={() => {
-                            setNotifyOpen(false)
-                            navigate(notificationHref(item), {
-                              state: {
-                                from: `${location.pathname}${location.search}`,
-                              },
-                            })
-                          }}
-                        >
-                          <span className="mt-0.5 text-muted-foreground">
-                            {item.type === "alumni" ? (
-                              <Users className="size-4" />
-                            ) : item.type === "event" ? (
-                              <CalendarDays className="size-4" />
-                            ) : (
-                              <Megaphone className="size-4" />
-                            )}
-                          </span>
-                          <span className="min-w-0 flex-1 leading-snug">
-                            {notificationLabel(item)}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={meOpen} onOpenChange={setMeOpen}>
-              <PopoverTrigger
-                render={
-                  <button
-                    type="button"
-                    className="ml-0.5 flex h-full flex-col items-center justify-center gap-0.5 rounded px-1.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                }
-              >
-                {photoUrl ? (
-                  <img
-                    src={photoUrl}
-                    alt=""
-                    className="size-6 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-                    {initials(fullName)}
-                  </div>
-                )}
-                <span className="hidden text-[11px] font-medium text-muted-foreground sm:inline">
-                  Me
-                </span>
-              </PopoverTrigger>
-              <PopoverContent
-                align="end"
-                sideOffset={8}
-                className="w-[300px] overflow-hidden p-0"
-              >
-                <div className="h-14 bg-[linear-gradient(105deg,oklch(0.42_0.12_250),oklch(0.48_0.08_220))]" />
-                <div className="-mt-8 px-4 pb-4">
-                  <div className="flex items-end gap-3">
-                    {photoUrl ? (
-                      <img
-                        src={photoUrl}
-                        alt=""
-                        className="size-16 rounded-full object-cover ring-2 ring-card"
-                      />
-                    ) : (
-                      <div className="flex size-16 items-center justify-center rounded-full bg-primary text-base font-semibold text-primary-foreground ring-2 ring-card">
-                        {initials(fullName)}
-                      </div>
-                    )}
-                    <div className="min-w-0 pb-1">
-                      <p className="truncate text-[16px] font-semibold leading-tight">
-                        {fullName}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Alumni member
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 h-8 w-full rounded-full border-primary/35 font-medium text-primary hover:bg-primary/8"
-                    onClick={() => {
-                      setMeOpen(false)
-                      navigate("/profile", { state: { openPersonal: true } })
-                    }}
-                  >
-                    View profile
-                  </Button>
-                </div>
-                <div className="border-t border-border px-2 py-2">
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-muted"
-                    onClick={() => {
-                      setMeOpen(false)
-                      navigate("/card")
-                    }}
-                  >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-500/12 text-violet-600 dark:text-violet-400">
-                      <IdCard className="size-4" />
-                    </span>
-                    <span className="min-w-0 flex-1 text-left font-medium">
-                      Alumni card
-                    </span>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </button>
-                </div>
-                <div className="border-t border-border px-2 py-2">
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-destructive transition-colors hover:bg-destructive/8"
-                    onClick={logout}
-                  >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-                      <LogOut className="size-4" />
-                    </span>
-                    <span className="min-w-0 flex-1 text-left font-medium">
-                      Sign out
-                    </span>
-                  </button>
-                </div>
-              </PopoverContent>
-            </Popover>
+              <LogOut className="size-4" />
+            </button>
           </div>
         </div>
-      </header>
+      </aside>
 
-      <main className="mx-auto w-full max-w-[1128px] px-2 py-4 sm:px-4 sm:py-6">
-        <PortalRails fullName={fullName} photoUrl={photoUrl} />
-      </main>
+      {/* Main column */}
+      <div className="md:ml-[248px]">
+        <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-4 border-b border-border bg-white/92 px-4 backdrop-blur-xl sm:px-8 print:hidden">
+          <form
+            onSubmit={onSearchSubmit}
+            className="flex max-w-[430px] flex-1 items-center gap-2 rounded-xl border border-transparent bg-[#f2f5f9] px-3 py-2"
+          >
+            <Search className="size-4 shrink-0 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search alumni, events, announcements..."
+              className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none"
+            />
+          </form>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/notifications")}
+              className="relative grid size-10 place-items-center rounded-xl border border-border bg-white"
+              aria-label="Notifications"
+            >
+              <Bell className="size-[18px] text-foreground" />
+              {unread > 0 ? (
+                <span className="absolute top-1.5 right-2 size-2 rounded-full border-2 border-white bg-[#ef5c67]" />
+              ) : null}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/profile")}
+              className="grid size-10 place-items-center overflow-hidden rounded-xl border border-border bg-white"
+              aria-label="Profile"
+            >
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt=""
+                  className="size-7 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#d7f4f2] to-[#b8d4ff] text-[10px] font-extrabold text-primary">
+                  {initials(fullName)}
+                </span>
+              )}
+            </button>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-[1500px] px-4 pt-8 pb-24 sm:px-8 sm:pt-10 sm:pb-10 md:pb-10">
+          <Outlet
+            context={{ fullName, photoUrl, pathname: location.pathname }}
+          />
+        </main>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex h-[68px] items-stretch justify-around border-t border-border bg-white px-2 pb-1 md:hidden print:hidden">
+        {mobileNav.map((item) => {
+          const Icon = item.icon
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                cn(
+                  "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px]",
+                  isActive
+                    ? "font-extrabold text-primary"
+                    : "font-medium text-muted-foreground",
+                )
+              }
+            >
+              <Icon className="size-5" strokeWidth={1.75} />
+              {item.label}
+            </NavLink>
+          )
+        })}
+      </nav>
     </div>
   )
 }

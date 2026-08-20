@@ -12,6 +12,10 @@ import {
   CreateRegistrationRequestInput,
   IRegistrationRequestRepository,
 } from '../interfaces/registration-request.repository.interface';
+import {
+  formatAlumniReference,
+  parseAlumniReferenceSequence,
+} from '../utils/alumni-reference';
 
 const REGISTRATION_RELATIONS: FindOptionsRelations<AlumniRegistrationRequestEntity> =
   {
@@ -44,6 +48,7 @@ export class TypeOrmRegistrationRequestRepository
       degreeProgramId: input.degreeProgramId,
       registrationRollNumber: input.registrationRollNumber,
       graduationYear: input.graduationYear,
+      referenceNumber: input.referenceNumber,
       photoMediaId: input.photoMediaId ?? null,
       reviewedBy: null,
       reviewedAt: null,
@@ -56,6 +61,20 @@ export class TypeOrmRegistrationRequestRepository
         relations: REGISTRATION_RELATIONS,
       })) ?? saved,
     );
+  }
+
+  async nextReferenceNumber(year = new Date().getFullYear()): Promise<string> {
+    const prefix = `ALM-${year}-`;
+    const rows = await this.repo
+      .createQueryBuilder('r')
+      .select('r.reference_number', 'reference_number')
+      .where('r.reference_number LIKE :prefix', { prefix: `${prefix}%` })
+      .orderBy('r.reference_number', 'DESC')
+      .limit(1)
+      .getRawMany<{ reference_number: string }>();
+
+    const latest = parseAlumniReferenceSequence(rows[0]?.reference_number);
+    return formatAlumniReference(year, (latest ?? 0) + 1);
   }
 
   async findById(id: string): Promise<AlumniRegistrationRequest | null> {
@@ -128,6 +147,7 @@ export class TypeOrmRegistrationRequestRepository
         }) ?? degreeProgramNameFromSeed(entity.degreeProgramId),
       registrationRollNumber: entity.registrationRollNumber,
       graduationYear: entity.graduationYear,
+      referenceNumber: entity.referenceNumber,
       photoMediaId: entity.photoMediaId,
       photoMedia: entity.photoMedia
         ? {

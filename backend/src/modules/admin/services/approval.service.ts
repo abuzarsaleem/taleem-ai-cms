@@ -100,6 +100,7 @@ export class ApprovalService {
         whatsappNumber: request.whatsappNumber,
         cnicNationalId: request.cnicNationalId,
         photoMediaId: request.photoMediaId,
+        publicAlumniCode: request.referenceNumber,
         academic: {
           degreeProgramId: request.degreeProgramId,
           registrationRollNumber: request.registrationRollNumber,

@@ -9,6 +9,10 @@ import {
   CreateRegistrationRequestInput,
   IRegistrationRequestRepository,
 } from '../interfaces/registration-request.repository.interface';
+import {
+  formatAlumniReference,
+  parseAlumniReferenceSequence,
+} from '../utils/alumni-reference';
 
 @Injectable()
 export class InMemoryRegistrationRequestRepository
@@ -32,6 +36,7 @@ export class InMemoryRegistrationRequestRepository
       degreeProgramName: degreeProgramNameFromSeed(input.degreeProgramId),
       registrationRollNumber: input.registrationRollNumber,
       graduationYear: input.graduationYear,
+      referenceNumber: input.referenceNumber,
       photoMediaId: input.photoMediaId ?? null,
       reviewedBy: null,
       reviewedAt: null,
@@ -41,6 +46,21 @@ export class InMemoryRegistrationRequestRepository
     };
     this.store.set(entity.id, entity);
     return { ...entity };
+  }
+
+  async nextReferenceNumber(year = new Date().getFullYear()): Promise<string> {
+    let max = 0;
+    for (const entity of this.store.values()) {
+      const seq = parseAlumniReferenceSequence(entity.referenceNumber);
+      if (
+        seq !== null &&
+        entity.referenceNumber.startsWith(`ALM-${year}-`) &&
+        seq > max
+      ) {
+        max = seq;
+      }
+    }
+    return formatAlumniReference(year, max + 1);
   }
 
   async findById(id: string): Promise<AlumniRegistrationRequest | null> {
@@ -66,11 +86,9 @@ export class InMemoryRegistrationRequestRepository
   async findAll(
     status?: RegistrationStatus,
   ): Promise<AlumniRegistrationRequest[]> {
-    const items = Array.from(this.store.values());
-    const filtered = status
-      ? items.filter((item) => item.status === status)
-      : items;
-    return filtered.map((item) => ({ ...item }));
+    return [...this.store.values()]
+      .filter((e) => (status ? e.status === status : true))
+      .map((e) => ({ ...e }));
   }
 
   async update(
@@ -79,13 +97,8 @@ export class InMemoryRegistrationRequestRepository
   ): Promise<AlumniRegistrationRequest> {
     const existing = this.store.get(id);
     if (!existing) throw new Error(`Registration request ${id} not found`);
-    const updated = {
-      ...existing,
-      ...patch,
-      id: existing.id,
-      updatedAt: new Date(),
-    };
-    this.store.set(id, updated);
-    return { ...updated };
+    const next = { ...existing, ...patch, id, updatedAt: new Date() };
+    this.store.set(id, next);
+    return { ...next };
   }
 }

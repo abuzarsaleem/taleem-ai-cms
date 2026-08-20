@@ -2,16 +2,13 @@ import { CheckCircle2, Loader2, Mail } from "lucide-react"
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
-import { AuthPageLayout } from "@/components/auth-page-layout"
-import { AuthShell } from "@/components/auth-shell"
+import {
+  AuthFieldLabel,
+  AuthFlowLayout,
+} from "@/components/auth-flow-layout"
 import { PasswordField } from "@/components/password-field"
 import { Button } from "@/components/ui/button"
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
+import { Field, FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useConsumeQueryToken } from "@/hooks/use-consume-query-token"
 import { ApiError } from "@/lib/api-client"
@@ -139,147 +136,180 @@ export default function ActivatePage() {
     }
   }
 
-  return (
-    <AuthPageLayout>
-      <AuthShell
-        heading="Activate your alumni identity"
-        description="Open the secure link from your approval email. We never ask you to paste a token."
-      >
-        {view === "verifying" ? (
-          <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 text-center">
-            <Loader2 className="size-8 animate-spin text-[#0b4d3c]" />
-            <h1 className="text-xl font-semibold tracking-tight">
-              Verifying your link
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Please wait while we activate your account.
+  const sidebarExtra =
+    view === "set-password" ? (
+      <>
+        <div className="flex items-center gap-3 rounded-xl border border-[#159570]/30 bg-[#159570]/8 p-4">
+          <CheckCircle2 className="size-5 shrink-0 text-[#159570]" />
+          <div>
+            <p className="text-sm font-semibold text-[#0f6b52]">
+              Registration Approved
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Your alumni request cleared verification.
             </p>
           </div>
-        ) : null}
+        </div>
+        <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+            Activation reference
+          </p>
+          <p className="mt-1 font-mono text-sm font-bold text-primary">
+            Ready to set password
+          </p>
+        </div>
+      </>
+    ) : null
 
-        {view === "set-password" ? (
-          <form onSubmit={onSetPassword}>
-            <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <div className="flex size-11 items-center justify-center rounded-full bg-[#0b4d3c]/10 text-[#0b4d3c]">
-                  <CheckCircle2 className="size-5" />
-                </div>
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Create password
-                </h1>
-                <p className="text-balance text-sm text-muted-foreground">
-                  Account verified. Choose a password to finish setup.
-                </p>
+  return (
+    <AuthFlowLayout
+      eyebrow="Account Activation"
+      title="Set Your Password"
+      description="Open the secure link from your approval email. We never ask you to paste a token."
+      steps={[
+        { id: "register", label: "Register", done: true },
+        { id: "confirm", label: "Confirmation", done: true },
+        { id: "activate", label: "Activation" },
+      ]}
+      activeStepId="activate"
+      sidebarExtra={sidebarExtra}
+    >
+      {view === "verifying" ? (
+        <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 text-center">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <h2 className="font-display text-xl font-semibold text-primary">
+            Verifying your link
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Please wait while we activate your account.
+          </p>
+        </div>
+      ) : null}
+
+      {view === "set-password" ? (
+        <form onSubmit={onSetPassword} className="mx-auto w-full max-w-md">
+          <FieldGroup className="gap-5">
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.14em] text-[#1e8f97] uppercase">
+                Create password
+              </p>
+              <h2 className="font-display mt-2 text-2xl font-semibold text-primary">
+                Create Password
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Account verified. Choose a password to finish setup.
+              </p>
+            </div>
+            <PasswordField
+              id="password"
+              name="password"
+              label="Password"
+              autoComplete="new-password"
+            />
+            <PasswordField
+              id="confirm_password"
+              name="confirm_password"
+              label="Confirm password"
+              autoComplete="new-password"
+            />
+            {error ? (
+              <p className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <Field>
+              <Button
+                type="submit"
+                size="lg"
+                className="h-11 w-full tracking-wide uppercase"
+                disabled={loading}
+              >
+                {loading ? "Saving…" : "Activate Account"}
+              </Button>
+            </Field>
+          </FieldGroup>
+        </form>
+      ) : null}
+
+      {view === "need-link" || view === "error" ? (
+        <form onSubmit={onResend} className="mx-auto w-full max-w-md">
+          <FieldGroup className="gap-5">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
+                <Mail className="size-5" />
               </div>
-              <PasswordField
-                id="password"
-                name="password"
-                label="New password"
-                autoComplete="new-password"
-              />
-              <PasswordField
-                id="confirm_password"
-                name="confirm_password"
-                label="Confirm password"
-                autoComplete="new-password"
-              />
-              {error ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              ) : null}
+              <h2 className="font-display text-2xl font-semibold text-primary">
+                Activate account
+              </h2>
+              <p
+                className={
+                  error && !error.toLowerCase().includes("already activated")
+                    ? "text-sm text-destructive"
+                    : "text-sm text-muted-foreground"
+                }
+              >
+                {error && error.toLowerCase().includes("already activated")
+                  ? "This account is already active. Sign in to continue."
+                  : error
+                    ? error
+                    : view === "error"
+                      ? "This link is invalid or expired. Request a new activation email."
+                      : "Use the activation link in your approval email. If you need a new one, enter your email below."}
+              </p>
+            </div>
+            {success && !error ? (
+              <p
+                className="rounded-xl border border-[#159570]/25 bg-[#159570]/8 px-3 py-2 text-sm text-[#0f6b52]"
+                role="status"
+              >
+                {success}
+              </p>
+            ) : null}
+            {error && error.toLowerCase().includes("already activated") ? (
               <Field>
                 <Button
-                  type="submit"
+                  type="button"
                   size="lg"
-                  className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
-                  disabled={loading}
+                  className="h-11 w-full tracking-wide uppercase"
+                  onClick={() => navigate("/login")}
                 >
-                  {loading ? "Saving…" : "Set password"}
+                  Go to login
                 </Button>
               </Field>
-            </FieldGroup>
-          </form>
-        ) : null}
-
-        {view === "need-link" || view === "error" ? (
-          <form onSubmit={onResend}>
-            <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <div className="flex size-11 items-center justify-center rounded-full bg-[#0b4d3c]/10 text-[#0b4d3c]">
-                  <Mail className="size-5" />
-                </div>
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Activate account
-                </h1>
-                <p
-                  className={
-                    error && !error.toLowerCase().includes("already activated")
-                      ? "text-balance text-sm text-destructive"
-                      : "text-balance text-sm text-muted-foreground"
-                  }
-                >
-                  {error && error.toLowerCase().includes("already activated")
-                    ? "This account is already active. Sign in to continue."
-                    : error
-                      ? error
-                      : view === "error"
-                        ? "This link is invalid or expired. Request a new activation email."
-                        : "Use the activation link in your approval email. If you need a new one, enter your email below."}
-                </p>
-              </div>
-              {success && !error ? (
-                <p className="text-sm text-[#0b4d3c]" role="status">
-                  {success}
-                </p>
-              ) : null}
-              {error &&
-              error.toLowerCase().includes("already activated") ? (
+            ) : (
+              <>
+                <Field>
+                  <AuthFieldLabel htmlFor="email">Email</AuthFieldLabel>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    className="h-11"
+                  />
+                </Field>
                 <Field>
                   <Button
-                    type="button"
+                    type="submit"
                     size="lg"
-                    className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
-                    onClick={() => navigate("/login")}
+                    className="h-11 w-full tracking-wide uppercase"
+                    disabled={loading}
                   >
-                    Go to login
+                    {loading ? "Sending…" : "Resend activation email"}
                   </Button>
                 </Field>
-              ) : (
-                <>
-                  <Field>
-                    <FieldLabel htmlFor="email">Email</FieldLabel>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      required
-                      className="h-10"
-                    />
-                  </Field>
-                  <Field>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
-                      disabled={loading}
-                    >
-                      {loading ? "Sending…" : "Resend activation email"}
-                    </Button>
-                  </Field>
-                </>
-              )}
-              <FieldDescription className="text-center">
-                Already activated?{" "}
-                <Link to="/login" className="font-medium text-[#0b4d3c]">
-                  Login
-                </Link>
-              </FieldDescription>
-            </FieldGroup>
-          </form>
-        ) : null}
-      </AuthShell>
-    </AuthPageLayout>
+              </>
+            )}
+            <p className="text-center text-sm text-muted-foreground">
+              Already activated?{" "}
+              <Link to="/login" className="font-semibold text-primary">
+                Login
+              </Link>
+            </p>
+          </FieldGroup>
+        </form>
+      ) : null}
+    </AuthFlowLayout>
   )
 }

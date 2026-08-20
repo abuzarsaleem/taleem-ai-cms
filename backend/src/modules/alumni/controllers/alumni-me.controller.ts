@@ -3,14 +3,16 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Optional,
   Param,
   ParseUUIDPipe,
   Post,
   Put,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
 import type { AuthUser } from '../../../common/decorators/current-user.decorator';
@@ -63,6 +65,22 @@ export class AlumniMeController {
   async getProfile(@CurrentUser() user: AuthUser) {
     const data = await this.profileService.getMyProfile(user.userId);
     return ApiResponseDto.of(data);
+  }
+
+  @Get('photo')
+  @ApiOperation({
+    summary: 'Download my profile photo (same-origin proxy for PDF/canvas)',
+  })
+  @ApiProduces('image/jpeg', 'image/png', 'image/webp')
+  @Header('Cache-Control', 'private, max-age=300')
+  async getPhoto(@CurrentUser() user: AuthUser): Promise<StreamableFile> {
+    const { buffer, contentType } = await this.profileService.getMyPhotoBytes(
+      user.userId,
+    );
+    return new StreamableFile(buffer, {
+      type: contentType,
+      disposition: 'inline; filename="profile-photo"',
+    });
   }
 
   @Put('profile')

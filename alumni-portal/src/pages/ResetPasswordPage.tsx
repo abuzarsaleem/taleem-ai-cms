@@ -2,15 +2,10 @@ import { KeyRound, Loader2 } from "lucide-react"
 import { useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
-import { AuthPageLayout } from "@/components/auth-page-layout"
-import { AuthShell } from "@/components/auth-shell"
+import { AuthFlowLayout } from "@/components/auth-flow-layout"
 import { PasswordField } from "@/components/password-field"
 import { Button } from "@/components/ui/button"
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-} from "@/components/ui/field"
+import { Field, FieldGroup } from "@/components/ui/field"
 import { useConsumeQueryToken } from "@/hooks/use-consume-query-token"
 import { ApiError } from "@/lib/api-client"
 import { validatePasswordStrength } from "@/lib/password-rules"
@@ -66,98 +61,91 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <AuthPageLayout>
-      <AuthShell
-        heading="Reset your password"
-        description="Use the secure link from your email to choose a new password. The token is never shown on screen."
-      >
-        {!token ? (
-          <FieldGroup>
-            <div className="flex flex-col items-center gap-2 text-center">
-              <div className="flex size-11 items-center justify-center rounded-full bg-[#0b4d3c]/10 text-[#0b4d3c]">
-                <KeyRound className="size-5" />
-              </div>
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Link required
-              </h1>
-              <p className="text-balance text-sm text-muted-foreground">
-                Open the reset link from your email to continue. Tokens are not
-                entered by hand.
-              </p>
+    <AuthFlowLayout
+      eyebrow="Password reset"
+      title="Set a new password"
+      description="Use the secure link from your email. The token is never shown on screen."
+    >
+      {!token ? (
+        <FieldGroup className="mx-auto w-full max-w-md gap-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
+              <KeyRound className="size-5" />
             </div>
+            <h2 className="font-display text-2xl font-semibold text-primary">
+              Link required
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Open the reset link from your email to continue.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="lg"
+            className="h-11 w-full tracking-wide uppercase"
+            onClick={() => navigate("/forgot-password")}
+          >
+            Request a new link
+          </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            <Link to="/login" className="font-semibold text-primary">
+              Back to login
+            </Link>
+          </p>
+        </FieldGroup>
+      ) : (
+        <form onSubmit={onSubmit} className="mx-auto w-full max-w-md">
+          <FieldGroup className="gap-5">
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.14em] text-[#1e8f97] uppercase">
+                New credentials
+              </p>
+              <h2 className="font-display mt-2 text-2xl font-semibold text-primary">
+                Choose password
+              </h2>
+            </div>
+            <PasswordField
+              id="password"
+              name="password"
+              label="New password"
+              autoComplete="new-password"
+            />
+            <PasswordField
+              id="confirm_password"
+              name="confirm_password"
+              label="Confirm password"
+              autoComplete="new-password"
+            />
+            {error ? (
+              <p className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
             <Field>
               <Button
-                type="button"
+                type="submit"
                 size="lg"
-                className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
-                onClick={() => navigate("/forgot-password")}
+                className="h-11 w-full tracking-wide uppercase"
+                disabled={loading}
               >
-                Request a new link
+                {loading ? (
+                  <span className="inline-flex items-center gap-2 normal-case tracking-normal">
+                    <Loader2 className="size-4 animate-spin" />
+                    Saving…
+                  </span>
+                ) : (
+                  "Update password"
+                )}
               </Button>
             </Field>
-            <FieldDescription className="text-center">
-              <Link to="/login" className="font-medium text-[#0b4d3c]">
+            <p className="text-center text-sm text-muted-foreground">
+              <Link to="/login" className="font-semibold text-primary">
                 Back to login
               </Link>
-            </FieldDescription>
+            </p>
           </FieldGroup>
-        ) : (
-          <form onSubmit={onSubmit}>
-            <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <div className="flex size-11 items-center justify-center rounded-full bg-[#0b4d3c]/10 text-[#0b4d3c]">
-                  <KeyRound className="size-5" />
-                </div>
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Set a new password
-                </h1>
-                <p className="text-balance text-sm text-muted-foreground">
-                  Choose a new password for your alumni account.
-                </p>
-              </div>
-              <PasswordField
-                id="password"
-                name="password"
-                label="New password"
-                autoComplete="new-password"
-              />
-              <PasswordField
-                id="confirm_password"
-                name="confirm_password"
-                label="Confirm password"
-                autoComplete="new-password"
-              />
-              {error ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              ) : null}
-              <Field>
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="size-4 animate-spin" />
-                      Saving…
-                    </span>
-                  ) : (
-                    "Update password"
-                  )}
-                </Button>
-              </Field>
-              <FieldDescription className="text-center">
-                <Link to="/login" className="font-medium text-[#0b4d3c]">
-                  Back to login
-                </Link>
-              </FieldDescription>
-            </FieldGroup>
-          </form>
-        )}
-      </AuthShell>
-    </AuthPageLayout>
+        </form>
+      )}
+    </AuthFlowLayout>
   )
 }

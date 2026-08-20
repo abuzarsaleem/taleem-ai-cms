@@ -1,49 +1,116 @@
-import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
 import { format, parseISO } from "date-fns"
+import { CalendarDays, Clock3, MapPin } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { useParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { LinkWithFrom, PageBreadcrumb } from "@/components/page-breadcrumb"
-import { ApiError } from "@/lib/api-client"
-import { refreshPortalRails } from "@/lib/portal-events"
-import { RSVP_OPTIONS, rsvpButtonClass } from "@/lib/rsvp"
-import { eventsService } from "@/services/events.service"
-import type { EventItem } from "@/types/portal"
-import { Button } from "@/components/ui/button"
+import { StatusPill } from "@/components/portal/status-pill"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { ApiError } from "@/lib/api-client"
+import { refreshPortalRails } from "@/lib/portal-events"
+import { RSVP_OPTIONS, rsvpButtonClass } from "@/lib/rsvp"
 import { cn } from "@/lib/utils"
+import { eventsService } from "@/services/events.service"
+import type { EventItem } from "@/types/portal"
 
-function formatEventMeta(event: EventItem) {
+function formatEventDate(event: EventItem) {
   try {
-    const date = format(parseISO(event.event_date), "MMM d, yyyy")
-    const time = event.start_time?.slice(0, 5) ?? event.start_time
-    return `${date} · ${time} · ${event.venue}`
+    return format(parseISO(event.event_date), "d MMM yyyy")
   } catch {
-    return `${event.event_date} · ${event.start_time} · ${event.venue}`
+    return event.event_date
   }
 }
 
-function EventCover({ event }: { event: EventItem }) {
+function formatEventTime(event: EventItem) {
+  const start = event.start_time?.slice(0, 5) ?? event.start_time
+  const end = event.end_time?.slice(0, 5)
+  return end ? `${start} – ${end}` : start
+}
+
+function registrationCode(event: EventItem) {
+  if (!event.my_rsvp_status) return null
+  const year = (() => {
+    try {
+      return format(parseISO(event.event_date), "yyyy")
+    } catch {
+      return String(new Date().getFullYear())
+    }
+  })()
+  const tail = event.id.replace(/-/g, "").slice(-5).toUpperCase()
+  return `EVT-${year}-${tail}`
+}
+
+function rsvpStatusLabel(status: string | null | undefined) {
+  if (status === "GOING") return "Going"
+  if (status === "MAYBE") return "Maybe"
+  return "Not going"
+}
+
+function rsvpStatusVariant(
+  status: string | null | undefined,
+): "success" | "warning" | "neutral" | "info" {
+  if (status === "GOING") return "success"
+  if (status === "MAYBE") return "warning"
+  if (status === "NOT_GOING") return "neutral"
+  return "info"
+}
+
+function buildCalendarUrl(event: EventItem) {
+  try {
+    const day = format(parseISO(event.event_date), "yyyyMMdd")
+    const start = (event.start_time || "09:00:00").replace(/:/g, "").slice(0, 6)
+    const end = (event.end_time || event.start_time || "10:00:00")
+      .replace(/:/g, "")
+      .slice(0, 6)
+    const dates = `${day}T${start}/${day}T${end}`
+    const params = new URLSearchParams({
+      action: "TEMPLATE",
+      text: event.title,
+      dates,
+      details: event.description ?? "",
+      location: event.venue,
+    })
+    return `https://calendar.google.com/calendar/render?${params.toString()}`
+  } catch {
+    return null
+  }
+}
+
+function EventMedia({ event, className }: { event: EventItem; className?: string }) {
   if (event.image_url) {
     return (
       <img
         src={event.image_url}
         alt=""
-        className="aspect-[16/9] w-full rounded-lg object-cover"
+        className={cn("h-full w-full object-cover", className)}
       />
     )
   }
 
   return (
-    <div className="relative flex aspect-[16/9] w-full items-end overflow-hidden rounded-lg bg-[linear-gradient(160deg,oklch(0.42_0.1_245),oklch(0.36_0.07_220))] p-4">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,oklch(1_0_0/0.16),transparent_50%)]" />
+    <div
+      className={cn(
+        "relative flex h-full w-full items-end overflow-hidden bg-[linear-gradient(145deg,#081b45_0%,#123868_50%,#1a9aa0_130%)] p-5",
+        className,
+      )}
+    >
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-[0.16]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(90deg, transparent 0, transparent 16px, #fff 16px, #fff 17px)",
+        }}
+      />
       <div className="relative">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-white/70 uppercase">
+        <p className="text-[10px] font-semibold tracking-[0.16em] text-[#7fe2de] uppercase">
           {event.event_type || "Event"}
         </p>
         <p className="mt-1 line-clamp-2 text-lg font-semibold text-white">
@@ -51,6 +118,157 @@ function EventCover({ event }: { event: EventItem }) {
         </p>
       </div>
     </div>
+  )
+}
+
+function RegistrationsTable({
+  events,
+  onRegister,
+  busyId,
+}: {
+  events: EventItem[]
+  onRegister: (event: EventItem) => void
+  busyId: string | null
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_35px_rgba(8,27,69,0.06)] ring-1 ring-[#e5eaf1]">
+      <div className="border-b border-[#eef2f7] px-5 py-5 sm:px-6">
+        <h2 className="text-base font-semibold text-primary">
+          My event registrations
+        </h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Your participation history
+        </p>
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[720px] text-left">
+          <thead>
+            <tr className="border-b border-[#eef2f7] text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+              <th className="px-6 py-3 font-semibold">Event</th>
+              <th className="px-4 py-3 font-semibold">Date</th>
+              <th className="px-4 py-3 font-semibold">Registration</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-6 py-3 font-semibold" />
+            </tr>
+          </thead>
+          <tbody>
+            {events.map((event) => {
+              const registered = Boolean(event.my_rsvp_status)
+              const code = registrationCode(event)
+              const calendarUrl = buildCalendarUrl(event)
+              return (
+                <tr
+                  key={event.id}
+                  className="border-b border-[#eef2f7] last:border-b-0"
+                >
+                  <td className="px-6 py-4">
+                    <LinkWithFrom
+                      to={`/events/${event.id}`}
+                      className="font-semibold text-primary hover:underline"
+                    >
+                      {event.title}
+                    </LinkWithFrom>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-[#536176]">
+                    {formatEventDate(event)}
+                  </td>
+                  <td className="px-4 py-4 font-mono text-sm text-[#536176]">
+                    {code ?? "—"}
+                  </td>
+                  <td className="px-4 py-4">
+                    <StatusPill variant={rsvpStatusVariant(event.my_rsvp_status)}>
+                      {rsvpStatusLabel(event.my_rsvp_status)}
+                    </StatusPill>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    {registered && calendarUrl ? (
+                      <a
+                        href={calendarUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" }),
+                          "rounded-[11px]",
+                        )}
+                      >
+                        Calendar
+                      </a>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="rounded-[11px]"
+                        disabled={busyId === event.id}
+                        onClick={() => onRegister(event)}
+                      >
+                        Register
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile stacked rows */}
+      <div className="divide-y divide-[#eef2f7] md:hidden">
+        {events.map((event) => {
+          const registered = Boolean(event.my_rsvp_status)
+          const code = registrationCode(event)
+          const calendarUrl = buildCalendarUrl(event)
+          return (
+            <div key={event.id} className="space-y-3 px-5 py-4">
+              <div>
+                <LinkWithFrom
+                  to={`/events/${event.id}`}
+                  className="font-semibold text-primary"
+                >
+                  {event.title}
+                </LinkWithFrom>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatEventDate(event)}
+                  {code ? ` · ${code}` : ""}
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <StatusPill variant={rsvpStatusVariant(event.my_rsvp_status)}>
+                  {rsvpStatusLabel(event.my_rsvp_status)}
+                </StatusPill>
+                {registered && calendarUrl ? (
+                  <a
+                    href={calendarUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                      "rounded-[11px]",
+                    )}
+                  >
+                    Calendar
+                  </a>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-[11px]"
+                    disabled={busyId === event.id}
+                    onClick={() => onRegister(event)}
+                  >
+                    Register
+                  </Button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -67,33 +285,75 @@ function EventCard({
   onRsvp: (status: string) => void
   linkTitle?: boolean
 }) {
+  const date = (() => {
+    try {
+      const d = parseISO(event.event_date)
+      return {
+        month: format(d, "MMM").toUpperCase(),
+        day: format(d, "d"),
+      }
+    } catch {
+      return { month: "—", day: "—" }
+    }
+  })()
+
   return (
-    <article className="overflow-hidden rounded-xl border border-border bg-card">
+    <article className="group overflow-hidden rounded-2xl bg-white shadow-[0_12px_35px_rgba(8,27,69,0.06)] ring-1 ring-[#e5eaf1] transition-shadow hover:shadow-[0_18px_45px_rgba(8,27,69,0.1)]">
+      <LinkWithFrom
+        to={`/events/${event.id}`}
+        className="relative block aspect-[16/10] overflow-hidden bg-[#0b1f4a]"
+      >
+        <EventMedia
+          event={event}
+          className="transition duration-500 group-hover:scale-[1.03]"
+        />
+        <div className="absolute top-3 left-3 grid size-[52px] place-items-center rounded-[13px] bg-white text-center shadow-sm">
+          <small className="block text-[9px] font-bold tracking-wide text-[#087b7e] uppercase">
+            {date.month}
+          </small>
+          <b className="text-lg leading-none text-primary">{date.day}</b>
+        </div>
+      </LinkWithFrom>
+
       <div className="space-y-3 p-4 sm:p-5">
         <div>
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-[#1e8f97] uppercase">
+            {event.event_type || "Event"}
+          </p>
           {linkTitle ? (
             <LinkWithFrom
               to={`/events/${event.id}`}
-              className="text-[18px] font-semibold leading-snug text-foreground hover:text-primary hover:underline"
+              className="mt-1 block font-display text-lg leading-snug font-semibold text-primary hover:underline"
             >
               {event.title}
             </LinkWithFrom>
           ) : (
-            <h2 className="text-[18px] font-semibold leading-snug text-foreground">
+            <h2 className="mt-1 font-display text-lg leading-snug font-semibold text-primary">
               {event.title}
             </h2>
           )}
-          <p className="mt-1 text-sm text-muted-foreground">
-            {formatEventMeta(event)}
-          </p>
+          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+            <p className="flex items-center gap-1.5">
+              <Clock3 className="size-3.5 shrink-0" />
+              {formatEventTime(event)}
+            </p>
+            <p className="flex items-center gap-1.5">
+              <MapPin className="size-3.5 shrink-0" />
+              <span className="truncate">{event.venue}</span>
+            </p>
+          </div>
+          {event.my_rsvp_status ? (
+            <StatusPill
+              variant={rsvpStatusVariant(event.my_rsvp_status)}
+              className="mt-2"
+            >
+              {rsvpStatusLabel(event.my_rsvp_status)}
+            </StatusPill>
+          ) : null}
         </div>
 
-        <LinkWithFrom to={`/events/${event.id}`} className="block">
-          <EventCover event={event} />
-        </LinkWithFrom>
-
         {event.description ? (
-          <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+          <p className="line-clamp-2 text-sm leading-relaxed text-[#64748b] whitespace-pre-wrap">
             {event.description}
           </p>
         ) : null}
@@ -108,7 +368,7 @@ function EventCard({
               variant="outline"
               disabled={busy}
               className={cn(
-                "rounded-md px-3",
+                "rounded-[11px] px-3",
                 rsvpButtonClass(
                   option.value,
                   event.my_rsvp_status === option.value,
@@ -116,7 +376,7 @@ function EventCard({
               )}
               onClick={() => onRsvp(option.value)}
             >
-              {option.label.toUpperCase()}
+              {option.label}
             </Button>
           ))}
         </div>
@@ -160,6 +420,11 @@ export function EventsPage() {
     }
   }, [])
 
+  const registeredCount = useMemo(
+    () => items.filter((event) => Boolean(event.my_rsvp_status)).length,
+    [items],
+  )
+
   async function setRsvp(event: EventItem, status: string) {
     setRsvpBusyId(event.id)
     setRsvpErrors((current) => {
@@ -192,24 +457,48 @@ export function EventsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">
-          Events
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Discover and RSVP to alumni gatherings
+    <div className="mx-auto max-w-6xl space-y-8">
+      <header className="relative overflow-hidden rounded-2xl bg-[linear-gradient(120deg,#081b45_0%,#173b79_58%,#1e8f97_140%)] px-6 py-8 text-white shadow-[0_18px_50px_rgba(8,27,69,0.16)] sm:px-8 sm:py-10">
+        <div
+          aria-hidden
+          className="absolute -top-16 -right-10 size-56 rounded-full border border-white/10"
+        />
+        <p className="relative text-[11px] font-semibold tracking-[0.18em] text-[#7fe2de] uppercase">
+          Community calendar
         </p>
-      </div>
+        <div className="relative mt-3.5 flex flex-wrap items-end justify-between gap-5">
+          <div className="min-w-0 max-w-xl">
+            <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+              Alumni Events
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#c8d5ed]">
+              Meet, learn, reconnect and celebrate with your alumni community.
+            </p>
+          </div>
+          {!loading && !error ? (
+            <div className="relative flex flex-wrap gap-2.5 text-xs font-semibold">
+              <span className="rounded-lg border border-white/15 bg-white/10 px-3.5 py-2.5">
+                {items.length} upcoming
+              </span>
+              <span className="rounded-lg border border-white/15 bg-white/10 px-3.5 py-2.5">
+                {registeredCount} registered
+              </span>
+            </div>
+          ) : null}
+        </div>
+      </header>
 
       {loading ? (
         <div className="space-y-4">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[22rem] animate-pulse rounded-xl border border-border bg-card"
-            />
-          ))}
+          <div className="h-48 animate-pulse rounded-2xl bg-[#e8eef6]" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-72 animate-pulse rounded-2xl bg-[#e8eef6]"
+              />
+            ))}
+          </div>
         </div>
       ) : error ? (
         <Card>
@@ -219,20 +508,46 @@ export function EventsPage() {
           </CardHeader>
         </Card>
       ) : items.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          No upcoming events.
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-[#d5deea] bg-white px-6 py-16 text-center">
+          <div className="grid size-14 place-items-center rounded-full bg-[#edf7f7] text-[#087b7e]">
+            <CalendarDays className="size-6" strokeWidth={1.5} />
+          </div>
+          <h2 className="mt-5 font-display text-xl font-semibold text-primary">
+            No upcoming events
+          </h2>
+          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+            When new alumni events are published, they will appear here.
+          </p>
         </div>
       ) : (
-        <div className="mx-auto w-full max-w-[560px] space-y-4">
-          {items.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              busy={rsvpBusyId === event.id}
-              error={rsvpErrors[event.id]}
-              onRsvp={(status) => void setRsvp(event, status)}
-            />
-          ))}
+        <div className="space-y-8">
+          <section className="space-y-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-display text-lg font-semibold text-primary">
+                Upcoming events
+              </h2>
+              <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                Browse & RSVP
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  busy={rsvpBusyId === event.id}
+                  error={rsvpErrors[event.id]}
+                  onRsvp={(status) => void setRsvp(event, status)}
+                />
+              ))}
+            </div>
+          </section>
+
+          <RegistrationsTable
+            events={items}
+            busyId={rsvpBusyId}
+            onRegister={(event) => void setRsvp(event, "GOING")}
+          />
         </div>
       )}
     </div>
@@ -292,7 +607,7 @@ export function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto h-[22rem] w-full max-w-[560px] animate-pulse rounded-xl bg-muted" />
+      <div className="mx-auto h-[28rem] w-full max-w-2xl animate-pulse rounded-2xl bg-[#e8eef6]" />
     )
   }
 
@@ -309,8 +624,11 @@ export function EventDetailPage() {
 
   if (!event) return null
 
+  const calendarUrl = buildCalendarUrl(event)
+  const code = registrationCode(event)
+
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-3">
+    <div className="mx-auto w-full max-w-2xl space-y-4">
       <PageBreadcrumb
         current={event.title}
         fallback={{ label: "Events", to: "/events" }}
@@ -322,6 +640,31 @@ export function EventDetailPage() {
         onRsvp={(status) => void setRsvp(status)}
         linkTitle={false}
       />
+      {event.my_rsvp_status && (code || calendarUrl) ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-5 py-4 ring-1 ring-[#e5eaf1]">
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+              Registration
+            </p>
+            <p className="mt-1 font-mono text-sm font-semibold text-primary">
+              {code ?? "—"}
+            </p>
+          </div>
+          {calendarUrl ? (
+            <a
+              href={calendarUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "rounded-[11px]",
+              )}
+            >
+              Add to calendar
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

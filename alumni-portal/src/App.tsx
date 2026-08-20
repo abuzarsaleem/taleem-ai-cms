@@ -15,6 +15,8 @@ import { DashboardPage } from "./pages/DashboardPage"
 import { ContactRequestsPage } from "./pages/ContactRequestsPage"
 import { DirectoryDetailPage } from "./pages/DirectoryDetailPage"
 import { DirectoryPage } from "./pages/DirectoryPage"
+import { NotificationsPage } from "./pages/NotificationsPage"
+import { SettingsPage } from "./pages/SettingsPage"
 import { EventDetailPage, EventsPage } from "./pages/EventsPage"
 import GatekeeperVerifyPage from "./pages/GatekeeperVerifyPage"
 import ForgotPasswordPage from "./pages/ForgotPasswordPage"
@@ -65,10 +67,8 @@ export default function App() {
                 path="announcements/:announcementId"
                 element={<AnnouncementDetailPage />}
               />
-              <Route
-                path="settings"
-                element={<Navigate to="/profile" replace />}
-              />
+              <Route path="notifications" element={<NotificationsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>
 

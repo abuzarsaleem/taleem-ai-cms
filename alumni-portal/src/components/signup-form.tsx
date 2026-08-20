@@ -1,12 +1,21 @@
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import type { Value as E164Number } from "react-phone-number-input"
+import { CheckCircle2 } from "lucide-react"
 
-import { AuthBrandPanel } from "@/components/auth-brand-panel"
+import {
+  AuthFieldLabel,
+  AuthFlowLayout,
+} from "@/components/auth-flow-layout"
 import { SearchableSelect } from "@/components/searchable-select"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Field, FieldError, FieldGroup } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { PhoneInput } from "@/components/ui/phone-input"
+import { YearPicker } from "@/components/ui/year-picker"
 import { ApiError } from "@/lib/api"
 import {
+  EMAIL_PATTERN,
   formatCnicInput,
   MAX_GRADUATION_YEAR,
   MIN_GRADUATION_YEAR,
@@ -17,18 +26,17 @@ import {
 import { authService } from "@/services/auth.service"
 import { catalogService } from "@/services/catalog.service"
 import type { DegreeProgram } from "@/types/portal"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { PhoneInput } from "@/components/ui/phone-input"
-import { YearPicker } from "@/components/ui/year-picker"
+import { isValidPhoneNumber } from "react-phone-number-input"
+
+type StepId = "personal" | "academic" | "identity"
+
+const STEP_ORDER: StepId[] = ["personal", "academic", "identity"]
+
+const REGISTER_STEPS = [
+  { id: "personal", label: "Personal Info" },
+  { id: "academic", label: "Academic Info" },
+  { id: "identity", label: "Identity & Photo" },
+]
 
 function errorMessage(err: unknown, fallback: string) {
   if (err instanceof ApiError && err.message) return err.message
@@ -36,13 +44,23 @@ function errorMessage(err: unknown, fallback: string) {
   return fallback
 }
 
-export function SignupForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function pickErrors(
+  all: RegistrationErrors,
+  keys: (keyof RegistrationErrors)[],
+): RegistrationErrors {
+  const next: RegistrationErrors = {}
+  for (const key of keys) {
+    if (all[key]) next[key] = all[key]
+  }
+  return next
+}
+
+export function SignupForm() {
   const navigate = useNavigate()
+  const [step, setStep] = useState<StepId>("personal")
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [referenceId, setReferenceId] = useState("")
   const [apiError, setApiError] = useState("")
   const [errors, setErrors] = useState<RegistrationErrors>({})
 
@@ -58,10 +76,22 @@ export function SignupForm({
   const [whatsappNumber, setWhatsappNumber] = useState<E164Number | undefined>()
 
   useEffect(() => {
-    void catalogService.listDegreePrograms().then(setDegreePrograms).catch(() => {
-      /* degree list is still required; submit validation will catch empty */
-    })
+    void catalogService
+      .listDegreePrograms()
+      .then(setDegreePrograms)
+      .catch(() => {})
   }, [])
+
+  const stepIndex = STEP_ORDER.indexOf(step)
+
+  const sidebarSteps = useMemo(
+    () =>
+      REGISTER_STEPS.map((item, index) => ({
+        ...item,
+        done: index < stepIndex,
+      })),
+    [stepIndex],
+  )
 
   function clearFieldError(field: keyof RegistrationErrors) {
     setErrors((current) => {
@@ -79,38 +109,18 @@ export function SignupForm({
       clearFieldError("photo")
       return
     }
-
     const photoError = validatePhotoFile(file)
     if (photoError) {
       setPhoto(null)
       setErrors((current) => ({ ...current, photo: photoError }))
       return
     }
-
     setPhoto(file)
     clearFieldError("photo")
   }
 
-  function resetForm() {
-    setFullName("")
-    setEmail("")
-    setCnic("")
-    setRollNumber("")
-    setDegreeProgramId("")
-    setGraduationYear("")
-    setPhoneNumber(undefined)
-    setWhatsappNumber(undefined)
-    setPhoto(null)
-    setErrors({})
-    setApiError("")
-  }
-
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = event.currentTarget
-    setApiError("")
-
-    const nextErrors = validateRegistration({
+  function values() {
+    return {
       full_name: fullName,
       email,
       phone_number: phoneNumber,
@@ -120,13 +130,100 @@ export function SignupForm({
       registration_roll_number: rollNumber,
       graduation_year: graduationYear,
       photo,
-    })
+    }
+  }
 
+  function validatePersonal(): RegistrationErrors {
+    const next: RegistrationErrors = {}
+    const name = fullName.trim()
+    if (!name) next.full_name = "Full name is required"
+    else if (name.length < 2) next.full_name = "Full name must be at least 2 characters"
+
+    const mail = email.trim()
+    if (!mail) next.email = "Email is required"
+    else if (!EMAIL_PATTERN.test(mail)) next.email = "Enter a valid email address"
+
+    if (phoneNumber && !isValidPhoneNumber(phoneNumber)) {
+      next.phone_number = "Enter a valid phone number"
+    }
+    if (whatsappNumber && !isValidPhoneNumber(whatsappNumber)) {
+      next.whatsapp_number = "Enter a valid WhatsApp number"
+    }
+    return next
+  }
+
+  function validateAcademic(): RegistrationErrors {
+    return pickErrors(validateRegistration(values()), [
+      "cnic_national_id",
+      "degree_program_id",
+      "registration_roll_number",
+      "graduation_year",
+    ])
+  }
+
+  function goNext() {
+    setApiError("")
+    if (step === "personal") {
+      const next = validatePersonal()
+      setErrors(next)
+      if (Object.keys(next).length > 0) return
+      setStep("academic")
+      return
+    }
+    if (step === "academic") {
+      const next = validateAcademic()
+      setErrors(next)
+      if (Object.keys(next).length > 0) return
+      setStep("identity")
+    }
+  }
+
+  function goBack() {
+    setApiError("")
+    setErrors({})
+    if (step === "academic") setStep("personal")
+    if (step === "identity") setStep("academic")
+  }
+
+  function onStepSelect(stepId: string) {
+    const target = stepId as StepId
+    const targetIndex = STEP_ORDER.indexOf(target)
+    if (targetIndex < 0) return
+    // Allow going back freely; forward only through completed validation path
+    if (targetIndex <= stepIndex) {
+      setStep(target)
+      setErrors({})
+      setApiError("")
+      return
+    }
+    if (targetIndex === stepIndex + 1) goNext()
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (step !== "identity") {
+      goNext()
+      return
+    }
+
+    setApiError("")
+    const nextErrors = validateRegistration(values())
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      if (nextErrors.full_name || nextErrors.email || nextErrors.phone_number) {
+        setStep("personal")
+      } else if (
+        nextErrors.cnic_national_id ||
+        nextErrors.degree_program_id ||
+        nextErrors.registration_roll_number ||
+        nextErrors.graduation_year
+      ) {
+        setStep("academic")
+      }
+      return
+    }
 
     setLoading(true)
-
     try {
       let mediaId: string | undefined
       if (photo) {
@@ -138,14 +235,12 @@ export function SignupForm({
             return
           }
         } catch (err) {
-          setErrors({
-            photo: errorMessage(err, "Photo upload failed"),
-          })
+          setErrors({ photo: errorMessage(err, "Photo upload failed") })
           return
         }
       }
 
-      await authService.register({
+      const result = await authService.register({
         full_name: fullName.trim(),
         email: email.trim(),
         phone_number: phoneNumber || undefined,
@@ -157,256 +252,371 @@ export function SignupForm({
         media_id: mediaId,
       })
 
+      setReferenceId(
+        result.reference_number ||
+          result.registration_id ||
+          `ALM-${Date.now().toString().slice(-8)}`,
+      )
       setSubmitted(true)
       setApiError("")
-      try {
-        resetForm()
-        form.reset()
-      } catch {
-        /* native reset is optional after success */
-      }
     } catch (err) {
-      const message = errorMessage(err, "Registration failed")
-      setApiError(message)
+      setApiError(errorMessage(err, "Registration failed"))
     } finally {
       setLoading(false)
     }
   }
 
+  if (submitted) {
+    return (
+      <AuthFlowLayout
+        centered
+        title="Request Received"
+        eyebrow="Registration submitted"
+      >
+        <div className="text-center">
+          <div className="mx-auto mb-6 grid size-16 place-items-center rounded-full border border-[#159570]/30 bg-[#159570]/10">
+            <CheckCircle2 className="size-8 text-[#159570]" />
+          </div>
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#1e8f97] uppercase">
+            Registration submitted
+          </p>
+          <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight text-primary">
+            Request Received
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Your alumni registration is pending verification. You will be
+            notified by email once it is reviewed.
+          </p>
+
+          <div className="portal-card mt-8 p-5 text-left">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                  Reference number
+                </p>
+                <p className="mt-1 font-mono text-lg font-bold text-primary">
+                  {referenceId}
+                </p>
+              </div>
+              <span className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+                Pending Verification
+              </span>
+            </div>
+            <div className="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
+              <div>
+                <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+                  Status
+                </p>
+                <p className="mt-1 text-sm font-medium">Awaiting review</p>
+              </div>
+              <div>
+                <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+                  Notification
+                </p>
+                <p className="mt-1 text-sm font-medium">Email</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+                  Next step
+                </p>
+                <p className="mt-1 text-sm font-medium">
+                  Watch your inbox for an activation link after approval.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            size="lg"
+            className="mt-8 h-11 w-full tracking-wide uppercase"
+            onClick={() => navigate("/login")}
+          >
+            Go to login
+          </Button>
+        </div>
+      </AuthFlowLayout>
+    )
+  }
+
+  const headings = {
+    personal: {
+      eyebrow: "Personal information",
+      title: "Personal Information",
+      description: "Your contact details for institutional communication.",
+    },
+    academic: {
+      eyebrow: "Academic information",
+      title: "Academic Record",
+      description: "Degree and campus details from your student record.",
+    },
+    identity: {
+      eyebrow: "Identity & photo",
+      title: "Identity & Photo",
+      description: "Upload a clear photo for your alumni identity card.",
+    },
+  }[step]
+
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0 shadow-xl ring-foreground/8">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8" onSubmit={onSubmit} noValidate>
-            {submitted ? (
-              <FieldGroup>
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <h1 className="text-2xl font-bold">Registration submitted</h1>
-                  <p className="text-balance text-muted-foreground">
-                    Your request is pending approval. You will be notified by
-                    email once it is reviewed.
-                  </p>
-                </div>
-                <Field>
-                  <Button
-                    type="button"
-                    size="lg"
-                    className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90"
-                    onClick={() => navigate("/login")}
-                  >
-                    Go to login
-                  </Button>
-                </Field>
-              </FieldGroup>
-            ) : (
-            <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Create an account</h1>
-                <p className="text-balance text-muted-foreground">
-                  Register for Taleem Alumni verification
-                </p>
-              </div>
+    <AuthFlowLayout
+      eyebrow="Alumni Registration"
+      title="Alumni Registration"
+      description="Submit your details for university verification. After approval, activate from your email."
+      steps={sidebarSteps}
+      activeStepId={step}
+      onStepSelect={onStepSelect}
+    >
+      <form onSubmit={onSubmit} noValidate className="mx-auto w-full max-w-2xl">
+        <FieldGroup className="gap-5">
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-[#1e8f97] uppercase">
+              {headings.eyebrow}
+            </p>
+            <h2 className="font-display mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
+              {headings.title}
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {headings.description}
+            </p>
+          </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  className="sm:col-span-2"
-                  data-invalid={!!errors.full_name || undefined}
-                >
-                  <FieldLabel htmlFor="full_name">Full name</FieldLabel>
-                  <Input
-                    id="full_name"
-                    name="full_name"
-                    placeholder="Ali Khan"
-                    value={fullName}
-                    maxLength={150}
-                    aria-invalid={!!errors.full_name}
-                    onChange={(event) => {
-                      setFullName(event.target.value)
-                      clearFieldError("full_name")
-                    }}
-                  />
-                  <FieldError>{errors.full_name}</FieldError>
-                </Field>
-
-                <Field
-                  className="sm:col-span-2"
-                  data-invalid={!!errors.email || undefined}
-                >
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    value={email}
-                    maxLength={255}
-                    aria-invalid={!!errors.email}
-                    onChange={(event) => {
-                      setEmail(event.target.value)
-                      clearFieldError("email")
-                    }}
-                  />
-                  <FieldError>{errors.email}</FieldError>
-                </Field>
-
-                <Field data-invalid={!!errors.phone_number || undefined}>
-                  <FieldLabel htmlFor="phone_number">Phone number</FieldLabel>
-                  <PhoneInput
-                    id="phone_number"
-                    international
-                    defaultCountry="PK"
-                    placeholder="300 1234567"
-                    value={phoneNumber}
-                    aria-invalid={!!errors.phone_number}
-                    onChange={(value) => {
-                      setPhoneNumber(value)
-                      clearFieldError("phone_number")
-                    }}
-                  />
-                  <FieldError>{errors.phone_number}</FieldError>
-                </Field>
-
-                <Field data-invalid={!!errors.whatsapp_number || undefined}>
-                  <FieldLabel htmlFor="whatsapp_number">WhatsApp number</FieldLabel>
-                  <PhoneInput
-                    id="whatsapp_number"
-                    international
-                    defaultCountry="PK"
-                    placeholder="300 1234567"
-                    value={whatsappNumber}
-                    aria-invalid={!!errors.whatsapp_number}
-                    onChange={(value) => {
-                      setWhatsappNumber(value)
-                      clearFieldError("whatsapp_number")
-                    }}
-                  />
-                  <FieldError>{errors.whatsapp_number}</FieldError>
-                </Field>
-
-                <Field
-                  className="sm:col-span-2"
-                  data-invalid={!!errors.cnic_national_id || undefined}
-                >
-                  <FieldLabel htmlFor="cnic_national_id">CNIC / National ID</FieldLabel>
-                  <Input
-                    id="cnic_national_id"
-                    name="cnic_national_id"
-                    placeholder="35202-1234567-1"
-                    inputMode="numeric"
-                    value={cnic}
-                    maxLength={15}
-                    aria-invalid={!!errors.cnic_national_id}
-                    onChange={(event) => {
-                      setCnic(formatCnicInput(event.target.value))
-                      clearFieldError("cnic_national_id")
-                    }}
-                  />
-                  <FieldError>{errors.cnic_national_id}</FieldError>
-                </Field>
-
-                <Field
-                  className="sm:col-span-2"
-                  data-invalid={!!errors.degree_program_id || undefined}
-                >
-                  <FieldLabel htmlFor="degree_program_id">Degree program</FieldLabel>
-                  <SearchableSelect
-                    id="degree_program_id"
-                    value={degreeProgramId}
-                    onChange={(value) => {
-                      setDegreeProgramId(value)
-                      clearFieldError("degree_program_id")
-                    }}
-                    options={degreePrograms.map((program) => ({
-                      value: program.id,
-                      label: program.label,
-                    }))}
-                    placeholder="Select your program"
-                    searchPlaceholder="Search program…"
-                    aria-invalid={!!errors.degree_program_id}
-                  />
-                  <FieldError>{errors.degree_program_id}</FieldError>
-                </Field>
-
-                <Field data-invalid={!!errors.registration_roll_number || undefined}>
-                  <FieldLabel htmlFor="registration_roll_number">
-                    Registration / Roll number
-                  </FieldLabel>
-                  <Input
-                    id="registration_roll_number"
-                    name="registration_roll_number"
-                    value={rollNumber}
-                    maxLength={50}
-                    aria-invalid={!!errors.registration_roll_number}
-                    onChange={(event) => {
-                      setRollNumber(event.target.value)
-                      clearFieldError("registration_roll_number")
-                    }}
-                  />
-                  <FieldError>{errors.registration_roll_number}</FieldError>
-                </Field>
-
-                <Field data-invalid={!!errors.graduation_year || undefined}>
-                  <FieldLabel htmlFor="graduation_year">Graduation year</FieldLabel>
-                  <YearPicker
-                    id="graduation_year"
-                    value={graduationYear}
-                    minYear={MIN_GRADUATION_YEAR}
-                    maxYear={MAX_GRADUATION_YEAR}
-                    placeholder="Select year"
-                    aria-invalid={!!errors.graduation_year}
-                    onChange={(year) => {
-                      setGraduationYear(year)
-                      clearFieldError("graduation_year")
-                    }}
-                  />
-                  <FieldError>{errors.graduation_year}</FieldError>
-                </Field>
-
-                <Field
-                  className="sm:col-span-2"
-                  data-invalid={!!errors.photo || undefined}
-                >
-                  <FieldLabel htmlFor="photo">Profile photo</FieldLabel>
-                  <Input
-                    id="photo"
-                    type="file"
-                    accept="image/*"
-                    aria-invalid={!!errors.photo}
-                    onChange={(event) =>
-                      onPhotoChange(event.target.files?.[0] ?? null)
-                    }
-                  />
-                  <FieldError>{errors.photo}</FieldError>
-                </Field>
-              </div>
-
-              {apiError ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {apiError}
-                </p>
-              ) : null}
-
-              <Field>
-                <Button type="submit" size="lg" className="w-full bg-[#0b4d3c] hover:bg-[#0b4d3c]/90" disabled={loading}>
-                  {loading ? "Submitting…" : "Create account"}
-                </Button>
+          {step === "personal" ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                className="sm:col-span-2"
+                data-invalid={!!errors.full_name || undefined}
+              >
+                <AuthFieldLabel htmlFor="full_name">Full name</AuthFieldLabel>
+                <Input
+                  id="full_name"
+                  name="full_name"
+                  placeholder="e.g. Muhammad Ahmed Khan"
+                  value={fullName}
+                  maxLength={150}
+                  aria-invalid={!!errors.full_name}
+                  className="h-11"
+                  autoFocus
+                  onChange={(event) => {
+                    setFullName(event.target.value)
+                    clearFieldError("full_name")
+                  }}
+                />
+                <FieldError>{errors.full_name}</FieldError>
               </Field>
 
-              <FieldDescription className="text-center">
-                Already have an account?{" "}
-                <Link to="/login" className="font-medium text-[#0b4d3c]">
-                  Login
-                </Link>
-              </FieldDescription>
-            </FieldGroup>
-            )}
-          </form>
-          <AuthBrandPanel
-            heading="Join the alumni community"
-            description="Register once. After university approval, activate from your email and start using your alumni card."
-          />
-        </CardContent>
-      </Card>
-    </div>
+              <Field data-invalid={!!errors.email || undefined}>
+                <AuthFieldLabel htmlFor="email">Email address</AuthFieldLabel>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="ahmed.khan@email.com"
+                  value={email}
+                  maxLength={255}
+                  aria-invalid={!!errors.email}
+                  className="h-11"
+                  onChange={(event) => {
+                    setEmail(event.target.value)
+                    clearFieldError("email")
+                  }}
+                />
+                <FieldError>{errors.email}</FieldError>
+              </Field>
+
+              <Field data-invalid={!!errors.phone_number || undefined}>
+                <AuthFieldLabel htmlFor="phone_number">
+                  Mobile / WhatsApp
+                </AuthFieldLabel>
+                <PhoneInput
+                  id="phone_number"
+                  international
+                  defaultCountry="PK"
+                  placeholder="+92 300 0000000"
+                  value={phoneNumber ?? whatsappNumber}
+                  aria-invalid={!!errors.phone_number}
+                  onChange={(value) => {
+                    setPhoneNumber(value)
+                    setWhatsappNumber(value)
+                    clearFieldError("phone_number")
+                    clearFieldError("whatsapp_number")
+                  }}
+                />
+                <FieldError>
+                  {errors.phone_number || errors.whatsapp_number}
+                </FieldError>
+              </Field>
+            </div>
+          ) : null}
+
+          {step === "academic" ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                className="sm:col-span-2"
+                data-invalid={!!errors.cnic_national_id || undefined}
+              >
+                <AuthFieldLabel htmlFor="cnic_national_id">
+                  CNIC / National ID
+                </AuthFieldLabel>
+                <Input
+                  id="cnic_national_id"
+                  name="cnic_national_id"
+                  placeholder="35202-1234567-1"
+                  inputMode="numeric"
+                  value={cnic}
+                  maxLength={15}
+                  aria-invalid={!!errors.cnic_national_id}
+                  className="h-11"
+                  autoFocus
+                  onChange={(event) => {
+                    setCnic(formatCnicInput(event.target.value))
+                    clearFieldError("cnic_national_id")
+                  }}
+                />
+                <FieldError>{errors.cnic_national_id}</FieldError>
+              </Field>
+
+              <Field
+                className="sm:col-span-2"
+                data-invalid={!!errors.degree_program_id || undefined}
+              >
+                <AuthFieldLabel htmlFor="degree_program_id">
+                  Degree program
+                </AuthFieldLabel>
+                <SearchableSelect
+                  id="degree_program_id"
+                  value={degreeProgramId}
+                  onChange={(value) => {
+                    setDegreeProgramId(value)
+                    clearFieldError("degree_program_id")
+                  }}
+                  options={degreePrograms.map((program) => ({
+                    value: program.id,
+                    label: program.label,
+                  }))}
+                  placeholder="Select your program"
+                  searchPlaceholder="Search program…"
+                  aria-invalid={!!errors.degree_program_id}
+                  className="h-11"
+                />
+                <FieldError>{errors.degree_program_id}</FieldError>
+              </Field>
+
+              <Field
+                data-invalid={!!errors.registration_roll_number || undefined}
+              >
+                <AuthFieldLabel htmlFor="registration_roll_number">
+                  Registration / Roll number
+                </AuthFieldLabel>
+                <Input
+                  id="registration_roll_number"
+                  name="registration_roll_number"
+                  value={rollNumber}
+                  maxLength={50}
+                  aria-invalid={!!errors.registration_roll_number}
+                  className="h-11"
+                  onChange={(event) => {
+                    setRollNumber(event.target.value)
+                    clearFieldError("registration_roll_number")
+                  }}
+                />
+                <FieldError>{errors.registration_roll_number}</FieldError>
+              </Field>
+
+              <Field data-invalid={!!errors.graduation_year || undefined}>
+                <AuthFieldLabel htmlFor="graduation_year">
+                  Graduation year
+                </AuthFieldLabel>
+                <YearPicker
+                  id="graduation_year"
+                  value={graduationYear}
+                  minYear={MIN_GRADUATION_YEAR}
+                  maxYear={MAX_GRADUATION_YEAR}
+                  placeholder="Select year"
+                  aria-invalid={!!errors.graduation_year}
+                  className="h-11"
+                  onChange={(year) => {
+                    setGraduationYear(year)
+                    clearFieldError("graduation_year")
+                  }}
+                />
+                <FieldError>{errors.graduation_year}</FieldError>
+              </Field>
+            </div>
+          ) : null}
+
+          {step === "identity" ? (
+            <div className="grid gap-4">
+              <Field data-invalid={!!errors.photo || undefined}>
+                <AuthFieldLabel htmlFor="photo">Profile photo</AuthFieldLabel>
+                <Input
+                  id="photo"
+                  type="file"
+                  accept="image/*"
+                  aria-invalid={!!errors.photo}
+                  className="h-11"
+                  onChange={(event) =>
+                    onPhotoChange(event.target.files?.[0] ?? null)
+                  }
+                />
+                <FieldError>{errors.photo}</FieldError>
+                {photo ? (
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {photo.name}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Optional but recommended for your Digital Alumni ID.
+                  </p>
+                )}
+              </Field>
+            </div>
+          ) : null}
+
+          {apiError ? (
+            <p className="text-sm text-destructive" role="alert">
+              {apiError}
+            </p>
+          ) : null}
+
+          <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {stepIndex + 1} / {STEP_ORDER.length}
+            </p>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+              {step !== "personal" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="h-11"
+                  onClick={goBack}
+                >
+                  Previous
+                </Button>
+              ) : null}
+              <Button
+                type="submit"
+                size="lg"
+                disabled={loading}
+                className="h-11 min-w-[160px] tracking-wide uppercase"
+              >
+                {step === "identity"
+                  ? loading
+                    ? "Submitting…"
+                    : "Submit request"
+                  : "Continue"}
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link to="/login" className="font-semibold text-primary">
+              Login
+            </Link>
+          </p>
+        </FieldGroup>
+      </form>
+    </AuthFlowLayout>
   )
 }

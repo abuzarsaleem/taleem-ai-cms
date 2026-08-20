@@ -13,6 +13,7 @@ export class AlumniRegistrationRequest {
   degreeProgramName: string | null;
   registrationRollNumber: string;
   graduationYear: string;
+  referenceNumber: string;
   photoMediaId: string | null;
   photoMedia?: PortalMediaRef | null;
   reviewedBy: string | null;

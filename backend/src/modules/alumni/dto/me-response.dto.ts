@@ -48,6 +48,12 @@ export class AlumniProfileResponseDto {
   @ApiProperty()
   alumni_id: string;
 
+  @ApiProperty({
+    example: 'ALM-2026-0003847',
+    description: 'Public lifelong alumni code (same as registration reference)',
+  })
+  public_alumni_code: string;
+
   @ApiProperty()
   full_name: string;
 

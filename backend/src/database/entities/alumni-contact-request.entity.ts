@@ -40,6 +40,14 @@ export class AlumniContactRequestEntity {
   requestReason: string;
 
   @Column({
+    name: 'requested_fields',
+    type: 'text',
+    array: true,
+    default: '{}',
+  })
+  requestedFields: string[];
+
+  @Column({
     type: 'enum',
     enum: ContactRequestStatus,
     enumName: CONTACT_REQUEST_STATUS_ENUM,

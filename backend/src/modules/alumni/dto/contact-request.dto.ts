@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMinSize,
+  IsArray,
   IsEnum,
   IsInt,
   IsOptional,
@@ -11,7 +13,10 @@ import {
   MinLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContactRequestStatus } from '../../../common/enums';
+import {
+  ContactRequestedField,
+  ContactRequestStatus,
+} from '../../../common/enums';
 
 export class DirectoryQueryDto {
   @ApiPropertyOptional()
@@ -69,6 +74,16 @@ export class CreateContactRequestDto {
   @MinLength(5)
   @MaxLength(2000)
   request_reason: string;
+
+  @ApiProperty({
+    enum: ContactRequestedField,
+    isArray: true,
+    example: [ContactRequestedField.EMAIL, ContactRequestedField.MOBILE],
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsEnum(ContactRequestedField, { each: true })
+  requested_fields: ContactRequestedField[];
 }
 
 export class AdminReviewContactRequestDto {

@@ -1,578 +1,376 @@
-import { format, formatDistanceToNow, parseISO } from "date-fns"
-import {
-  CalendarDays,
-  ChevronDown,
-  MapPin,
-  Megaphone,
-  Send,
-  Users,
-} from "lucide-react"
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
+import { format, parseISO } from "date-fns"
+import { useEffect, useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 
-import { LinkWithFrom } from "@/components/page-breadcrumb"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { Textarea } from "@/components/ui/textarea"
+import { StatCard } from "@/components/portal/stat-card"
+import { StatusPill } from "@/components/portal/status-pill"
+import { buttonVariants } from "@/components/ui/button"
 import { ApiError } from "@/lib/api-client"
+import { rsvpChipClass } from "@/lib/rsvp"
 import { cn } from "@/lib/utils"
-import { RSVP_OPTIONS, rsvpButtonClass } from "@/lib/rsvp"
-import { contactRequestService } from "@/services/contact-requests.service"
-import {
-  dashboardService,
-  type AlumniFeed,
-  type FeedAlumni,
-  type FeedItem,
-} from "@/services/dashboard.service"
-import { eventsService } from "@/services/events.service"
+import { dashboardService } from "@/services/dashboard.service"
+import { directoryService } from "@/services/directory.service"
+import { profileService } from "@/services/profile.service"
 import type { AnnouncementItem, EventItem } from "@/types/portal"
+import { useNotifications } from "@/hooks/use-notifications"
 
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("")
+function greeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return "Good morning"
+  if (hour < 17) return "Good afternoon"
+  return "Good evening"
 }
 
-function rsvpLabel(status: string | null) {
-  return RSVP_OPTIONS.find((o) => o.value === status)?.label ?? "RSVP"
-}
-
-function formatEventWhen(event: EventItem) {
+function formatEventDate(event: EventItem) {
   try {
     const date = parseISO(event.event_date)
-    const datePart = format(date, "EEE, MMM d")
-    const timePart = event.end_time
-      ? `${event.start_time} – ${event.end_time}`
-      : event.start_time
-    return `${datePart} · ${timePart}`
+    return {
+      month: format(date, "MMM").toUpperCase(),
+      day: format(date, "d"),
+    }
   } catch {
-    return `${event.event_date} · ${event.start_time}`
+    return { month: "—", day: "—" }
   }
 }
 
-function relativeTime(value: string | null) {
-  if (!value) return ""
-  try {
-    return formatDistanceToNow(parseISO(value), { addSuffix: true })
-  } catch {
-    return ""
-  }
-}
-
-function Avatar({
-  name,
-  photoUrl,
-  size = "md",
-  className,
-}: {
-  name: string
-  photoUrl?: string | null
-  size?: "sm" | "md" | "lg"
-  className?: string
-}) {
-  const sizeClass =
-    size === "lg" ? "size-16" : size === "sm" ? "size-10" : "size-12"
-  if (photoUrl) {
-    return (
-      <img
-        src={photoUrl}
-        alt=""
-        className={cn("rounded-full object-cover", sizeClass, className)}
-      />
-    )
-  }
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary",
-        sizeClass,
-        className,
-      )}
-    >
-      {initials(name)}
-    </div>
-  )
-}
-
-function Surface({
-  children,
-  className,
-}: {
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-lg border border-border bg-card shadow-[0_0_0_1px_oklch(0_0_0/0.02)]",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  )
-}
-
-function EventFeedCard({
-  event,
-  onRsvp,
-  busy,
-}: {
-  event: EventItem
-  onRsvp: (eventId: string, status: string) => Promise<void>
-  busy: boolean
-}) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <Surface>
-      {event.image_url ? (
-        <LinkWithFrom to={`/events/${event.id}`} className="block">
-          <img
-            src={event.image_url}
-            alt=""
-            className="aspect-[2.4/1] w-full object-cover"
-          />
-        </LinkWithFrom>
-      ) : (
-        <LinkWithFrom
-          to={`/events/${event.id}`}
-          className="relative block aspect-[2.4/1] overflow-hidden bg-[linear-gradient(135deg,oklch(0.35_0.08_250),oklch(0.42_0.1_220)_55%,oklch(0.38_0.07_200))]"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,oklch(1_0_0/0.18),transparent_45%)]" />
-          <div className="absolute inset-x-0 bottom-0 p-4">
-            <p className="text-[11px] font-semibold tracking-[0.14em] text-white/70 uppercase">
-              {event.event_type || "Event"}
-            </p>
-            <p className="mt-1 line-clamp-2 text-lg font-semibold text-white">
-              {event.title}
-            </p>
-          </div>
-        </LinkWithFrom>
-      )}
-
-      <div className="space-y-3 p-4">
-        <div>
-          <LinkWithFrom
-            to={`/events/${event.id}`}
-            className="text-[17px] font-semibold leading-snug text-foreground hover:text-primary hover:underline"
-          >
-            {event.title}
-          </LinkWithFrom>
-          {event.description ? (
-            <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-              {event.description}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="space-y-1.5 text-sm text-muted-foreground">
-          <p className="flex items-center gap-2">
-            <CalendarDays className="size-4 shrink-0 opacity-70" />
-            {formatEventWhen(event)}
-          </p>
-          <p className="flex items-center gap-2">
-            <MapPin className="size-4 shrink-0 opacity-70" />
-            <span className="truncate">{event.venue}</span>
-          </p>
-          {event.rsvp_counts ? (
-            <p className="pl-6 text-xs">
-              {event.rsvp_counts.going} going
-              {event.rsvp_counts.total
-                ? ` · ${event.rsvp_counts.total} responses`
-                : null}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="flex items-center gap-2 border-t border-border pt-3">
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger
-              render={
-                <Button
-                  variant="outline"
-                  disabled={busy}
-                  className={cn(
-                    "h-9 gap-1.5 rounded-full px-4",
-                    event.my_rsvp_status
-                      ? rsvpButtonClass(event.my_rsvp_status, true)
-                      : undefined,
-                  )}
-                />
-              }
-            >
-              {rsvpLabel(event.my_rsvp_status)}
-              <ChevronDown className="size-3.5 opacity-70" />
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-44 p-1">
-              {RSVP_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={cn(
-                    "flex w-full rounded-md px-2.5 py-2 text-left text-sm",
-                    rsvpButtonClass(
-                      option.value,
-                      event.my_rsvp_status === option.value,
-                    ),
-                  )}
-                  onClick={() => {
-                    setOpen(false)
-                    void onRsvp(event.id, option.value)
-                  }}
-                >
-                  {option.label}
-                </button>
-              ))}
-              <div className="my-1 border-t border-border" />
-              <LinkWithFrom
-                to={`/events/${event.id}`}
-                className="flex w-full rounded-md px-2.5 py-2 text-sm text-primary hover:bg-muted"
-                onClick={() => setOpen(false)}
-              >
-                View details
-              </LinkWithFrom>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-    </Surface>
-  )
-}
-
-function AnnouncementFeedCard({ item }: { item: AnnouncementItem }) {
-  return (
-    <Surface>
-      <div className="p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Megaphone className="size-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">Announcement</p>
-            <p className="text-xs text-muted-foreground">
-              {[item.category, relativeTime(item.published_at)]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
-        </div>
-        <LinkWithFrom
-          to={`/announcements/${item.id}`}
-          className="block text-[17px] font-semibold leading-snug hover:text-primary hover:underline"
-        >
-          {item.title}
-        </LinkWithFrom>
-        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-          {item.content}
-        </p>
-        {item.image_url ? (
-          <img
-            src={item.image_url}
-            alt=""
-            className="mt-3 max-h-72 w-full rounded-md object-cover"
-          />
-        ) : null}
-      </div>
-    </Surface>
-  )
-}
-
-function AlumniFeedCard({
-  alumni,
-  onRequest,
-}: {
-  alumni: FeedAlumni
-  onRequest: (alumni: FeedAlumni) => void
-}) {
-  const location = [alumni.city, alumni.country].filter(Boolean).join(", ")
-
-  return (
-    <Surface>
-      <div className="flex items-start gap-3 p-4">
-        <LinkWithFrom to={`/directory/${alumni.alumni_id}`} className="shrink-0">
-          <Avatar name={alumni.full_name} photoUrl={alumni.photo_url} />
-        </LinkWithFrom>
-        <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
-            <Users className="size-3.5" />
-            Alumni
-          </div>
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <LinkWithFrom
-                to={`/directory/${alumni.alumni_id}`}
-                className="text-[16px] font-semibold leading-tight hover:underline"
-              >
-                {alumni.full_name}
-              </LinkWithFrom>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {alumni.headline}
-              </p>
-              {location ? (
-                <p className="mt-0.5 text-xs text-muted-foreground">{location}</p>
-              ) : null}
-              {alumni.degree_label || alumni.graduation_year ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {[alumni.degree_label, alumni.graduation_year]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              ) : null}
-            </div>
-            {alumni.is_contact_revealed ? (
-              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                Connected
-              </span>
-            ) : alumni.contact_request_pending ? (
-              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                Pending
-              </span>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 rounded-full px-3"
-                onClick={() => onRequest(alumni)}
-              >
-                <Send className="size-3.5" />
-                Send contact request
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-    </Surface>
-  )
-}
-
-function FeedEntry({
-  item,
-  onRsvp,
-  rsvpBusyId,
-  onRequest,
-}: {
-  item: FeedItem
-  onRsvp: (eventId: string, status: string) => Promise<void>
-  rsvpBusyId: string | null
-  onRequest: (alumni: FeedAlumni) => void
-}) {
-  if (item.type === "event") {
-    return (
-      <EventFeedCard
-        event={item.event}
-        onRsvp={onRsvp}
-        busy={rsvpBusyId === item.event.id}
-      />
-    )
-  }
-  if (item.type === "announcement") {
-    return <AnnouncementFeedCard item={item.announcement} />
-  }
-  return <AlumniFeedCard alumni={item.alumni} onRequest={onRequest} />
+function profileCompletion(profile: Awaited<
+  ReturnType<typeof profileService.getMyProfile>
+> | null): number {
+  if (!profile) return 0
+  const checks = [
+    Boolean(profile.full_name),
+    Boolean(profile.photo_url),
+    Boolean(profile.phone_number),
+    Boolean(profile.email),
+    Boolean(profile.city),
+    Boolean(profile.country),
+    profile.academic.length > 0,
+    profile.professional.length > 0,
+  ]
+  const done = checks.filter(Boolean).length
+  return Math.round((done / checks.length) * 100)
 }
 
 export function DashboardPage() {
-  const [data, setData] = useState<AlumniFeed | null>(null)
-  const [error, setError] = useState("")
+  const { summary } = useNotifications()
   const [loading, setLoading] = useState(true)
-  const [rsvpBusyId, setRsvpBusyId] = useState<string | null>(null)
-  const [contactTarget, setContactTarget] = useState<FeedAlumni | null>(null)
-  const [contactReason, setContactReason] = useState(
-    "I'd like to connect through the alumni portal.",
-  )
-  const [contactBusy, setContactBusy] = useState(false)
-
-  async function load() {
-    setLoading(true)
-    setError("")
-    try {
-      setData(await dashboardService.getFeed())
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load feed")
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [error, setError] = useState("")
+  const [fullName, setFullName] = useState("Alumni")
+  const [alumniId, setAlumniId] = useState("")
+  const [completion, setCompletion] = useState(0)
+  const [networkTotal, setNetworkTotal] = useState(0)
+  const [upcomingEvents, setUpcomingEvents] = useState<EventItem[]>([])
+  const [registeredCount, setRegisteredCount] = useState(0)
+  const [latestAnnouncement, setLatestAnnouncement] =
+    useState<AnnouncementItem | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError("")
+      try {
+        const [feed, profile, directory] = await Promise.all([
+          dashboardService.getFeed(),
+          profileService.getMyProfile(),
+          directoryService.list({ page: 1, page_size: 1 }),
+        ])
+        if (cancelled) return
+
+        setFullName(feed.full_name)
+        setAlumniId(profile.public_alumni_code || profile.alumni_id.slice(0, 8).toUpperCase())
+        setCompletion(profileCompletion(profile))
+        setNetworkTotal(directory.total)
+        setRegisteredCount(feed.my_events.length)
+
+        const events = feed.feed
+          .filter((item): item is Extract<typeof item, { type: "event" }> =>
+            item.type === "event",
+          )
+          .map((item) => item.event)
+          .slice(0, 4)
+        setUpcomingEvents(events.length ? events : feed.my_events)
+
+        const announcement = feed.feed.find(
+          (item): item is Extract<typeof item, { type: "announcement" }> =>
+            item.type === "announcement",
+        )
+        setLatestAnnouncement(announcement?.announcement ?? null)
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ApiError ? err.message : "Failed to load dashboard")
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
     void load()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  async function handleRsvp(eventId: string, status: string) {
-    if (!data) return
-    setRsvpBusyId(eventId)
-    try {
-      const existing = data.feed.find(
-        (item) => item.type === "event" && item.event.id === eventId,
-      )
-      const currentStatus =
-        existing && existing.type === "event"
-          ? existing.event.my_rsvp_status
-          : null
-      if (currentStatus) {
-        await eventsService.updateRsvp(eventId, status)
-      } else {
-        await eventsService.createRsvp(eventId, status)
-      }
-      const refreshed = await eventsService.getOne(eventId)
-      setData((prev) => {
-        if (!prev) return prev
-        const feed = prev.feed.map((item) =>
-          item.type === "event" && item.event.id === eventId
-            ? { ...item, event: refreshed }
-            : item,
-        )
-        const my_events = [
-          ...feed
-            .filter(
-              (item): item is Extract<FeedItem, { type: "event" }> =>
-                item.type === "event" && Boolean(item.event.my_rsvp_status),
-            )
-            .map((item) => item.event),
-        ]
-        return { ...prev, feed, my_events }
-      })
-      toast.success(`RSVP updated · ${rsvpLabel(status)}`)
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "RSVP failed")
-    } finally {
-      setRsvpBusyId(null)
-    }
-  }
-
-  async function submitContactRequest() {
-    if (!contactTarget) return
-    setContactBusy(true)
-    try {
-      await contactRequestService.create({
-        target_alumni_id: contactTarget.alumni_id,
-        request_reason: contactReason.trim() || "Alumni connection request",
-      })
-      setData((prev) => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          feed: prev.feed.map((item) =>
-            item.type === "alumni" &&
-            item.alumni.alumni_id === contactTarget.alumni_id
-              ? {
-                  ...item,
-                  alumni: { ...item.alumni, contact_request_pending: true },
-                }
-              : item,
-          ),
-        }
-      })
-      toast.success("Contact request sent")
-      setContactTarget(null)
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.message : "Failed to send request",
-      )
-    } finally {
-      setContactBusy(false)
-    }
-  }
+  const firstName = useMemo(
+    () => fullName.split(/\s+/)[0] ?? fullName,
+    [fullName],
+  )
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-48 animate-pulse rounded-lg bg-card" />
-        ))}
+      <div className="space-y-4">
+        <div className="portal-hero h-48 animate-pulse rounded-3xl opacity-60" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-36 animate-pulse rounded-[var(--radius)] bg-muted" />
+          ))}
+        </div>
       </div>
     )
   }
 
-  if (error || !data) {
+  if (error) {
     return (
-      <Surface className="mx-auto max-w-lg p-8 text-center">
-        <p className="font-semibold">Home unavailable</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {error || "No data returned"}
-        </p>
-        <Button className="mt-4" onClick={() => void load()}>
-          Retry
-        </Button>
-      </Surface>
+      <div className="portal-card p-6 text-sm text-destructive">{error}</div>
     )
   }
 
   return (
-    <>
-      <div className="space-y-2.5">
-        {data.feed.length === 0 ? (
-          <Surface className="p-10 text-center text-sm text-muted-foreground">
-            Nothing in your feed yet. Events, announcements, and alumni will
-            appear here.
-          </Surface>
-        ) : (
-          data.feed.map((item) => (
-            <FeedEntry
-              key={item.id}
-              item={item}
-              onRsvp={handleRsvp}
-              rsvpBusyId={rsvpBusyId}
-              onRequest={setContactTarget}
-            />
-          ))
-        )}
+    <div className="space-y-5">
+      {/* Hero */}
+      <section className="portal-hero relative overflow-hidden rounded-3xl p-7 text-white shadow-[var(--portal-shadow)] sm:p-9">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-28 -right-20 size-80 rounded-full border border-white/10"
+        />
+        <p className="relative text-xs font-extrabold tracking-[0.12em] text-[#7fe2de] uppercase">
+          Alumni community
+        </p>
+        <h2 className="relative mt-3 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+          {greeting()}, {firstName}
+        </h2>
+        <p className="relative mt-3 max-w-xl text-sm leading-relaxed text-[#c8d5ed]">
+          Your university identity, professional profile and alumni community —
+          all in one place.
+        </p>
+        <div className="relative mt-6 flex flex-wrap gap-2.5">
+          <Link
+            to="/card"
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "rounded-[11px] border-0 bg-accent font-bold text-accent-foreground hover:bg-accent/90",
+            )}
+          >
+            View Digital ID
+          </Link>
+          <Link
+            to="/directory"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "rounded-[11px] border-white/20 bg-white text-primary hover:bg-white/90",
+            )}
+          >
+            Explore Alumni
+          </Link>
+        </div>
+        <div className="relative mt-5 flex flex-wrap gap-2">
+          <StatusPill variant="dark">Verified Alumni</StatusPill>
+          {alumniId ? (
+            <StatusPill variant="dark">{alumniId}</StatusPill>
+          ) : null}
+          <StatusPill variant="dark">Profile {completion}% complete</StatusPill>
+        </div>
+      </section>
+
+      {/* Metric cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Profile completion"
+          value={`${completion}%`}
+          action={
+            <>
+              <div className="h-2 overflow-hidden rounded-full bg-[#edf1f5]">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-accent to-[#7ce1dc]"
+                  style={{ width: `${completion}%` }}
+                />
+              </div>
+              <Link
+                to="/profile"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "mt-3 w-full rounded-[11px]",
+                )}
+              >
+                Complete profile
+              </Link>
+            </>
+          }
+        />
+        <StatCard
+          label="Upcoming events"
+          value={upcomingEvents.length}
+          hint={`${registeredCount} registered`}
+          action={
+            <Link
+              to="/events"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "w-full rounded-[11px]",
+              )}
+            >
+              View events
+            </Link>
+          }
+        />
+        <StatCard
+          label="Network"
+          value={networkTotal.toLocaleString()}
+          hint="Verified alumni"
+          action={
+            <Link
+              to="/directory"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "w-full rounded-[11px]",
+              )}
+            >
+              Discover people
+            </Link>
+          }
+        />
+        <StatCard
+          label="Notifications"
+          value={summary.unread_count}
+          hint={
+            summary.unread_count > 0
+              ? "Need your attention"
+              : "You're all caught up"
+          }
+          action={
+            <Link
+              to="/notifications"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "w-full rounded-[11px]",
+              )}
+            >
+              Open inbox
+            </Link>
+          }
+        />
       </div>
 
-      <Dialog
-        open={Boolean(contactTarget)}
-        onOpenChange={(open) => {
-          if (!open) setContactTarget(null)
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Send contact request</DialogTitle>
-            <DialogDescription>
-              {contactTarget
-                ? `Connect with ${contactTarget.full_name}. An admin may review before contact details are shared.`
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={contactReason}
-            onChange={(e) => setContactReason(e.target.value)}
-            rows={4}
-            placeholder="Why would you like to connect?"
-          />
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setContactTarget(null)}
-              disabled={contactBusy}
+      {/* Events + announcement */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="portal-card p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold">Upcoming events</h3>
+              <p className="text-xs text-muted-foreground">
+                Stay connected with your community
+              </p>
+            </div>
+            <Link
+              to="/events"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "rounded-[11px]",
+              )}
             >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => void submitContactRequest()}
-              disabled={contactBusy || !contactReason.trim()}
+              View all
+            </Link>
+          </div>
+          <div className="my-4 h-px bg-border" />
+          {upcomingEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No upcoming events yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {upcomingEvents.slice(0, 3).map((event) => {
+                const { month, day } = formatEventDate(event)
+                return (
+                  <li
+                    key={event.id}
+                    className="flex items-center gap-3 rounded-[14px] border border-border bg-white p-3"
+                  >
+                    <div className="grid size-[52px] shrink-0 place-items-center rounded-[13px] bg-[#edf7f7] text-center font-extrabold text-[#087b7e]">
+                      <small className="block text-[9px] uppercase">{month}</small>
+                      <b className="text-lg leading-none">{day}</b>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{event.title}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {event.venue} · {event.start_time?.slice(0, 5)}
+                      </p>
+                    </div>
+                    {event.my_rsvp_status ? (
+                      <span className={cn("shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold", rsvpChipClass(event.my_rsvp_status))}>
+                        {event.my_rsvp_status === "GOING"
+                          ? "Registered"
+                          : event.my_rsvp_status}
+                      </span>
+                    ) : (
+                      <Link
+                        to={`/events/${event.id}`}
+                        className={cn(
+                          buttonVariants({ size: "sm", variant: "outline" }),
+                          "shrink-0 rounded-[11px] text-xs",
+                        )}
+                      >
+                        View
+                      </Link>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="portal-card p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold">Latest announcement</h3>
+              <p className="text-xs text-muted-foreground">From the Alumni Office</p>
+            </div>
+            <Link
+              to="/announcements"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "rounded-[11px]",
+              )}
             >
-              {contactBusy ? "Sending…" : "Send request"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+              View all
+            </Link>
+          </div>
+          <div className="my-4 h-px bg-border" />
+          {latestAnnouncement ? (
+            <article className="border-l-4 border-accent pl-4">
+              {latestAnnouncement.published_at ? (
+                <p className="text-[11px] text-muted-foreground uppercase">
+                  {format(parseISO(latestAnnouncement.published_at), "d MMM yyyy")}
+                </p>
+              ) : null}
+              <h3 className="mt-1 text-base font-semibold">
+                {latestAnnouncement.title}
+              </h3>
+              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[#536176]">
+                {latestAnnouncement.content}
+              </p>
+              <Link
+                to={`/announcements/${latestAnnouncement.id}`}
+                className={cn(
+                  buttonVariants({ size: "sm" }),
+                  "mt-4 rounded-[11px] bg-primary hover:bg-primary/90",
+                )}
+              >
+                Read announcement
+              </Link>
+            </article>
+          ) : (
+            <p className="text-sm text-muted-foreground">No announcements yet.</p>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

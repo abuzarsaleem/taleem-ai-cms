@@ -4,10 +4,14 @@ import {
   CONTACT_REQUEST_REPOSITORY,
   PHOTO_STORAGE,
 } from '../../../common/constants/tokens';
+import { ContactRequestedField } from '../../../common/enums';
 import { ResourceNotFoundException } from '../../../common/exceptions';
 import type { IObjectStorage } from '../../../common/interfaces/photo-storage.interface';
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
-import type { IContactRequestRepository } from '../interfaces/contact-request.repository.interface';
+import type {
+  AlumniContactRequest,
+  IContactRequestRepository,
+} from '../interfaces/contact-request.repository.interface';
 import type { AlumniProfile } from '../entities/alumni.entity';
 import { DirectoryQueryDto } from '../dto/contact-request.dto';
 import { maskEmail, maskPhone } from '../utils/contact-masking.util';
@@ -47,7 +51,7 @@ export class AlumniDirectoryService {
           viewer.alumni.id,
           profile.alumni.id,
         );
-        return this.toDirectoryCard(profile, Boolean(approved));
+        return this.toDirectoryCard(profile, approved);
       }),
     );
 
@@ -82,11 +86,9 @@ export class AlumniDirectoryService {
     const isSelf = viewer.alumni.id === targetAlumniId;
     const approved = isSelf
       ? true
-      : Boolean(
-          await this.contactRequestRepository.findApprovedPair(
-            viewer.alumni.id,
-            targetAlumniId,
-          ),
+      : await this.contactRequestRepository.findApprovedPair(
+          viewer.alumni.id,
+          targetAlumniId,
         );
 
     return this.toDirectoryCard(profile, approved, true);
@@ -94,7 +96,7 @@ export class AlumniDirectoryService {
 
   private async toDirectoryCard(
     profile: AlumniProfile,
-    isContactRevealed: boolean,
+    approvedRequest: AlumniContactRequest | true | null,
     detailed = false,
   ) {
     const a = profile.alumni;
@@ -104,6 +106,35 @@ export class AlumniDirectoryService {
 
     const professional = profile.professional[0];
     const academic = profile.academic[0];
+
+    const revealAll = approvedRequest === true;
+    const fields = new Set(
+      revealAll
+        ? [
+            ContactRequestedField.EMAIL,
+            ContactRequestedField.MOBILE,
+            ContactRequestedField.WHATSAPP,
+          ]
+        : (approvedRequest?.requestedFields ?? []),
+    );
+    // Legacy approvals with empty requested_fields still reveal all contact channels
+    if (
+      approvedRequest &&
+      approvedRequest !== true &&
+      fields.size === 0
+    ) {
+      fields.add(ContactRequestedField.EMAIL);
+      fields.add(ContactRequestedField.MOBILE);
+      fields.add(ContactRequestedField.WHATSAPP);
+    }
+
+    const isContactRevealed = revealAll || fields.size > 0;
+    const revealEmail =
+      revealAll || fields.has(ContactRequestedField.EMAIL);
+    const revealMobile =
+      revealAll || fields.has(ContactRequestedField.MOBILE);
+    const revealWhatsapp =
+      revealAll || fields.has(ContactRequestedField.WHATSAPP);
 
     const base = {
       alumni_id: a.id,
@@ -121,11 +152,11 @@ export class AlumniDirectoryService {
         role: row.role,
       })),
       is_contact_revealed: isContactRevealed,
-      email: isContactRevealed ? a.email : maskEmail(a.email),
-      phone_number: isContactRevealed
+      email: revealEmail ? a.email : maskEmail(a.email),
+      phone_number: revealMobile
         ? a.phoneNumber
         : maskPhone(a.phoneNumber),
-      whatsapp_number: isContactRevealed
+      whatsapp_number: revealWhatsapp
         ? a.whatsappNumber
         : maskPhone(a.whatsappNumber),
       address: isContactRevealed ? a.address : null,

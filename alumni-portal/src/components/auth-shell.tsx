@@ -19,9 +19,9 @@ export function AuthShell({
 }: AuthShellProps) {
   return (
     <div className={cn("w-full max-w-sm md:max-w-4xl", className)}>
-      <Card className="overflow-hidden p-0 shadow-xl ring-foreground/8">
+      <Card className="overflow-hidden border-border/80 p-0 shadow-[var(--portal-shadow)]">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <div className="p-6 md:p-8">{children}</div>
+          <div className="bg-white p-6 md:p-8 dark:bg-card">{children}</div>
           <AuthBrandPanel heading={heading} description={description} />
         </CardContent>
       </Card>
