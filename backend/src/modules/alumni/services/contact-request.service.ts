@@ -14,7 +14,10 @@ import {
 } from '../../../common/exceptions';
 import type { INotificationSender } from '../../../common/interfaces/notification-sender.interface';
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
-import type { IContactRequestRepository } from '../interfaces/contact-request.repository.interface';
+import type {
+  AlumniContactRequest,
+  IContactRequestRepository,
+} from '../interfaces/contact-request.repository.interface';
 import { AdminContactReviewAction } from '../dto/contact-request.dto';
 
 @Injectable()
@@ -71,7 +74,10 @@ export class ContactRequestService {
       `CONTACT_REQUEST_CREATED id=${created.id} requester=${requester.alumni.id} target=${targetAlumniId} fields=${uniqueFields.join(',')}`,
     );
 
-    return this.toResponse(created);
+    return this.toResponse(created, {
+      requesterName: requester.alumni.fullName,
+      targetName: target.alumni.fullName,
+    });
   }
 
   async listSent(viewerUserId: string) {
@@ -79,12 +85,12 @@ export class ContactRequestService {
     const rows = await this.contactRequestRepository.findSentByRequester(
       requester.alumni.id,
     );
-    return rows.map((r) => this.toResponse(r));
+    return this.toResponsesWithNames(rows);
   }
 
   async listForAdmin(status?: ContactRequestStatus) {
     const rows = await this.contactRequestRepository.findAll(status);
-    return rows.map((r) => this.toResponse(r));
+    return this.toResponsesWithNames(rows);
   }
 
   async reviewAsAdmin(
@@ -153,7 +159,10 @@ export class ContactRequestService {
       `CONTACT_REQUEST_ADMIN_${approved ? 'APPROVED' : 'REJECTED'} id=${requestId}`,
     );
 
-    return this.toResponse(updated);
+    return this.toResponse(updated, {
+      requesterName: requester?.alumni.fullName ?? null,
+      targetName: target?.alumni.fullName ?? null,
+    });
   }
 
   private async requireAlumniByUser(userId: string) {
@@ -164,22 +173,54 @@ export class ContactRequestService {
     return profile;
   }
 
-  private toResponse(row: {
-    id: string;
-    requesterAlumniId: string;
-    targetAlumniId: string;
-    requestReason: string;
-    requestedFields: string[];
-    status: ContactRequestStatus;
-    adminId: string | null;
-    rejectionReason: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-  }) {
+  private async toResponsesWithNames(rows: AlumniContactRequest[]) {
+    const ids = [
+      ...new Set(
+        rows.flatMap((row) => [row.requesterAlumniId, row.targetAlumniId]),
+      ),
+    ];
+    const profiles = await Promise.all(
+      ids.map((id) => this.alumniRepository.findById(id)),
+    );
+    const nameById = new Map<string, string>();
+    for (const profile of profiles) {
+      if (profile) {
+        nameById.set(profile.alumni.id, profile.alumni.fullName);
+      }
+    }
+
+    return rows.map((row) =>
+      this.toResponse(row, {
+        requesterName: nameById.get(row.requesterAlumniId) ?? null,
+        targetName: nameById.get(row.targetAlumniId) ?? null,
+      }),
+    );
+  }
+
+  private toResponse(
+    row: {
+      id: string;
+      requesterAlumniId: string;
+      targetAlumniId: string;
+      requestReason: string;
+      requestedFields: string[];
+      status: ContactRequestStatus;
+      adminId: string | null;
+      rejectionReason: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+    },
+    names?: {
+      requesterName?: string | null;
+      targetName?: string | null;
+    },
+  ) {
     return {
       id: row.id,
       requester_alumni_id: row.requesterAlumniId,
+      requester_alumni_name: names?.requesterName ?? null,
       target_alumni_id: row.targetAlumniId,
+      target_alumni_name: names?.targetName ?? null,
       request_reason: row.requestReason,
       requested_fields: row.requestedFields ?? [],
       status: row.status,

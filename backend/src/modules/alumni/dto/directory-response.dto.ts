@@ -88,8 +88,14 @@ export class ContactRequestResponseDto {
   @ApiProperty()
   requester_alumni_id: string;
 
+  @ApiPropertyOptional({ nullable: true, example: 'Ali Shan' })
+  requester_alumni_name?: string | null;
+
   @ApiProperty()
   target_alumni_id: string;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Sara Ahmed' })
+  target_alumni_name?: string | null;
 
   @ApiProperty()
   request_reason: string;

@@ -45,6 +45,7 @@ export class AlumniDirectoryController {
   ) {}
 
   @Get('directory')
+  @Roles(UserRole.ALUMNI, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiTags(SWAGGER_TAGS.ALUMNI)
   @ApiOperation({ summary: 'Paginated alumni directory with masked contacts' })
   @ApiWrappedPaginatedResponse(DirectoryAlumniCardDto)
@@ -52,11 +53,16 @@ export class AlumniDirectoryController {
     @CurrentUser() user: AuthUser,
     @Query() query: DirectoryQueryDto,
   ) {
-    const data = await this.directoryService.list(user.userId, query);
+    const data = await this.directoryService.list(
+      user.userId,
+      query,
+      user.role,
+    );
     return ApiResponseDto.of(data);
   }
 
   @Get('directory/filter-options')
+  @Roles(UserRole.ALUMNI, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiTags(SWAGGER_TAGS.ALUMNI)
   @ApiOperation({
     summary: 'Distinct city, country, and graduation year values for directory filters',
@@ -68,6 +74,7 @@ export class AlumniDirectoryController {
   }
 
   @Get('directory/:alumniId')
+  @Roles(UserRole.ALUMNI, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiTags(SWAGGER_TAGS.ALUMNI)
   @ApiOperation({ summary: 'Alumni directory profile' })
   @ApiWrappedOkResponse(DirectoryAlumniCardDto)
@@ -75,7 +82,11 @@ export class AlumniDirectoryController {
     @CurrentUser() user: AuthUser,
     @Param('alumniId', ParseUUIDPipe) alumniId: string,
   ) {
-    const data = await this.directoryService.getOne(user.userId, alumniId);
+    const data = await this.directoryService.getOne(
+      user.userId,
+      alumniId,
+      user.role,
+    );
     return ApiResponseDto.of(data);
   }
 

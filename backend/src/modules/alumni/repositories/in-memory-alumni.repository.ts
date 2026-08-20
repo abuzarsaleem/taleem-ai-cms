@@ -72,6 +72,16 @@ export class InMemoryAlumniRepository implements IAlumniRepository {
     return this.toProfile(id);
   }
 
+  async findByPublicAlumniCode(code: string): Promise<AlumniProfile | null> {
+    const normalized = code.trim().toUpperCase();
+    for (const alumni of this.alumni.values()) {
+      if (alumni.publicAlumniCode?.toUpperCase() === normalized) {
+        return this.toProfile(alumni.id);
+      }
+    }
+    return null;
+  }
+
   async findByEmail(email: string): Promise<AlumniProfile | null> {
     const normalized = email.toLowerCase();
     for (const alumni of this.alumni.values()) {

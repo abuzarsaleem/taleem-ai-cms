@@ -23,7 +23,9 @@ export class QrAlumniCardGenerator implements IAlumniCardGenerator {
     const verifyBase =
       process.env.ALUMNI_CARD_VERIFY_URL ??
       `${process.env.ALUMNI_PORTAL_URL ?? 'http://localhost:5173'}/alumni/verify`;
-    const qrContent = `${verifyBase}/${encodeURIComponent(profile.alumni.id)}`;
+    const verifyToken =
+      profile.alumni.publicAlumniCode || profile.alumni.id;
+    const qrContent = `${verifyBase}/${encodeURIComponent(verifyToken)}`;
 
     // Sized for CR80 ID-card side placement (~22mm @ 150dpi)
     const pngBuffer = await QRCode.toBuffer(qrContent, {
@@ -51,6 +53,7 @@ export class QrAlumniCardGenerator implements IAlumniCardGenerator {
       photoUrl: null,
       payload: {
         alumniId: profile.alumni.id,
+        publicAlumniCode: profile.alumni.publicAlumniCode,
         cnic: profile.alumni.cnicNationalId,
         fullName: profile.alumni.fullName,
         email: profile.alumni.email,

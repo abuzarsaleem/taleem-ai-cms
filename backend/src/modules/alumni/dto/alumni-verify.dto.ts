@@ -13,6 +13,9 @@ export class AlumniVerifyResponseDto {
   @ApiPropertyOptional({ example: 'Ali Khan' })
   full_name?: string | null;
 
+  @ApiPropertyOptional({ example: 'ALM-2026-0000014' })
+  public_alumni_code?: string | null;
+
   @ApiPropertyOptional({ example: 'https://example.com/photo.jpg' })
   photo_url?: string | null;
 

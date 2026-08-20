@@ -6,6 +6,9 @@ import { PortalMediaService } from '../../media/portal-media.service';
 import { AlumniVerifyResponseDto } from '../dto/alumni-verify.dto';
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class AlumniVerifyService {
   constructor(
@@ -14,8 +17,8 @@ export class AlumniVerifyService {
     private readonly portalMediaService: PortalMediaService,
   ) {}
 
-  async verify(alumniId: string): Promise<AlumniVerifyResponseDto> {
-    const profile = await this.alumniRepository.findById(alumniId);
+  async verify(token: string): Promise<AlumniVerifyResponseDto> {
+    const profile = await this.resolveProfile(token);
 
     if (!profile) {
       return {
@@ -53,6 +56,7 @@ export class AlumniVerifyService {
       status: alumni.status,
       message: 'Verified alumni.',
       full_name: alumni.fullName,
+      public_alumni_code: alumni.publicAlumniCode,
       photo_url: photoUrl,
       degree_label: degreeLabel,
       graduation_year: primaryAcademic?.graduationYear ?? null,
@@ -60,5 +64,16 @@ export class AlumniVerifyService {
         primaryAcademic?.registrationRollNumber ?? null,
       verified_at: new Date().toISOString(),
     };
+  }
+
+  private async resolveProfile(token: string) {
+    const trimmed = token.trim();
+    if (!trimmed) return null;
+
+    if (UUID_RE.test(trimmed)) {
+      return this.alumniRepository.findById(trimmed);
+    }
+
+    return this.alumniRepository.findByPublicAlumniCode(trimmed);
   }
 }

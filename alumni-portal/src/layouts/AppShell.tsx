@@ -6,12 +6,10 @@ import {
   IdCard,
   LogOut,
   Megaphone,
-  Search,
   Settings,
   User,
   Users,
 } from "lucide-react"
-import { useState } from "react"
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthContext"
@@ -124,23 +122,12 @@ export function AppShell({
   const { clearSession } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [search, setSearch] = useState("")
   const { summary } = useNotifications()
   const unread = summary.unread_count
 
   function logout() {
     clearSession()
     navigate("/login")
-  }
-
-  function onSearchSubmit(event: React.FormEvent) {
-    event.preventDefault()
-    const term = search.trim()
-    if (term) {
-      navigate(`/directory?name=${encodeURIComponent(term)}`)
-    } else {
-      navigate("/directory")
-    }
   }
 
   return (
@@ -199,20 +186,7 @@ export function AppShell({
 
       {/* Main column */}
       <div className="md:ml-[248px]">
-        <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-4 border-b border-border bg-white/92 px-4 backdrop-blur-xl sm:px-8 print:hidden">
-          <form
-            onSubmit={onSearchSubmit}
-            className="flex max-w-[430px] flex-1 items-center gap-2 rounded-xl border border-transparent bg-[#f2f5f9] px-3 py-2"
-          >
-            <Search className="size-4 shrink-0 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search alumni, events, announcements..."
-              className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none"
-            />
-          </form>
-
+        <header className="sticky top-0 z-20 flex h-[72px] items-center justify-end gap-4 border-b border-border bg-white/92 px-4 backdrop-blur-xl sm:px-8 print:hidden">
           <div className="flex items-center gap-2">
             <button
               type="button"

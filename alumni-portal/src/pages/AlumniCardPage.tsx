@@ -1,4 +1,4 @@
-import { Download, IdCard, Loader2, Printer, ShieldCheck } from "lucide-react"
+import { Download, IdCard, Loader2, ShieldCheck } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
@@ -142,15 +142,6 @@ export function AlumniCardPage() {
                   <Download className="size-4" />
                 )}
                 {pdfBusy ? "Preparing…" : "Download PDF"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="no-print gap-1.5 rounded-xl"
-                onClick={() => window.print()}
-              >
-                <Printer className="size-4" />
-                Print
               </Button>
               <Link
                 to="/profile"

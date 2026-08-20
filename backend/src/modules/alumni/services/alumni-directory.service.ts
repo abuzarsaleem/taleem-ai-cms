@@ -4,7 +4,7 @@ import {
   CONTACT_REQUEST_REPOSITORY,
   PHOTO_STORAGE,
 } from '../../../common/constants/tokens';
-import { ContactRequestedField } from '../../../common/enums';
+import { ContactRequestedField, UserRole } from '../../../common/enums';
 import { ResourceNotFoundException } from '../../../common/exceptions';
 import type { IObjectStorage } from '../../../common/interfaces/photo-storage.interface';
 import type { IAlumniRepository } from '../interfaces/alumni.repository.interface';
@@ -28,9 +28,16 @@ export class AlumniDirectoryService {
     private readonly portalMediaService: PortalMediaService,
   ) {}
 
-  async list(viewerUserId: string, query: DirectoryQueryDto) {
-    const viewer = await this.alumniRepository.findByUserId(viewerUserId);
-    if (!viewer) {
+  async list(
+    viewerUserId: string,
+    query: DirectoryQueryDto,
+    viewerRole?: string,
+  ) {
+    const asAdmin = this.isAdminRole(viewerRole);
+    const viewer = asAdmin
+      ? null
+      : await this.alumniRepository.findByUserId(viewerUserId);
+    if (!asAdmin && !viewer) {
       throw new ResourceNotFoundException('Alumni profile for user', viewerUserId);
     }
 
@@ -40,15 +47,18 @@ export class AlumniDirectoryService {
       degreeProgramId: query.degree_program_id,
       city: query.city,
       country: query.country,
-      excludeAlumniId: viewer.alumni.id,
+      excludeAlumniId: viewer?.alumni.id,
       page: query.page,
       pageSize: query.page_size,
     });
 
     const items = await Promise.all(
       page.items.map(async (profile) => {
+        if (asAdmin) {
+          return this.toDirectoryCard(profile, true);
+        }
         const approved = await this.contactRequestRepository.findApprovedPair(
-          viewer.alumni.id,
+          viewer!.alumni.id,
           profile.alumni.id,
         );
         return this.toDirectoryCard(profile, approved);
@@ -72,9 +82,16 @@ export class AlumniDirectoryService {
     };
   }
 
-  async getOne(viewerUserId: string, targetAlumniId: string) {
-    const viewer = await this.alumniRepository.findByUserId(viewerUserId);
-    if (!viewer) {
+  async getOne(
+    viewerUserId: string,
+    targetAlumniId: string,
+    viewerRole?: string,
+  ) {
+    const asAdmin = this.isAdminRole(viewerRole);
+    const viewer = asAdmin
+      ? null
+      : await this.alumniRepository.findByUserId(viewerUserId);
+    if (!asAdmin && !viewer) {
       throw new ResourceNotFoundException('Alumni profile for user', viewerUserId);
     }
 
@@ -83,15 +100,23 @@ export class AlumniDirectoryService {
       throw new ResourceNotFoundException('Alumni', targetAlumniId);
     }
 
-    const isSelf = viewer.alumni.id === targetAlumniId;
+    if (asAdmin) {
+      return this.toDirectoryCard(profile, true, true);
+    }
+
+    const isSelf = viewer!.alumni.id === targetAlumniId;
     const approved = isSelf
       ? true
       : await this.contactRequestRepository.findApprovedPair(
-          viewer.alumni.id,
+          viewer!.alumni.id,
           targetAlumniId,
         );
 
     return this.toDirectoryCard(profile, approved, true);
+  }
+
+  private isAdminRole(role?: string) {
+    return role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
   }
 
   private async toDirectoryCard(

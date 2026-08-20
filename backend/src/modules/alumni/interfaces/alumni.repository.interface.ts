@@ -51,6 +51,7 @@ export interface AlumniDirectoryFilterOptions {
 export interface IAlumniRepository {
   create(input: CreateAlumniInput): Promise<AlumniProfile>;
   findById(id: string): Promise<AlumniProfile | null>;
+  findByPublicAlumniCode(code: string): Promise<AlumniProfile | null>;
   findByEmail(email: string): Promise<AlumniProfile | null>;
   findByUserId(userId: string): Promise<AlumniProfile | null>;
   findByRegistrationRequestId(

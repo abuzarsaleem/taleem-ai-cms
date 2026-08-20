@@ -104,6 +104,7 @@ export default function GatekeeperVerifyPage() {
                     degreeLabel: state.data.degree_label,
                     graduationYear: state.data.graduation_year,
                     registrationRollNumber: state.data.registration_roll_number,
+                    alumniId: state.data.public_alumni_code ?? alumniId,
                   }}
                 />
               ) : (

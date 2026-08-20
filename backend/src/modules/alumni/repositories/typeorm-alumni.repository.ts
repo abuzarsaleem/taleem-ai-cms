@@ -84,6 +84,19 @@ export class TypeOrmAlumniRepository implements IAlumniRepository {
     );
   }
 
+  async findByPublicAlumniCode(code: string): Promise<AlumniProfile | null> {
+    return this.toProfile(
+      await this.alumniRepo.findOne({
+        where: { publicAlumniCode: code.trim().toUpperCase() },
+        relations: {
+          academicRecords: true,
+          professionalRecords: true,
+          photoMedia: true,
+        },
+      }),
+    );
+  }
+
   async findByEmail(email: string): Promise<AlumniProfile | null> {
     return this.toProfile(
       await this.alumniRepo.findOne({
