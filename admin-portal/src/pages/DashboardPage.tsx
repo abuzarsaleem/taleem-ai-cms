@@ -2,15 +2,12 @@ import { useEffect, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import {
   ArrowUpRightIcon,
-  CalendarCheckIcon,
   CalendarDaysIcon,
   CalendarPlusIcon,
-  CalendarXIcon,
   ClipboardListIcon,
   MailIcon,
   MegaphoneIcon,
   PlusIcon,
-  UserXIcon,
   UsersIcon,
   type LucideIcon,
 } from "lucide-react"
@@ -97,58 +94,57 @@ function StatCard({
   icon: Icon,
   to,
   tone = "navy",
+  activeCount,
 }: {
   title: string
   value: number
   hint: string
   icon: LucideIcon
-  to?: string
-  tone?: "navy" | "cyan" | "amber" | "rose"
+  to: string
+  tone?: "navy" | "cyan" | "amber"
+  activeCount?: number
 }) {
   const location = useLocation()
   const tones = {
     navy: "bg-[#081b45]/8 text-[#081b45] dark:bg-white/8 dark:text-white",
     cyan: "bg-[#00c2b2]/15 text-[#0a7d73] dark:bg-[#00c2b2]/15 dark:text-[#7ef0e6]",
     amber: "bg-amber-500/12 text-amber-700 dark:text-amber-300",
-    rose: "bg-rose-500/12 text-rose-700 dark:text-rose-300",
   }
 
-  const content = (
-    <Card
-      size="sm"
-      className={cn(
-        "h-full transition-shadow",
-        to && "hover:shadow-[0_8px_24px_rgb(8_27_69_/_0.08)]",
-      )}
-    >
-      <CardHeader className="gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <CardDescription className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-            {title}
-          </CardDescription>
-          <span
-            className={cn(
-              "flex size-9 items-center justify-center rounded-xl",
-              tones[tone],
-            )}
-          >
-            <Icon className="size-4" />
-          </span>
-        </div>
-        <CardTitle className="text-3xl font-semibold tracking-tight tabular-nums">
-          {formatCount(value)}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      </CardContent>
-    </Card>
-  )
-
-  if (!to) return content
   return (
-    <Link to={to} state={withNavTrail(location)} className="block outline-none">
-      {content}
+    <Link
+      to={to}
+      state={withNavTrail(location)}
+      className="block h-full outline-none"
+    >
+      <Card
+        size="sm"
+        className="h-full transition-shadow hover:shadow-[0_8px_24px_rgb(8_27_69_/_0.08)]"
+      >
+        <CardHeader className="gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <CardDescription className="line-clamp-2 min-h-8 text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+              {title}
+            </CardDescription>
+            <span
+              className={cn(
+                "flex size-9 shrink-0 items-center justify-center rounded-xl",
+                tones[tone],
+              )}
+            >
+              <Icon className="size-4" />
+            </span>
+          </div>
+          <CardTitle className="text-3xl font-semibold tracking-tight tabular-nums">
+            {formatCount(value)}
+          </CardTitle>
+          <p className="line-clamp-1 min-h-4 text-xs text-muted-foreground">
+            {typeof activeCount === "number"
+              ? `${hint} · ${formatCount(activeCount)} Active`
+              : hint}
+          </p>
+        </CardHeader>
+      </Card>
     </Link>
   )
 }
@@ -161,12 +157,20 @@ function AnnouncementItem({ item }: { item: DashboardAnnouncement }) {
       state={withNavTrail(location)}
       className="flex gap-3 rounded-xl border border-border/80 bg-background/60 p-3.5 transition-colors hover:border-[#00c2b2]/40 hover:bg-[#00c2b2]/5"
     >
-      <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#081b45]/8 text-[#081b45] dark:bg-white/8 dark:text-white">
-        <MegaphoneIcon className="size-4" />
-      </div>
+      {item.image_url ? (
+        <img
+          src={item.image_url}
+          alt=""
+          className="size-16 shrink-0 rounded-lg object-cover"
+        />
+      ) : (
+        <div className="flex size-16 shrink-0 items-center justify-center rounded-lg bg-[#081b45]/8 text-[#081b45] dark:bg-white/8 dark:text-white">
+          <MegaphoneIcon className="size-5" />
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-medium">{item.title}</p>
+          <p className="line-clamp-2 text-sm font-medium">{item.title}</p>
           <Badge variant="outline" className="shrink-0 font-normal">
             {categoryLabel(item.category)}
           </Badge>
@@ -250,27 +254,7 @@ export default function DashboardPage() {
   const attentionTotal =
     data.pending_registrations_count + data.pending_contact_requests_count
 
-  const eventStats = [
-    {
-      title: "Published",
-      value: data.published_events_count,
-      icon: CalendarDaysIcon,
-    },
-    {
-      title: "Active",
-      value: data.active_events_count,
-      icon: CalendarCheckIcon,
-    },
-    {
-      title: "Completed",
-      value: data.completed_events_count,
-      icon: CalendarXIcon,
-    },
-  ]
-  const eventTotal =
-    data.published_events_count +
-    data.active_events_count +
-    data.completed_events_count
+  const previewAnnouncements = data.latest_announcements.slice(0, 3)
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
@@ -333,7 +317,7 @@ export default function DashboardPage() {
         </section>
       </div>
 
-      <div className="grid gap-4 px-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
+      <div className="grid items-stretch gap-4 px-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
         <StatCard
           title="Total alumni"
           value={data.alumni_count}
@@ -359,11 +343,13 @@ export default function DashboardPage() {
           tone="cyan"
         />
         <StatCard
-          title="Rejected requests"
-          value={data.rejected_requests_count}
-          hint="Declined registration requests"
-          icon={UserXIcon}
-          tone="rose"
+          title="Events"
+          value={data.published_events_count}
+          hint="Total published events"
+          icon={CalendarDaysIcon}
+          to="/events"
+          tone="cyan"
+          activeCount={data.active_events_count}
         />
       </div>
 
@@ -409,57 +395,7 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-start justify-between gap-2">
             <div>
-              <CardTitle>Events</CardTitle>
-              <CardDescription>
-                Published, live, and completed programmes
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              render={<Link to="/events" state={withNavTrail(location)} />}
-            >
-              View all
-              <ArrowUpRightIcon />
-            </Button>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {eventStats.map((stat) => {
-              const pct = eventTotal
-                ? Math.round((stat.value / eventTotal) * 100)
-                : 0
-              return (
-                <div
-                  key={stat.title}
-                  className="rounded-xl border border-border/80 p-3.5"
-                >
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <stat.icon className="size-4 text-[#00c2b2]" />
-                      <span className="text-sm font-medium">{stat.title}</span>
-                    </div>
-                    <span className="text-sm font-semibold tabular-nums">
-                      {formatCount(stat.value)}
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-[#00c2b2]"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="px-4 lg:px-6">
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-2">
-            <div>
-              <CardTitle>Latest announcements</CardTitle>
+              <CardTitle>Announcements</CardTitle>
               <CardDescription>
                 Recently published updates for alumni
               </CardDescription>
@@ -471,13 +407,13 @@ export default function DashboardPage() {
                 <Link to="/announcements" state={withNavTrail(location)} />
               }
             >
-              Open announcements
+              View more
               <ArrowUpRightIcon />
             </Button>
           </CardHeader>
           <CardContent className="flex flex-col gap-2.5">
-            {data.latest_announcements.length ? (
-              data.latest_announcements.map((item) => (
+            {previewAnnouncements.length ? (
+              previewAnnouncements.map((item) => (
                 <AnnouncementItem key={item.id} item={item} />
               ))
             ) : (

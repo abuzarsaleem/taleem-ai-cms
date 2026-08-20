@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation, useParams } from "react-router-dom"
+import { UserIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
 import { BackButton } from "@/components/admin/back-button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -67,6 +69,13 @@ function formatDateTime(value: string) {
   }).format(new Date(value))
 }
 
+function initialsFromName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return "?"
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+}
+
 function DetailRow({
   label,
   value,
@@ -75,34 +84,69 @@ function DetailRow({
   value: React.ReactNode
 }) {
   return (
-    <div className="grid gap-1 border-b py-3 last:border-b-0 sm:grid-cols-[10rem_1fr] sm:gap-4">
+    <div className="grid gap-1 border-b py-3 last:border-b-0 sm:grid-cols-[8rem_1fr] sm:gap-4">
       <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="text-sm font-medium break-words">{value || "—"}</dd>
     </div>
   )
 }
 
-function AlumniLink({
+function PersonCard({
+  title,
+  description,
   alumni,
   alumniId,
 }: {
-  alumni?: AdminAlumniListItem
+  title: string
+  description: string
+  alumni: AdminAlumniListItem | null
   alumniId: string
 }) {
   const location = useLocation()
+  const name = alumni?.full_name ?? "Unknown alumni"
+  const locationLabel = [alumni?.city, alumni?.country].filter(Boolean).join(", ")
+  const jobTitle = alumni?.professional?.job_title ?? alumni?.professional?.role
+  const company = alumni?.professional?.current_company
+
   return (
-    <Link
-      to={`/alumni/${alumniId}`}
-      state={withNavTrail(location, { alumni })}
-      className="text-primary underline-offset-4 hover:underline"
-    >
-      {alumni?.full_name ?? alumniId}
-      {alumni?.email ? (
-        <span className="ml-2 text-xs font-normal text-muted-foreground">
-          {alumni.email}
-        </span>
-      ) : null}
-    </Link>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <Avatar className="size-16 after:rounded-lg" size="lg">
+            {alumni?.photo_url ? (
+              <AvatarImage src={alumni.photo_url} alt={name} />
+            ) : null}
+            <AvatarFallback className="rounded-lg text-base">
+              {alumni ? initialsFromName(name) : <UserIcon className="size-6" />}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <Link
+              to={`/alumni/${alumniId}`}
+              state={withNavTrail(location, { alumni: alumni ?? undefined })}
+              className="font-semibold underline-offset-4 hover:underline"
+            >
+              {name}
+            </Link>
+            {jobTitle ? (
+              <p className="text-sm text-muted-foreground">{jobTitle}</p>
+            ) : null}
+          </div>
+        </div>
+
+        <dl>
+          <DetailRow label="Email" value={alumni?.email} />
+          <DetailRow label="Phone" value={alumni?.phone_number} />
+          <DetailRow label="WhatsApp" value={alumni?.whatsapp_number} />
+          <DetailRow label="Location" value={locationLabel} />
+          <DetailRow label="Company" value={company} />
+        </dl>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -228,7 +272,11 @@ export default function ContactRequestDetailPage() {
       <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="mt-4 h-72 w-full" />
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-72" />
+          <Skeleton className="h-72" />
+        </div>
+        <Skeleton className="h-56 w-full" />
       </div>
     )
   }
@@ -266,34 +314,29 @@ export default function ContactRequestDetailPage() {
         </div>
       </div>
 
+      <div className="grid gap-4 px-4 lg:grid-cols-2 lg:px-6">
+        <PersonCard
+          title="Requester"
+          description="Alumni who sent this request"
+          alumni={requester}
+          alumniId={item.requester_alumni_id}
+        />
+        <PersonCard
+          title="To"
+          description="Alumni they want to contact"
+          alumni={target}
+          alumniId={item.target_alumni_id}
+        />
+      </div>
+
       <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Request details</CardTitle>
-            <CardDescription>
-              Alumni contact request details
-            </CardDescription>
+            <CardDescription>Why this introduction was requested</CardDescription>
           </CardHeader>
           <CardContent>
             <dl>
-              <DetailRow
-                label="Requester"
-                value={
-                  <AlumniLink
-                    alumni={requester ?? undefined}
-                    alumniId={item.requester_alumni_id}
-                  />
-                }
-              />
-              <DetailRow
-                label="Target"
-                value={
-                  <AlumniLink
-                    alumni={target ?? undefined}
-                    alumniId={item.target_alumni_id}
-                  />
-                }
-              />
               <DetailRow label="Reason" value={item.request_reason} />
               <DetailRow label="Status" value={statusLabel(item.status)} />
               {item.rejection_reason ? (
