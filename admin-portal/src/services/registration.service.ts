@@ -103,4 +103,12 @@ export const registrationService = {
     })
     return data.data
   },
+
+  async resendActivation(email: string): Promise<{ resent: boolean }> {
+    const { data } = await apiClient.post<ApiResponse<{ resent: boolean }>>(
+      "/auth/resend-activation",
+      { email },
+    )
+    return data.data
+  },
 }

@@ -396,22 +396,34 @@ export default function EventFormPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
         <BackButton fallback={isEdit && id ? `/events/${id}` : "/events"} />
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isEdit ? "Edit event" : "New event"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isEdit
-              ? "Update event details, targeting, and publish settings."
-              : "Create an event and optionally target specific alumni."}
-          </p>
-        </div>
       </div>
 
-      <form
-        onSubmit={onSubmit}
-        className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6"
-      >
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4 px-4 lg:px-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {isEdit ? "Edit event" : "New event"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isEdit
+                ? "Update event details, targeting, and publish settings."
+                : "Create an event and optionally target specific alumni."}
+            </p>
+          </div>
+          <Button
+            type="submit"
+            className="shrink-0"
+            disabled={saving || uploading}
+          >
+            {saving
+              ? "Saving…"
+              : isEdit
+                ? "Save changes"
+                : "Create event"}
+          </Button>
+        </div>
+
+        <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
         <div className="flex flex-col gap-4 lg:col-span-2">
           <Card>
             <CardHeader>
@@ -646,14 +658,6 @@ export default function EventFormPage() {
               </div>
 
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-              <Button type="submit" disabled={saving || uploading}>
-                {saving
-                  ? "Saving…"
-                  : isEdit
-                    ? "Save changes"
-                    : "Create event"}
-              </Button>
             </CardContent>
           </Card>
 
@@ -694,6 +698,7 @@ export default function EventFormPage() {
               </p>
             </CardContent>
           </Card>
+        </div>
         </div>
       </form>
 

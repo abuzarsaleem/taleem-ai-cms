@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
-import { QrCodeIcon, UserIcon } from "lucide-react"
+import { MailIcon, QrCodeIcon, UserIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
 import { BackButton } from "@/components/admin/back-button"
@@ -70,13 +70,14 @@ export default function RegistrationDetailPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
-  const [message, setMessage] = useState("")
   const [cnic, setCnic] = useState("")
   const [rejectionReason, setRejectionReason] = useState("")
   const [fieldError, setFieldError] = useState("")
   const [confirmAction, setConfirmAction] = useState<"APPROVED" | "REJECTED" | null>(
     null,
   )
+  const [activationEmailFailed, setActivationEmailFailed] = useState(false)
+  const [resendBusy, setResendBusy] = useState(false)
 
   async function load() {
     if (!token || !id) return
@@ -85,7 +86,6 @@ export default function RegistrationDetailPage() {
     try {
       const result = await registrationService.getById(token, id)
       setItem(result)
-      setCnic(result.cnic_national_id ?? "")
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load")
       setItem(null)
@@ -95,14 +95,51 @@ export default function RegistrationDetailPage() {
   }
 
   useEffect(() => {
+    setActivationEmailFailed(false)
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, token])
 
-  function requestReview(status: "APPROVED" | "REJECTED") {
-    if (!cnic.trim()) {
-      setFieldError("CNIC is required to confirm this registration")
-      return
+  function openAccept() {
+    setCnic("")
+    setFieldError("")
+    setConfirmAction("APPROVED")
+  }
+
+  function openReject() {
+    setRejectionReason("")
+    setFieldError("")
+    setConfirmAction("REJECTED")
+  }
+
+  function closeConfirm() {
+    if (busy) return
+    setConfirmAction(null)
+    setCnic("")
+    setRejectionReason("")
+    setFieldError("")
+  }
+
+  function resetConfirm() {
+    setConfirmAction(null)
+    setCnic("")
+    setRejectionReason("")
+    setFieldError("")
+  }
+
+  async function handleReview() {
+    if (!token || !id || !item || !confirmAction) return
+    const status = confirmAction
+
+    if (status === "APPROVED") {
+      if (!cnic.trim()) {
+        setFieldError("Enter the CNIC to confirm this registration")
+        return
+      }
+      if (!/^\d{5}-\d{7}-\d$/.test(cnic.trim())) {
+        setFieldError("CNIC must match #####-#######-#")
+        return
+      }
     }
 
     if (status === "REJECTED" && !rejectionReason.trim()) {
@@ -110,23 +147,15 @@ export default function RegistrationDetailPage() {
       return
     }
 
-    setFieldError("")
-    setConfirmAction(status)
-  }
-
-  async function handleReview() {
-    if (!token || !id || !item || !confirmAction) return
-    const status = confirmAction
-
     setBusy(true)
     setError("")
-    setMessage("")
     setFieldError("")
 
     try {
       const result = await registrationService.review(token, id, {
         status,
-        cnic_national_id: cnic.trim(),
+        cnic_national_id:
+          status === "APPROVED" ? cnic.trim() : item.cnic_national_id,
         ...(status === "REJECTED"
           ? { rejection_reason: rejectionReason.trim() }
           : {}),
@@ -137,20 +166,21 @@ export default function RegistrationDetailPage() {
           result.notification_failed ? "activation email failed to send" : null,
           result.qr_failed ? "QR generation failed" : null,
         ].filter(Boolean)
-        const successMessage = notes.length
-          ? `Approved (${notes.join(", ")}).`
-          : "Registration approved."
-        setMessage(successMessage)
-        toast.success(successMessage)
+        setActivationEmailFailed(result.notification_failed)
+        toast.success(
+          notes.length
+            ? `Approved (${notes.join(", ")}).`
+            : "Registration approved.",
+        )
       } else {
-        const successMessage = result.notification_failed
-          ? "Rejected (notification failed to send)."
-          : "Registration rejected."
-        setMessage(successMessage)
-        toast.success(successMessage)
+        toast.success(
+          result.notification_failed
+            ? "Rejected (notification failed to send)."
+            : "Registration rejected.",
+        )
       }
 
-      setConfirmAction(null)
+      resetConfirm()
       await load()
     } catch (err) {
       const failMessage =
@@ -163,6 +193,26 @@ export default function RegistrationDetailPage() {
       toast.error(failMessage)
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function handleResendActivation() {
+    if (!item?.email) return
+    setResendBusy(true)
+    setError("")
+    try {
+      await registrationService.resendActivation(item.email)
+      setActivationEmailFailed(false)
+      toast.success("Confirmation email resent.")
+    } catch (err) {
+      const failMessage =
+        err instanceof ApiError
+          ? err.message
+          : "Failed to resend confirmation email"
+      setError(failMessage)
+      toast.error(failMessage)
+    } finally {
+      setResendBusy(false)
     }
   }
 
@@ -187,31 +237,65 @@ export default function RegistrationDetailPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
         <BackButton fallback="/registrations" />
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {item.full_name}
-            </h1>
-            <Badge
-              variant={registrationStatusVariant(item.status)}
-              className={cn(
-                item.status === "PENDING" &&
-                  "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-              )}
-            >
-              {item.status}
-            </Badge>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">
+                {item.full_name}
+              </h1>
+              <Badge
+                variant={registrationStatusVariant(item.status)}
+                className={cn(
+                  item.status === "PENDING" &&
+                    "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+                )}
+              >
+                {item.status}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">
+              {item.reference_number ? (
+                <span className="font-medium text-foreground">
+                  {item.reference_number}
+                </span>
+              ) : null}
+              {item.reference_number ? " · " : null}
+              {item.email}
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            {item.reference_number ? (
-              <span className="font-medium text-foreground">
-                {item.reference_number}
-              </span>
-            ) : null}
-            {item.reference_number ? " · " : null}
-            {item.email}
-          </p>
+          {isPending ? (
+            <div className="flex shrink-0 gap-2">
+              <Button disabled={busy} onClick={openAccept}>
+                Accept
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={busy}
+                onClick={openReject}
+              >
+                Reject
+              </Button>
+            </div>
+          ) : null}
         </div>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {activationEmailFailed && item.status === "APPROVED" ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              Activation email failed to send to{" "}
+              <span className="font-medium">{item.email}</span>.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={resendBusy}
+              onClick={() => void handleResendActivation()}
+            >
+              <MailIcon />
+              {resendBusy ? "Sending…" : "Resend confirmation email"}
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
@@ -334,112 +418,64 @@ export default function RegistrationDetailPage() {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{isPending ? "Review decision" : "Status"}</CardTitle>
-              <CardDescription>
-                {isPending
-                  ? "Confirm CNIC, then approve or reject."
-                  : "This registration has already been reviewed."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              {isPending ? (
-                <>
-                  <Field>
-                    <FieldLabel htmlFor="cnic">Confirm CNIC</FieldLabel>
-                    <Input
-                      id="cnic"
-                      value={cnic}
-                      onChange={(e) => {
-                        setCnic(e.target.value)
-                        setFieldError("")
-                      }}
-                      placeholder="#####-#######-#"
-                      disabled={busy}
-                    />
-                  </Field>
-
-                  <Field>
-                    <FieldLabel htmlFor="rejection_reason">
-                      Rejection reason
-                    </FieldLabel>
-                    <Textarea
-                      id="rejection_reason"
-                      value={rejectionReason}
-                      onChange={(e) => {
-                        setRejectionReason(e.target.value)
-                        setFieldError("")
-                      }}
-                      placeholder="Required only when rejecting"
-                      rows={4}
-                      disabled={busy}
-                    />
-                  </Field>
-
-                  {fieldError ? <FieldError>{fieldError}</FieldError> : null}
-
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      disabled={busy}
-                      onClick={() => requestReview("APPROVED")}
-                    >
-                      {busy ? "Working…" : "Approve"}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      disabled={busy}
-                      onClick={() => requestReview("REJECTED")}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No further review actions are available for{" "}
-                  <span className="font-medium text-foreground">
-                    {item.status}
-                  </span>{" "}
-                  registrations.
-                </p>
-              )}
-
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              {message ? (
-                <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                  {message}
-                </p>
-              ) : null}
-            </CardContent>
-          </Card>
         </div>
       </div>
 
       <ConfirmDialog
         open={confirmAction === "APPROVED"}
-        title="Approve registration"
-        description={`Approve ${item.full_name}? This will activate their alumni account.`}
-        confirmLabel="Approve"
+        title="Confirm CNIC"
+        description={`Enter the applicant's CNIC to accept ${item.full_name}. This will activate their alumni account.`}
+        confirmLabel="Accept"
         busy={busy}
         onOpenChange={(open) => {
-          if (!open && !busy) setConfirmAction(null)
+          if (!open) closeConfirm()
         }}
         onConfirm={handleReview}
-      />
+      >
+        <Field data-invalid={fieldError ? true : undefined}>
+          <FieldLabel htmlFor="confirm-cnic">CNIC</FieldLabel>
+          <Input
+            id="confirm-cnic"
+            value={cnic}
+            onChange={(e) => {
+              setCnic(e.target.value)
+              setFieldError("")
+            }}
+            placeholder="#####-#######-#"
+            autoComplete="off"
+            disabled={busy}
+          />
+          {fieldError ? <FieldError>{fieldError}</FieldError> : null}
+        </Field>
+      </ConfirmDialog>
       <ConfirmDialog
         open={confirmAction === "REJECTED"}
         title="Reject registration"
-        description={`Reject ${item.full_name}? This cannot be undone.`}
+        description={`Reject ${item.full_name}? A reason is required and will be sent to the applicant.`}
         confirmLabel="Reject"
         variant="destructive"
         busy={busy}
         onOpenChange={(open) => {
-          if (!open && !busy) setConfirmAction(null)
+          if (!open) closeConfirm()
         }}
         onConfirm={handleReview}
-      />
+      >
+        <Field data-invalid={fieldError ? true : undefined}>
+          <FieldLabel htmlFor="reject-reason">Rejection reason</FieldLabel>
+          <Textarea
+            id="reject-reason"
+            value={rejectionReason}
+            onChange={(e) => {
+              setRejectionReason(e.target.value)
+              setFieldError("")
+            }}
+            placeholder="Explain why this registration is rejected"
+            rows={4}
+            disabled={busy}
+          />
+          {fieldError ? <FieldError>{fieldError}</FieldError> : null}
+        </Field>
+      </ConfirmDialog>
     </div>
   )
 }

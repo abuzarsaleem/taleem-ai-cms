@@ -230,7 +230,7 @@ export default function AlumniDetailPage() {
             </p>
             <Badge
               variant="outline"
-              className="mt-3 border-accent/30 bg-accent/10 font-medium text-accent-foreground"
+              className="mt-3 border-accent/30 bg-accent/10 font-medium text-accent dark:border-accent/40 dark:bg-accent/15 dark:text-accent"
             >
               Alumni
             </Badge>

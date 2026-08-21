@@ -205,12 +205,10 @@ export default function ContactRequestDetailPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
-  const [message, setMessage] = useState("")
   const [rejectionReason, setRejectionReason] = useState("")
   const [fieldError, setFieldError] = useState("")
-  const [confirmAction, setConfirmAction] = useState<"APPROVE" | "REJECT" | null>(
-    null,
-  )
+  const [acceptOpen, setAcceptOpen] = useState(false)
+  const [rejectOpen, setRejectOpen] = useState(false)
 
   useEffect(() => {
     if (!token || !id) return
@@ -260,22 +258,38 @@ export default function ContactRequestDetailPage() {
     }
   }, [token, id, stateRequest])
 
-  function requestReview(action: "APPROVE" | "REJECT") {
+  function openAccept() {
+    setAcceptOpen(true)
+  }
+
+  function closeAccept() {
+    if (busy) return
+    setAcceptOpen(false)
+  }
+
+  function openReject() {
+    setRejectionReason("")
+    setFieldError("")
+    setRejectOpen(true)
+  }
+
+  function closeReject() {
+    if (busy) return
+    setRejectOpen(false)
+    setRejectionReason("")
+    setFieldError("")
+  }
+
+  async function handleReview(action: "APPROVE" | "REJECT") {
+    if (!token || !item) return
+
     if (action === "REJECT" && !rejectionReason.trim()) {
       setFieldError("Rejection reason is required")
       return
     }
-    setFieldError("")
-    setConfirmAction(action)
-  }
-
-  async function handleReview() {
-    if (!token || !item || !confirmAction) return
-    const action = confirmAction
 
     setBusy(true)
     setError("")
-    setMessage("")
     setFieldError("")
 
     try {
@@ -286,13 +300,14 @@ export default function ContactRequestDetailPage() {
         action === "REJECT" ? rejectionReason.trim() : undefined,
       )
       setItem(updated)
-      setConfirmAction(null)
-      const successMessage =
+      setAcceptOpen(false)
+      setRejectOpen(false)
+      setRejectionReason("")
+      toast.success(
         action === "APPROVE"
           ? "Contact request approved."
-          : "Contact request rejected."
-      setMessage(successMessage)
-      toast.success(successMessage)
+          : "Contact request rejected.",
+      )
     } catch (err) {
       const failMessage =
         err instanceof ApiError
@@ -340,19 +355,36 @@ export default function ContactRequestDetailPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
         <BackButton fallback="/contact-requests" />
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">
-              Contact request
-            </h1>
-            <Badge className={cn("font-normal", statusClass(item.status))}>
-              {statusLabel(item.status)}
-            </Badge>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">
+                Contact request
+              </h1>
+              <Badge className={cn("font-normal", statusClass(item.status))}>
+                {statusLabel(item.status)}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Submitted {formatDateTime(item.created_at)}
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Submitted {formatDateTime(item.created_at)}
-          </p>
+          {canReview ? (
+            <div className="flex shrink-0 gap-2">
+              <Button disabled={busy} onClick={openAccept}>
+                Accept
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={busy}
+                onClick={openReject}
+              >
+                Reject
+              </Button>
+            </div>
+          ) : null}
         </div>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
       </div>
 
       <div className="grid items-stretch gap-4 px-4 lg:grid-cols-[1fr_auto_1fr] lg:px-6">
@@ -379,8 +411,8 @@ export default function ContactRequestDetailPage() {
         />
       </div>
 
-      <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
-        <Card className="lg:col-span-2">
+      <div className="px-4 lg:px-6">
+        <Card>
           <CardHeader>
             <CardTitle>Request details</CardTitle>
             <CardDescription>Why this introduction was requested</CardDescription>
@@ -425,94 +457,47 @@ export default function ContactRequestDetailPage() {
             </dl>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{canReview ? "Admin review" : "Status"}</CardTitle>
-            <CardDescription>
-              {canReview
-                ? "Approve or reject this request. Reject requires a reason."
-                : "No further admin action is available for this status."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {canReview ? (
-              <>
-                <Button
-                  disabled={busy}
-                  onClick={() => requestReview("APPROVE")}
-                >
-                  {busy ? "Working…" : "Approve"}
-                </Button>
-
-                <Field>
-                  <FieldLabel htmlFor="rejection_reason">
-                    Rejection reason
-                  </FieldLabel>
-                  <Textarea
-                    id="rejection_reason"
-                    value={rejectionReason}
-                    onChange={(e) => {
-                      setRejectionReason(e.target.value)
-                      setFieldError("")
-                    }}
-                    placeholder="Required when rejecting"
-                    rows={4}
-                    disabled={busy}
-                  />
-                </Field>
-                {fieldError ? <FieldError>{fieldError}</FieldError> : null}
-                <Button
-                  variant="destructive"
-                  disabled={busy}
-                  onClick={() => requestReview("REJECT")}
-                >
-                  Reject
-                </Button>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Current status is{" "}
-                <span className="font-medium text-foreground">
-                  {statusLabel(item.status)}
-                </span>
-                .
-              </p>
-            )}
-
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            {message ? (
-              <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                {message}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
       </div>
 
       <ConfirmDialog
-        open={confirmAction === "APPROVE"}
-        title="Approve contact request"
-        description="Approve this request? Both alumni will be able to see each other's contact details."
-        confirmLabel="Approve"
+        open={acceptOpen}
+        title="Accept contact request"
+        description="Accept this request? Both alumni will be able to see each other's contact details."
+        confirmLabel="Accept"
         busy={busy}
         onOpenChange={(open) => {
-          if (!open && !busy) setConfirmAction(null)
+          if (!open) closeAccept()
         }}
-        onConfirm={handleReview}
+        onConfirm={() => handleReview("APPROVE")}
       />
       <ConfirmDialog
-        open={confirmAction === "REJECT"}
+        open={rejectOpen}
         title="Reject contact request"
-        description="Reject this request? This cannot be undone."
+        description="Reject this request? A reason is required."
         confirmLabel="Reject"
         variant="destructive"
         busy={busy}
         onOpenChange={(open) => {
-          if (!open && !busy) setConfirmAction(null)
+          if (!open) closeReject()
         }}
-        onConfirm={handleReview}
-      />
+        onConfirm={() => handleReview("REJECT")}
+      >
+        <Field data-invalid={fieldError ? true : undefined}>
+          <FieldLabel htmlFor="reject-reason">Rejection reason</FieldLabel>
+          <Textarea
+            id="reject-reason"
+            value={rejectionReason}
+            onChange={(e) => {
+              setRejectionReason(e.target.value)
+              setFieldError("")
+            }}
+            placeholder="Explain why this request is rejected"
+            rows={4}
+            disabled={busy}
+          />
+          {fieldError ? <FieldError>{fieldError}</FieldError> : null}
+        </Field>
+      </ConfirmDialog>
     </div>
   )
 }

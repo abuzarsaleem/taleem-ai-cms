@@ -191,8 +191,16 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1,
+  h2,
+  .font-display,
+  .font-serif {
+    font-family: "Fraunces", "Source Sans 3", ui-serif, Georgia, serif;
+    font-optical-sizing: auto;
   }
 }

@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react"
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
-import { CheckIcon, ChevronRightIcon, MailIcon, XIcon } from "lucide-react"
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
+import { MailIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
-import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { TablePagination } from "@/components/admin/table-pagination"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -17,10 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
 import { withNavTrail } from "@/lib/nav-trail"
-import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   contactRequestService,
@@ -107,15 +102,6 @@ export default function ContactRequestsPage() {
   const [items, setItems] = useState<ContactRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [busyId, setBusyId] = useState<string | null>(null)
-  const [pendingApprove, setPendingApprove] = useState<ContactRequest | null>(
-    null,
-  )
-  const [pendingReject, setPendingReject] = useState<ContactRequest | null>(
-    null,
-  )
-  const [rejectionReason, setRejectionReason] = useState("")
-  const [rejectError, setRejectError] = useState("")
 
   async function load() {
     if (!token) return
@@ -169,55 +155,10 @@ export default function ContactRequestsPage() {
 
   const pagedItems = items.slice((page - 1) * pageSize, page * pageSize)
 
-  async function handleApprove() {
-    if (!token || !pendingApprove) return
-
-    setBusyId(pendingApprove.id)
-    setError("")
-    try {
-      await contactRequestService.review(token, pendingApprove.id, "APPROVE")
-      setPendingApprove(null)
-      toast.success("Contact request approved")
-      await load()
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : "Approve failed"
-      setError(message)
-      toast.error(message)
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  async function handleReject() {
-    if (!token || !pendingReject) return
-    if (!rejectionReason.trim()) {
-      setRejectError("Rejection reason is required")
-      return
-    }
-
-    setBusyId(pendingReject.id)
-    setError("")
-    setRejectError("")
-    try {
-      await contactRequestService.review(
-        token,
-        pendingReject.id,
-        "REJECT",
-        rejectionReason.trim(),
-      )
-      setPendingReject(null)
-      setRejectionReason("")
-      toast.success("Contact request rejected")
-      await load()
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : "Reject failed"
-      setError(message)
-      toast.error(message)
-    } finally {
-      setBusyId(null)
-    }
+  function openRequest(item: ContactRequest) {
+    navigate(`/contact-requests/${item.id}`, {
+      state: withNavTrail(location, { request: item }),
+    })
   }
 
   return (
@@ -273,127 +214,64 @@ export default function ContactRequestsPage() {
                   <TableHead className="hidden h-11 bg-muted/40 px-4 text-xs uppercase tracking-wide text-muted-foreground sm:table-cell">
                     Submitted
                   </TableHead>
-                  <TableHead className="h-11 bg-muted/40 px-4 text-right text-xs uppercase tracking-wide text-muted-foreground">
-                    Actions
-                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagedItems.map((item) => {
-                  const isPending = item.status === "PENDING_ADMIN"
-                  const isBusy = busyId === item.id
-
-                  return (
-                    <TableRow key={item.id} className="group">
-                        <TableCell className="px-4 py-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
-                              <MailIcon className="size-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <button
-                                type="button"
-                                className="line-clamp-1 text-left font-medium hover:underline"
-                                onClick={() =>
-                                  navigate(`/contact-requests/${item.id}`, {
-                                    state: withNavTrail(location, { request: item }),
-                                  })
-                                }
-                              >
-                                {item.request_reason}
-                              </button>
-                              <div className="mt-0.5 text-xs text-muted-foreground md:hidden">
-                                {partyName(item, "requester")} →{" "}
-                                {partyName(item, "target")}
-                              </div>
-                            </div>
+                {pagedItems.map((item) => (
+                  <TableRow
+                    key={item.id}
+                    className="group cursor-pointer"
+                    onClick={() => openRequest(item)}
+                  >
+                    <TableCell className="px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
+                          <MailIcon className="size-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="line-clamp-1 font-medium">
+                            {item.request_reason}
                           </div>
-                        </TableCell>
-                        <TableCell className="hidden px-4 py-3 md:table-cell">
-                          <div className="text-sm">
-                            <Link
-                              to={`/alumni/${item.requester_alumni_id}`}
-                              state={withNavTrail(location)}
-                              className="font-medium hover:underline"
-                            >
-                              {partyName(item, "requester")}
-                            </Link>
-                            <span className="mx-1.5 text-muted-foreground">
-                              →
-                            </span>
-                            <Link
-                              to={`/alumni/${item.target_alumni_id}`}
-                              state={withNavTrail(location)}
-                              className="font-medium hover:underline"
-                            >
-                              {partyName(item, "target")}
-                            </Link>
+                          <div className="mt-0.5 text-xs text-muted-foreground md:hidden">
+                            {partyName(item, "requester")} →{" "}
+                            {partyName(item, "target")}
                           </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <Badge
-                            className={cn(
-                              "font-normal",
-                              statusClass(item.status),
-                            )}
-                          >
-                            {statusLabel(item.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden px-4 py-3 text-sm text-muted-foreground sm:table-cell">
-                          {formatDate(item.created_at)}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {isPending ? (
-                              <>
-                                <Button
-                                  size="sm"
-                                  disabled={isBusy}
-                                  onClick={() => setPendingApprove(item)}
-                                >
-                                  <CheckIcon />
-                                  Approve
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  disabled={isBusy}
-                                  onClick={() => {
-                                    setPendingReject(item)
-                                    setRejectionReason("")
-                                    setRejectError("")
-                                  }}
-                                >
-                                  <XIcon />
-                                  Reject
-                                </Button>
-                              </>
-                            ) : null}
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              className="text-muted-foreground"
-                              render={
-                                <Link
-                                  to={`/contact-requests/${item.id}`}
-                                  state={withNavTrail(location, { request: item })}
-                                />
-                              }
-                            >
-                              <ChevronRightIcon />
-                              <span className="sr-only">Open</span>
-                            </Button>
+                        </div>
                       </div>
                     </TableCell>
+                    <TableCell className="hidden px-4 py-3 md:table-cell">
+                      <div className="text-sm">
+                        <span className="font-medium">
+                          {partyName(item, "requester")}
+                        </span>
+                        <span className="mx-1.5 text-muted-foreground">
+                          →
+                        </span>
+                        <span className="font-medium">
+                          {partyName(item, "target")}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge
+                        className={cn(
+                          "font-normal",
+                          statusClass(item.status),
+                        )}
+                      >
+                        {statusLabel(item.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden px-4 py-3 text-sm text-muted-foreground sm:table-cell">
+                      {formatDate(item.created_at)}
+                    </TableCell>
                   </TableRow>
-                  )
-                })}
+                ))}
 
                 {!items.length ? (
                   <TableRow className="hover:bg-transparent">
                     <TableCell
-                      colSpan={5}
+                      colSpan={4}
                       className="h-28 px-4 text-center text-muted-foreground"
                     >
                       No contact requests found.
@@ -414,50 +292,6 @@ export default function ContactRequestsPage() {
           />
         ) : null}
       </div>
-
-      <ConfirmDialog
-        open={Boolean(pendingApprove)}
-        title="Approve contact request"
-        description={`Approve the request from ${pendingApprove ? partyName(pendingApprove, "requester") : "this alumni"} to ${pendingApprove ? partyName(pendingApprove, "target") : "the target alumni"}?`}
-        confirmLabel="Approve"
-        busy={Boolean(busyId && pendingApprove)}
-        onOpenChange={(open) => {
-          if (!open && !busyId) setPendingApprove(null)
-        }}
-        onConfirm={handleApprove}
-      />
-      <ConfirmDialog
-        open={Boolean(pendingReject)}
-        title="Reject contact request"
-        description={`Reject the request from ${pendingReject ? partyName(pendingReject, "requester") : "this alumni"}? A reason is required.`}
-        confirmLabel="Reject"
-        variant="destructive"
-        busy={Boolean(busyId && pendingReject)}
-        onOpenChange={(open) => {
-          if (!open && !busyId) {
-            setPendingReject(null)
-            setRejectionReason("")
-            setRejectError("")
-          }
-        }}
-        onConfirm={handleReject}
-      >
-        <Field>
-          <FieldLabel htmlFor="reject-reason">Rejection reason</FieldLabel>
-          <Textarea
-            id="reject-reason"
-            value={rejectionReason}
-            onChange={(e) => {
-              setRejectionReason(e.target.value)
-              setRejectError("")
-            }}
-            placeholder="Explain why this request is rejected"
-            rows={3}
-            disabled={Boolean(busyId)}
-          />
-          {rejectError ? <FieldError>{rejectError}</FieldError> : null}
-        </Field>
-      </ConfirmDialog>
     </div>
   )
 }

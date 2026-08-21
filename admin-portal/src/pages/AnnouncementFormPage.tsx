@@ -195,22 +195,34 @@ export default function AnnouncementFormPage() {
         <BackButton
           fallback={isEdit && id ? `/announcements/${id}` : "/announcements"}
         />
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isEdit ? "Edit announcement" : "New announcement"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isEdit
-              ? "Update announcement content and publish settings."
-              : "Create an announcement for the alumni feed."}
-          </p>
-        </div>
       </div>
 
-      <form
-        onSubmit={onSubmit}
-        className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6"
-      >
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4 px-4 lg:px-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {isEdit ? "Edit announcement" : "New announcement"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isEdit
+                ? "Update announcement content and publish settings."
+                : "Create an announcement for the alumni feed."}
+            </p>
+          </div>
+          <Button
+            type="submit"
+            className="shrink-0"
+            disabled={saving || uploading}
+          >
+            {saving
+              ? "Saving…"
+              : isEdit
+                ? "Save changes"
+                : "Create announcement"}
+          </Button>
+        </div>
+
+        <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Details</CardTitle>
@@ -319,14 +331,6 @@ export default function AnnouncementFormPage() {
               </div>
 
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-              <Button type="submit" disabled={saving || uploading}>
-                {saving
-                  ? "Saving…"
-                  : isEdit
-                    ? "Save changes"
-                    : "Create announcement"}
-              </Button>
             </CardContent>
           </Card>
 
@@ -367,6 +371,7 @@ export default function AnnouncementFormPage() {
               </p>
             </CardContent>
           </Card>
+        </div>
         </div>
       </form>
 
