@@ -14,6 +14,7 @@ import {
   CardAction,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -399,33 +400,20 @@ export default function EventFormPage() {
       </div>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4 px-4 lg:px-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {isEdit ? "Edit event" : "New event"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {isEdit
-                ? "Update event details, targeting, and publish settings."
-                : "Create an event and optionally target specific alumni."}
-            </p>
-          </div>
-          <Button
-            type="submit"
-            className="shrink-0"
-            disabled={saving || uploading}
-          >
-            {saving
-              ? "Saving…"
-              : isEdit
-                ? "Save changes"
-                : "Create event"}
-          </Button>
+        <div className="px-4 lg:px-6">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isEdit ? "Edit event" : "New event"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isEdit
+              ? "Update event details, targeting, and publish settings."
+              : "Create an event and optionally target specific alumni."}
+          </p>
         </div>
 
-        <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
-        <div className="flex flex-col gap-4 lg:col-span-2">
-          <Card>
+        <div className="grid items-stretch gap-4 px-4 lg:grid-cols-3 lg:px-6">
+        <div className="flex h-full flex-col gap-4 lg:col-span-2">
+          <Card className="h-full">
             <CardHeader>
               <CardTitle>Details</CardTitle>
               <CardDescription>Event information</CardDescription>
@@ -560,82 +548,9 @@ export default function EventFormPage() {
               </Field>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Audience</CardTitle>
-              <CardDescription>
-                Choose who should see this event. All is selected by default.
-              </CardDescription>
-              {hasAudienceFilters ? (
-                <CardAction>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={saving}
-                    onClick={clearAudience}
-                  >
-                    Reset to all
-                  </Button>
-                </CardAction>
-              ) : null}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <p className="text-sm font-medium">{audienceSummary}</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <SearchableMultiSelect
-                  label="Campus"
-                  placeholder="All campuses"
-                  allLabel="All campuses"
-                  searchPlaceholder="Search campuses…"
-                  values={campusIds}
-                  disabled={saving}
-                  onChange={setCampusIds}
-                  options={campusOptions}
-                />
-                <SearchableMultiSelect
-                  label="Degree program"
-                  placeholder={
-                    campusIds.length
-                      ? "All programs on selected campuses"
-                      : "All degree programs"
-                  }
-                  allLabel="All programs"
-                  searchPlaceholder="Search programs…"
-                  values={degreeProgramIds}
-                  disabled={saving}
-                  onChange={setDegreeProgramIds}
-                  options={degreeProgramOptions}
-                  emptyText="No degree programs found"
-                />
-                <SearchableMultiSelect
-                  label="Graduation year"
-                  placeholder="All years"
-                  allLabel="All years"
-                  searchPlaceholder="Search years…"
-                  values={graduationYears}
-                  disabled={saving}
-                  onChange={setGraduationYears}
-                  options={yearOptions}
-                />
-                <SearchableMultiSelect
-                  label="City"
-                  placeholder="All cities"
-                  allLabel="All cities"
-                  searchPlaceholder="Search cities…"
-                  values={cities}
-                  disabled={saving}
-                  onChange={setCities}
-                  options={cityOptions}
-                  emptyText="No cities found"
-                />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex h-full min-h-0 flex-col gap-4">
           <Card>
             <CardHeader>
               <CardTitle>Publish</CardTitle>
@@ -661,20 +576,20 @@ export default function EventFormPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="min-h-0 flex-1">
             <CardHeader>
               <CardTitle>Image</CardTitle>
               <CardDescription>Optional cover image</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
+            <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
               {imagePreview ? (
                 <img
                   src={imagePreview}
                   alt="Event preview"
-                  className="aspect-video w-full rounded-lg border object-cover"
+                  className="h-full min-h-40 w-full flex-1 rounded-lg border object-contain"
                 />
               ) : (
-                <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
+                <div className="flex min-h-40 w-full flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
                   <ImageIcon className="size-8" />
                   <span className="text-xs">No image selected</span>
                 </div>
@@ -699,6 +614,88 @@ export default function EventFormPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Audience</CardTitle>
+            <CardDescription>
+              Choose who should see this event. All is selected by default.
+            </CardDescription>
+            {hasAudienceFilters ? (
+              <CardAction>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={saving}
+                  onClick={clearAudience}
+                >
+                  Reset to all
+                </Button>
+              </CardAction>
+            ) : null}
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm font-medium">{audienceSummary}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SearchableMultiSelect
+                label="Campus"
+                placeholder="All campuses"
+                allLabel="All campuses"
+                searchPlaceholder="Search campuses…"
+                values={campusIds}
+                disabled={saving}
+                onChange={setCampusIds}
+                options={campusOptions}
+              />
+              <SearchableMultiSelect
+                label="Degree program"
+                placeholder={
+                  campusIds.length
+                    ? "All programs on selected campuses"
+                    : "All degree programs"
+                }
+                allLabel="All programs"
+                searchPlaceholder="Search programs…"
+                values={degreeProgramIds}
+                disabled={saving}
+                onChange={setDegreeProgramIds}
+                options={degreeProgramOptions}
+                emptyText="No degree programs found"
+              />
+              <SearchableMultiSelect
+                label="Graduation year"
+                placeholder="All years"
+                allLabel="All years"
+                searchPlaceholder="Search years…"
+                values={graduationYears}
+                disabled={saving}
+                onChange={setGraduationYears}
+                options={yearOptions}
+              />
+              <SearchableMultiSelect
+                label="City"
+                placeholder="All cities"
+                allLabel="All cities"
+                searchPlaceholder="Search cities…"
+                values={cities}
+                disabled={saving}
+                onChange={setCities}
+                options={cityOptions}
+                emptyText="No cities found"
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end bg-transparent">
+            <Button type="submit" disabled={saving || uploading}>
+              {saving
+                ? "Saving…"
+                : isEdit
+                  ? "Save changes"
+                  : "Create event"}
+            </Button>
+          </CardFooter>
+        </Card>
         </div>
       </form>
 

@@ -204,53 +204,28 @@ export default function EventDetailPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-start sm:justify-between lg:px-6">
-        <div className="flex flex-col gap-3">
-          <BackButton fallback="/events" />
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{item.title}</h1>
-              <Badge
-                className={cn(
-                  "font-normal",
-                  item.is_draft
-                    ? "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                    : "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-                )}
-              >
-                {item.is_draft ? "Draft" : "Published"}
-              </Badge>
-              <Badge variant="outline">{typeLabel(item.event_type)}</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {formatDate(item.event_date)} · {formatTime(item.start_time)}
-              {item.end_time ? `–${formatTime(item.end_time)}` : ""} ·{" "}
-              {item.venue}
-            </p>
+      <div className="flex flex-col gap-3 px-4 lg:px-6">
+        <BackButton fallback="/events" />
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">{item.title}</h1>
+            <Badge
+              className={cn(
+                "font-normal",
+                item.is_draft
+                  ? "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                  : "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+              )}
+            >
+              {item.is_draft ? "Draft" : "Published"}
+            </Badge>
+            <Badge variant="outline">{typeLabel(item.event_type)}</Badge>
           </div>
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            render={
-              <Link
-                to={`/events/${item.id}/edit`}
-                state={withNavTrail(location)}
-              />
-            }
-          >
-            <PencilIcon />
-            Edit
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={busy}
-            onClick={() => setConfirmDelete(true)}
-          >
-            <Trash2Icon />
-            Delete
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            {formatDate(item.event_date)} · {formatTime(item.start_time)}
+            {item.end_time ? `–${formatTime(item.end_time)}` : ""} ·{" "}
+            {item.venue}
+          </p>
         </div>
       </div>
 
@@ -414,6 +389,29 @@ export default function EventDetailPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="flex justify-end gap-2 px-4 lg:px-6">
+        <Button
+          variant="outline"
+          render={
+            <Link
+              to={`/events/${item.id}/edit`}
+              state={withNavTrail(location)}
+            />
+          }
+        >
+          <PencilIcon />
+          Edit
+        </Button>
+        <Button
+          variant="destructive"
+          disabled={busy}
+          onClick={() => setConfirmDelete(true)}
+        >
+          <Trash2Icon />
+          Delete
+        </Button>
       </div>
 
       <ConfirmDialog

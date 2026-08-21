@@ -12,6 +12,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -119,12 +120,14 @@ function PersonCard({
   alumni,
   alumniId,
   fallbackName,
+  request,
 }: {
   title: string
   description: string
   alumni: DirectoryAlumniProfile | null
   alumniId: string
   fallbackName?: string | null
+  request: ContactRequest
 }) {
   const location = useLocation()
   const name = alumni?.full_name ?? fallbackName?.trim() ?? "Unknown alumni"
@@ -161,7 +164,11 @@ function PersonCard({
           <div className="min-w-0">
             <Link
               to={`/alumni/${alumniId}`}
-              state={withNavTrail(location)}
+              state={withNavTrail({
+                pathname: location.pathname,
+                search: location.search,
+                state: { ...(location.state as object | null), request },
+              })}
               className="font-semibold underline-offset-4 hover:underline"
             >
               {name}
@@ -355,34 +362,18 @@ export default function ContactRequestDetailPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
         <BackButton fallback="/contact-requests" />
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">
-                Contact request
-              </h1>
-              <Badge className={cn("font-normal", statusClass(item.status))}>
-                {statusLabel(item.status)}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Submitted {formatDateTime(item.created_at)}
-            </p>
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">
+              Contact request
+            </h1>
+            <Badge className={cn("font-normal", statusClass(item.status))}>
+              {statusLabel(item.status)}
+            </Badge>
           </div>
-          {canReview ? (
-            <div className="flex shrink-0 gap-2">
-              <Button disabled={busy} onClick={openAccept}>
-                Accept
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={busy}
-                onClick={openReject}
-              >
-                Reject
-              </Button>
-            </div>
-          ) : null}
+          <p className="text-sm text-muted-foreground">
+            Submitted {formatDateTime(item.created_at)}
+          </p>
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
       </div>
@@ -394,6 +385,7 @@ export default function ContactRequestDetailPage() {
           alumni={requester}
           alumniId={item.requester_alumni_id}
           fallbackName={item.requester_alumni_name}
+          request={item}
         />
         <div className="flex items-center justify-center py-1 lg:px-1">
           <span className="flex size-10 items-center justify-center rounded-full border bg-card text-muted-foreground">
@@ -408,6 +400,7 @@ export default function ContactRequestDetailPage() {
           alumni={target}
           alumniId={item.target_alumni_id}
           fallbackName={item.target_alumni_name}
+          request={item}
         />
       </div>
 
@@ -456,6 +449,22 @@ export default function ContactRequestDetailPage() {
               />
             </dl>
           </CardContent>
+          {canReview ? (
+            <CardFooter className="justify-end bg-transparent">
+              <div className="flex gap-2">
+                <Button disabled={busy} onClick={openAccept}>
+                  Accept
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={busy}
+                  onClick={openReject}
+                >
+                  Reject
+                </Button>
+              </div>
+            </CardFooter>
+          ) : null}
         </Card>
       </div>
 

@@ -198,28 +198,15 @@ export default function AnnouncementFormPage() {
       </div>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4 px-4 lg:px-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {isEdit ? "Edit announcement" : "New announcement"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {isEdit
-                ? "Update announcement content and publish settings."
-                : "Create an announcement for the alumni feed."}
-            </p>
-          </div>
-          <Button
-            type="submit"
-            className="shrink-0"
-            disabled={saving || uploading}
-          >
-            {saving
-              ? "Saving…"
-              : isEdit
-                ? "Save changes"
-                : "Create announcement"}
-          </Button>
+        <div className="px-4 lg:px-6">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isEdit ? "Edit announcement" : "New announcement"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isEdit
+              ? "Update announcement content and publish settings."
+              : "Create an announcement for the alumni feed."}
+          </p>
         </div>
 
         <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
@@ -372,6 +359,18 @@ export default function AnnouncementFormPage() {
             </CardContent>
           </Card>
         </div>
+        </div>
+        <div className="flex justify-end px-4 lg:px-6">
+          <Button
+            type="submit"
+            disabled={saving || uploading}
+          >
+            {saving
+              ? "Saving…"
+              : isEdit
+                ? "Save changes"
+                : "Create announcement"}
+          </Button>
         </div>
       </form>
 

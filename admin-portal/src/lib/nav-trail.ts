@@ -8,6 +8,7 @@ export type BreadcrumbItem = {
 export type NavTrailItem = {
   label: string
   to: string
+  restore?: Record<string, unknown>
 }
 
 export type NavTrailState = {
@@ -51,6 +52,31 @@ function hrefOf(location: LocationLike) {
 
 function pathOf(href: string) {
   return href.split("?")[0]
+}
+
+function restoreFromState(state: unknown): Record<string, unknown> | undefined {
+  if (!state || typeof state !== "object") return undefined
+  const { fromTrail: _fromTrail, ...rest } = state as NavTrailState &
+    Record<string, unknown>
+  return Object.keys(rest).length ? rest : undefined
+}
+
+function trailItemFor(trail: NavTrailItem[], dest: string) {
+  const destPath = pathOf(dest)
+  return [...trail]
+    .reverse()
+    .find((item) => pathOf(item.to) === destPath)
+}
+
+function statePayload(
+  restore?: Record<string, unknown>,
+  fromTrail?: NavTrailItem[],
+) {
+  const payload = {
+    ...(restore ?? {}),
+    ...(fromTrail?.length ? { fromTrail } : {}),
+  }
+  return Object.keys(payload).length ? payload : undefined
 }
 
 function getPathBreadcrumbs(pathname: string): BreadcrumbItem[] {
@@ -151,9 +177,13 @@ export function withNavTrail<T extends object>(
   const current: NavTrailItem = {
     label: getPathBreadcrumbs(location.pathname).at(-1)?.label ?? "Page",
     to: hrefOf(location),
+    restore: restoreFromState(location.state),
   }
   const last = existing.at(-1)
-  const fromTrail = last?.to === current.to ? existing : [...existing, current]
+  const fromTrail =
+    last?.to === current.to
+      ? [...existing.slice(0, -1), { ...last, restore: current.restore }]
+      : [...existing, current]
 
   return { ...(extra as T), fromTrail }
 }
@@ -161,11 +191,15 @@ export function withNavTrail<T extends object>(
 export function trailStateFor(
   location: LocationLike,
   destPath: string,
-): NavTrailState {
+): NavTrailState & Record<string, unknown> {
   const existing = (location.state as NavTrailState | null)?.fromTrail ?? []
-  return {
-    fromTrail: existing.filter((item) => pathOf(item.to) !== destPath),
-  }
+  const destItem = trailItemFor(existing, destPath)
+  return (
+    statePayload(
+      destItem?.restore,
+      existing.filter((item) => pathOf(item.to) !== pathOf(destPath)),
+    ) ?? {}
+  )
 }
 
 export function backToFromTrail(fromTrail?: NavTrailItem[], fallback = "/") {
@@ -175,9 +209,9 @@ export function backToFromTrail(fromTrail?: NavTrailItem[], fallback = "/") {
 export function useBackNavigation(fallback: string) {
   const location = useLocation()
   const fromTrail = (location.state as NavTrailState | null)?.fromTrail ?? []
-  const backTo = backToFromTrail(fromTrail, fallback)
-  const backState: NavTrailState | undefined =
-    fromTrail.length > 1 ? { fromTrail: fromTrail.slice(0, -1) } : undefined
+  const previous = fromTrail.at(-1)
+  const backTo = previous?.to ?? fallback
+  const backState = statePayload(previous?.restore, fromTrail.slice(0, -1))
 
   return { backTo, backState }
 }

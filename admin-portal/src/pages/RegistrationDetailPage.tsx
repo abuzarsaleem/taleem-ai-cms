@@ -237,46 +237,30 @@ export default function RegistrationDetailPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
         <BackButton fallback="/registrations" />
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">
-                {item.full_name}
-              </h1>
-              <Badge
-                variant={registrationStatusVariant(item.status)}
-                className={cn(
-                  item.status === "PENDING" &&
-                    "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-                )}
-              >
-                {item.status}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground">
-              {item.reference_number ? (
-                <span className="font-medium text-foreground">
-                  {item.reference_number}
-                </span>
-              ) : null}
-              {item.reference_number ? " · " : null}
-              {item.email}
-            </p>
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {item.full_name}
+            </h1>
+            <Badge
+              variant={registrationStatusVariant(item.status)}
+              className={cn(
+                item.status === "PENDING" &&
+                  "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+              )}
+            >
+              {item.status}
+            </Badge>
           </div>
-          {isPending ? (
-            <div className="flex shrink-0 gap-2">
-              <Button disabled={busy} onClick={openAccept}>
-                Accept
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={busy}
-                onClick={openReject}
-              >
-                Reject
-              </Button>
-            </div>
-          ) : null}
+          <p className="text-muted-foreground">
+            {item.reference_number ? (
+              <span className="font-medium text-foreground">
+                {item.reference_number}
+              </span>
+            ) : null}
+            {item.reference_number ? " · " : null}
+            {item.email}
+          </p>
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         {activationEmailFailed && item.status === "APPROVED" ? (
@@ -420,6 +404,21 @@ export default function RegistrationDetailPage() {
           </Card>
         </div>
       </div>
+
+      {isPending ? (
+        <div className="flex justify-end gap-2 px-4 lg:px-6">
+          <Button disabled={busy} onClick={openAccept}>
+            Accept
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={busy}
+            onClick={openReject}
+          >
+            Reject
+          </Button>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={confirmAction === "APPROVED"}
