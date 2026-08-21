@@ -150,9 +150,6 @@ export function AppShell({
           <NavLink to="/home" className="block outline-none">
             <BrandLogo onDark className="h-10 max-w-[200px]" />
           </NavLink>
-          <p className="mt-2 px-1.5 text-[10px] text-[#91a4c8]">
-            University Network
-          </p>
         </div>
 
         <div className="mt-2 flex-1 overflow-y-auto">
