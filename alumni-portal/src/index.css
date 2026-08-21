@@ -151,7 +151,11 @@
   }
 
   .portal-sidebar {
-    background: linear-gradient(180deg, #081b45, #0b2353);
+    background: linear-gradient(
+      180deg,
+      var(--sidebar) 0%,
+      color-mix(in oklab, var(--sidebar) 88%, black) 100%
+    );
   }
 }
 

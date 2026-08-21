@@ -1,19 +1,20 @@
 import {
   Bell,
+  BookUser,
   CalendarDays,
   ContactRound,
-  Home,
   IdCard,
+  LayoutDashboard,
   LogOut,
   Megaphone,
   Settings,
-  User,
-  Users,
+  UserRound,
 } from "lucide-react"
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthContext"
 import { BrandLogo } from "@/components/brand-logo"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useNotifications } from "@/hooks/use-notifications"
 import { cn } from "@/lib/utils"
 
@@ -29,14 +30,14 @@ function initials(name: string) {
 type NavItem = {
   to: string
   label: string
-  icon: typeof Home
+  icon: typeof LayoutDashboard
   end?: boolean
 }
 
 const workspaceNav: NavItem[] = [
-  { to: "/home", label: "Dashboard", icon: Home, end: true },
-  { to: "/profile", label: "My Profile", icon: User },
-  { to: "/directory", label: "Directory", icon: Users },
+  { to: "/home", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/profile", label: "My Profile", icon: UserRound },
+  { to: "/directory", label: "Directory", icon: BookUser },
   { to: "/contact-requests", label: "My Contacts", icon: ContactRound },
   { to: "/events", label: "Events", icon: CalendarDays },
   { to: "/announcements", label: "Announcements", icon: Megaphone },
@@ -52,11 +53,11 @@ const accountNav: NavItem[] = [
 ]
 
 const mobileNav: NavItem[] = [
-  { to: "/home", label: "Home", icon: Home, end: true },
-  { to: "/directory", label: "Directory", icon: Users },
+  { to: "/home", label: "Home", icon: LayoutDashboard, end: true },
+  { to: "/directory", label: "Directory", icon: BookUser },
   { to: "/events", label: "Events", icon: CalendarDays },
   { to: "/card", label: "ID", icon: IdCard },
-  { to: "/profile", label: "You", icon: User },
+  { to: "/profile", label: "You", icon: UserRound },
 ]
 
 function SidebarLink({ item, badge }: { item: NavItem; badge?: number }) {
@@ -67,20 +68,31 @@ function SidebarLink({ item, badge }: { item: NavItem; badge?: number }) {
       end={item.end}
       className={({ isActive }) =>
         cn(
-          "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors",
+          "flex h-9 w-full items-center gap-2.5 rounded-full px-3 text-sm font-medium transition-colors",
           isActive
-            ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-            : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-white",
+            ? "bg-sidebar-accent text-white shadow-[inset_3px_0_0_0_var(--sidebar-primary)] hover:bg-sidebar-accent hover:text-white"
+            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         )
       }
     >
-      <Icon className="size-[18px] shrink-0 opacity-90" strokeWidth={1.75} />
-      <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      {badge && badge > 0 ? (
-        <span className="rounded-full bg-[#ef5c67] px-1.5 py-0.5 text-[10px] font-bold text-white">
-          {badge > 99 ? "99+" : badge}
-        </span>
-      ) : null}
+      {({ isActive }) => (
+        <>
+          <Icon
+            className={cn(
+              "size-4 shrink-0",
+              isActive
+                ? "text-sidebar-primary"
+                : "text-sidebar-foreground/70",
+            )}
+          />
+          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          {badge && badge > 0 ? (
+            <span className="rounded-full bg-[#ef5c67] px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {badge > 99 ? "99+" : badge}
+            </span>
+          ) : null}
+        </>
+      )}
     </NavLink>
   )
 }
@@ -96,7 +108,7 @@ function NavSection({
 }) {
   return (
     <>
-      <p className="px-3 pt-4 pb-2 text-[10px] font-semibold tracking-[0.14em] text-[#91a4c8] uppercase">
+      <p className="px-3 pt-4 pb-2 text-[11px] font-semibold tracking-[0.14em] text-sidebar-foreground/55 uppercase">
         {label}
       </p>
       <nav className="space-y-0.5">
@@ -138,9 +150,6 @@ export function AppShell({
           <NavLink to="/home" className="block outline-none">
             <BrandLogo onDark className="h-10 max-w-[200px]" />
           </NavLink>
-          <p className="mt-2 px-1.5 text-[10px] text-[#91a4c8]">
-            University Network
-          </p>
         </div>
 
         <div className="mt-2 flex-1 overflow-y-auto">
@@ -162,7 +171,7 @@ export function AppShell({
                 className="size-9 shrink-0 rounded-full object-cover"
               />
             ) : (
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#d7f4f2] to-[#b8d4ff] text-xs font-extrabold text-primary">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#d7f4f2] to-[#b8d4ff] text-xs font-extrabold text-[#081b45]">
                 {initials(fullName)}
               </div>
             )}
@@ -186,23 +195,24 @@ export function AppShell({
 
       {/* Main column */}
       <div className="md:ml-[248px]">
-        <header className="sticky top-0 z-20 flex h-[72px] items-center justify-end gap-4 border-b border-border bg-white/92 px-4 backdrop-blur-xl sm:px-8 print:hidden">
+        <header className="sticky top-0 z-20 flex h-[72px] items-center justify-end gap-4 border-b border-border bg-background/92 px-4 backdrop-blur-xl sm:px-8 print:hidden">
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <button
               type="button"
               onClick={() => navigate("/notifications")}
-              className="relative grid size-10 place-items-center rounded-xl border border-border bg-white"
+              className="relative grid size-10 place-items-center rounded-xl border border-border bg-card"
               aria-label="Notifications"
             >
               <Bell className="size-[18px] text-foreground" />
               {unread > 0 ? (
-                <span className="absolute top-1.5 right-2 size-2 rounded-full border-2 border-white bg-[#ef5c67]" />
+                <span className="absolute top-1.5 right-2 size-2 rounded-full border-2 border-background bg-[#ef5c67]" />
               ) : null}
             </button>
             <button
               type="button"
               onClick={() => navigate("/profile")}
-              className="grid size-10 place-items-center overflow-hidden rounded-xl border border-border bg-white"
+              className="grid size-10 place-items-center overflow-hidden rounded-xl border border-border bg-card"
               aria-label="Profile"
             >
               {photoUrl ? (
@@ -212,7 +222,7 @@ export function AppShell({
                   className="size-7 rounded-full object-cover"
                 />
               ) : (
-                <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#d7f4f2] to-[#b8d4ff] text-[10px] font-extrabold text-primary">
+                <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#d7f4f2] to-[#b8d4ff] text-[10px] font-extrabold text-[#081b45]">
                   {initials(fullName)}
                 </span>
               )}
@@ -228,7 +238,7 @@ export function AppShell({
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex h-[68px] items-stretch justify-around border-t border-border bg-white px-2 pb-1 md:hidden print:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex h-[68px] items-stretch justify-around border-t border-border bg-background px-2 pb-1 md:hidden print:hidden">
         {mobileNav.map((item) => {
           const Icon = item.icon
           return (
@@ -245,7 +255,7 @@ export function AppShell({
                 )
               }
             >
-              <Icon className="size-5" strokeWidth={1.75} />
+              <Icon className="size-5" />
               {item.label}
             </NavLink>
           )

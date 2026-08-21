@@ -1,7 +1,6 @@
-import { Check, Building2, MapPin, Plus, Search, SlidersHorizontal, X } from "lucide-react"
+import { Check, Building2, MapPin, Plus, Search, SlidersHorizontal } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "react-router-dom"
-import { toast } from "sonner"
+import { useNavigate, useSearchParams } from "react-router-dom"
 
 import { SearchableSelect } from "@/components/searchable-select"
 import { Button } from "@/components/ui/button"
@@ -11,15 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { YearPicker } from "@/components/ui/year-picker"
 import { ApiError } from "@/lib/api-client"
 import {
@@ -28,9 +19,7 @@ import {
 } from "@/lib/registration-validation"
 import { cn } from "@/lib/utils"
 import { catalogService } from "@/services/catalog.service"
-import { contactRequestService } from "@/services/contact-requests.service"
 import { directoryService } from "@/services/directory.service"
-import { profileService } from "@/services/profile.service"
 import type { Campus, DegreeProgram, DirectoryAlumni } from "@/types/portal"
 
 const avatarTones = [
@@ -172,9 +161,8 @@ function AvatarBlock({
   )
 }
 
-type ContactChannel = "email" | "mobile" | "whatsapp"
-
 export function DirectoryPage() {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialName = searchParams.get("name") ?? ""
   const [items, setItems] = useState<DirectoryAlumni[]>([])
@@ -209,20 +197,6 @@ export function DirectoryPage() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [myAlumniId, setMyAlumniId] = useState<string | null>(null)
-  const [pendingTargets, setPendingTargets] = useState<Set<string>>(new Set())
-
-  const [profileTarget, setProfileTarget] = useState<DirectoryAlumni | null>(
-    null,
-  )
-  const [contactTarget, setContactTarget] = useState<DirectoryAlumni | null>(
-    null,
-  )
-  const [contactReason, setContactReason] = useState("")
-  const [contactChannels, setContactChannels] = useState<ContactChannel[]>([
-    "email",
-  ])
-  const [contactBusy, setContactBusy] = useState(false)
 
   const campusesById = useMemo(
     () => new Map(campuses.map((campus) => [campus.id, campus])),
@@ -257,23 +231,6 @@ export function DirectoryPage() {
       setDegreeLabels(new Map(programs.map((p) => [p.id, p.label])))
     })
     void directoryService.filterOptions().then(setFilterOptions).catch(() => {})
-    void profileService.getMyProfile().then((profile) => {
-      setMyAlumniId(profile.alumni_id)
-    })
-    void contactRequestService
-      .listSent()
-      .then((sent) => {
-        setPendingTargets(
-          new Set(
-            sent
-              .filter((r) =>
-                ["PENDING_ADMIN", "APPROVED", "PENDING"].includes(r.status),
-              )
-              .map((r) => r.target_alumni_id),
-          ),
-        )
-      })
-      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -344,54 +301,12 @@ export function DirectoryPage() {
     })
   }
 
-  function toggleChannel(channel: ContactChannel) {
-    setContactChannels((current) => {
-      if (current.includes(channel)) {
-        if (current.length === 1) return current
-        return current.filter((item) => item !== channel)
-      }
-      return [...current, channel]
-    })
-  }
-
-  async function submitContactRequest() {
-    if (!contactTarget) return
-    if (contactReason.trim().length < 5) {
-      toast.error("Please explain the purpose of your request")
-      return
-    }
-    setContactBusy(true)
-    try {
-      await contactRequestService.create({
-        target_alumni_id: contactTarget.alumni_id,
-        request_reason: contactReason.trim(),
-        requested_fields: contactChannels,
-      })
-      setPendingTargets((prev) => new Set(prev).add(contactTarget.alumni_id))
-      toast.success("Contact request sent")
-      setContactTarget(null)
-      setProfileTarget(null)
-      setContactReason("")
-      setContactChannels(["email"])
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.message : "Failed to send request",
-      )
-    } finally {
-      setContactBusy(false)
-    }
-  }
-
   useEffect(() => {
     const q = searchParams.get("name") ?? ""
     setName(q)
     setApplied((prev) => ({ ...prev, name: q }))
     setPage(1)
   }, [searchParams])
-
-  const profileIndex = profileTarget
-    ? visibleItems.findIndex((a) => a.alumni_id === profileTarget.alumni_id)
-    : 0
 
   return (
     <div className="relative mx-auto max-w-6xl">
@@ -413,10 +328,10 @@ export function DirectoryPage() {
       <div className="relative space-y-8 px-5 pt-5 sm:px-6 sm:pt-6">
         <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
           <div className="min-w-0 max-w-2xl">
-            <p className="text-[11px] font-bold tracking-[0.18em] text-[#1e8f97] uppercase">
+            <p className="text-[11px] font-bold tracking-[0.18em] text-accent uppercase">
               Community
             </p>
-            <h1 className="mt-2.5 font-display text-[2rem] leading-[1.15] font-semibold tracking-tight text-primary sm:text-[2.35rem]">
+            <h1 className="mt-2.5 font-display text-[2rem] leading-[1.15] font-semibold tracking-tight text-foreground sm:text-[2.35rem]">
               Alumni Directory
             </h1>
             <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
@@ -424,13 +339,13 @@ export function DirectoryPage() {
             </p>
           </div>
           {total > 0 ? (
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-emerald-200/80 bg-white/95 px-3.5 py-2 shadow-[0_8px_24px_rgba(21,149,112,0.08)] backdrop-blur-sm sm:mt-8">
-              <span className="grid size-6 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+            <div className="inline-flex items-center gap-2 self-start rounded-full border border-emerald-500/30 bg-card px-3.5 py-2 shadow-sm sm:mt-8">
+              <span className="grid size-6 place-items-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
                 <Check className="size-3.5" strokeWidth={2.75} />
               </span>
-              <span className="text-sm font-semibold text-emerald-900">
+              <span className="text-sm font-semibold text-foreground">
                 {total.toLocaleString()}{" "}
-                <span className="font-medium text-emerald-700/90">
+                <span className="font-medium text-muted-foreground">
                   verified alumni
                 </span>
               </span>
@@ -440,16 +355,16 @@ export function DirectoryPage() {
 
         <form
           onSubmit={applyFilters}
-          className="rounded-[1.35rem] border border-white/70 bg-white/95 p-3.5 shadow-[0_18px_50px_rgba(8,27,69,0.07)] ring-1 ring-[#dfe7f2] backdrop-blur-sm sm:p-4"
+          className="rounded-[1.35rem] border border-border bg-card p-3.5 shadow-[var(--portal-shadow)] sm:p-4"
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.85fr)_minmax(11rem,0.85fr)_auto]">
             <div className="relative min-w-0 sm:col-span-2 xl:col-span-1">
-              <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-[#8a97ab]" />
+              <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Search by name, organization, profession…"
-                className="h-12 rounded-xl border-[#e2e8f0] bg-[#f7f9fc] pl-11 text-[15px] shadow-none focus-visible:bg-white"
+                className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-[15px] shadow-none focus-visible:bg-background"
               />
             </div>
             <SearchableSelect
@@ -463,7 +378,7 @@ export function DirectoryPage() {
               searchPlaceholder="Search campus…"
               allowEmpty
               emptyLabel="All campuses"
-              className="h-12 w-full rounded-xl border-[#e2e8f0] bg-[#f7f9fc] px-3.5"
+              className="h-12 w-full rounded-xl border-border bg-muted/40 px-3.5"
             />
             <SearchableSelect
               value={city}
@@ -476,15 +391,15 @@ export function DirectoryPage() {
               searchPlaceholder="Search city…"
               allowEmpty
               emptyLabel="All cities"
-              className="h-12 w-full rounded-xl border-[#e2e8f0] bg-[#f7f9fc] px-3.5"
+              className="h-12 w-full rounded-xl border-border bg-muted/40 px-3.5"
             />
             <div className="flex gap-3 sm:col-span-2 xl:col-span-1">
               <Button
                 type="button"
                 variant="outline"
                 className={cn(
-                  "h-12 shrink-0 rounded-xl border-[#d7e0ec] bg-white px-4 font-semibold",
-                  filtersOpen && "border-primary/25 bg-primary/[0.04]",
+                  "h-12 shrink-0 rounded-xl px-4 font-semibold",
+                  filtersOpen && "border-primary/25 bg-primary/5",
                 )}
                 onClick={() => setFiltersOpen((open) => !open)}
               >
@@ -504,7 +419,7 @@ export function DirectoryPage() {
           </div>
 
           {filtersOpen ? (
-            <div className="mt-4 grid animate-in fade-in slide-in-from-top-1 gap-3 border-t border-[#eef2f7] pt-4 duration-200 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid animate-in fade-in slide-in-from-top-1 gap-3 border-t border-border pt-4 duration-200 sm:grid-cols-2 lg:grid-cols-4">
               {filterOptions.graduation_years.length > 0 ? (
                 <SearchableSelect
                   value={graduationYear}
@@ -566,7 +481,7 @@ export function DirectoryPage() {
               <Button
                 type="button"
                 variant="ghost"
-                className="h-11 rounded-xl text-muted-foreground hover:text-primary"
+                className="h-11 rounded-xl text-muted-foreground hover:text-foreground"
                 onClick={clearFilters}
               >
                 Clear all
@@ -580,7 +495,7 @@ export function DirectoryPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="h-[300px] animate-pulse rounded-[1.35rem] bg-gradient-to-br from-[#e4ebf5] to-[#edf2f8]"
+                className="h-[300px] animate-pulse rounded-[1.35rem] bg-muted"
               />
             ))}
           </div>
@@ -592,11 +507,11 @@ export function DirectoryPage() {
             </CardHeader>
           </Card>
         ) : visibleItems.length === 0 ? (
-          <div className="rounded-[1.35rem] border border-dashed border-[#cfd9e8] bg-white/80 px-8 py-16 text-center">
-            <div className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-[#eef3fa] text-primary">
+          <div className="rounded-[1.35rem] border border-dashed border-border bg-card px-8 py-16 text-center">
+            <div className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-muted text-foreground">
               <Search className="size-5" />
             </div>
-            <p className="font-semibold text-primary">No alumni found</p>
+            <p className="font-semibold text-foreground">No alumni found</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Try a different name, campus, or clear your filters.
             </p>
@@ -617,7 +532,7 @@ export function DirectoryPage() {
                 return (
                   <article
                     key={alumni.alumni_id}
-                    className="group relative flex min-h-[300px] flex-col overflow-hidden rounded-[1.35rem] border border-[#e6ecf4] bg-white shadow-[0_14px_40px_rgba(8,27,69,0.06)] transition duration-300 hover:-translate-y-1 hover:border-[#c9d6e8] hover:shadow-[0_22px_50px_rgba(8,27,69,0.12)]"
+                    className="group relative flex min-h-[300px] flex-col overflow-hidden rounded-[1.35rem] border border-border bg-card text-card-foreground shadow-[var(--portal-shadow)] transition duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_22px_50px_rgba(8,27,69,0.12)]"
                     style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
                   >
                     <div
@@ -632,16 +547,16 @@ export function DirectoryPage() {
                     <div className="relative -mt-8 flex flex-1 flex-col px-5 pb-5">
                       <div className="flex items-start justify-between gap-3">
                         <AvatarBlock alumni={alumni} index={index} size="lg" />
-                        <span className="mt-10 grid size-7 place-items-center rounded-full bg-emerald-50 text-emerald-700 ring-2 ring-white shadow-sm">
+                        <span className="mt-10 grid size-7 place-items-center rounded-full bg-emerald-500/15 text-emerald-700 ring-2 ring-card shadow-sm dark:text-emerald-300">
                           <Check className="size-3.5" strokeWidth={2.75} />
                         </span>
                       </div>
 
-                      <h2 className="mt-4 font-display text-[1.2rem] leading-snug font-semibold tracking-tight text-primary capitalize">
+                      <h2 className="mt-4 font-display text-[1.2rem] leading-snug font-semibold tracking-tight text-foreground capitalize">
                         {alumni.full_name}
                       </h2>
 
-                      <p className="mt-1.5 line-clamp-2 text-sm leading-snug text-[#5b6b82]">
+                      <p className="mt-1.5 line-clamp-2 text-sm leading-snug text-muted-foreground">
                         {role || "Verified alumni member"}
                       </p>
 
@@ -649,13 +564,13 @@ export function DirectoryPage() {
                         <div className="mt-2 space-y-1 text-[13px] text-muted-foreground">
                           {city ? (
                             <p className="flex items-center gap-1.5">
-                              <MapPin className="size-3.5 shrink-0 text-[#36babc]" />
+                              <MapPin className="size-3.5 shrink-0 text-accent" />
                               <span className="truncate">{city}</span>
                             </p>
                           ) : null}
                           {campusLabel ? (
                             <p className="flex items-center gap-1.5">
-                              <Building2 className="size-3.5 shrink-0 text-[#36babc]" />
+                              <Building2 className="size-3.5 shrink-0 text-accent" />
                               <span className="truncate">{campusLabel}</span>
                             </p>
                           ) : null}
@@ -667,7 +582,7 @@ export function DirectoryPage() {
                           {tags.map((tag) => (
                             <span
                               key={tag}
-                              className="rounded-full bg-[#eef4fb] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#2a3f63]"
+                              className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold tracking-wide text-foreground"
                             >
                               {tag}
                             </span>
@@ -678,8 +593,8 @@ export function DirectoryPage() {
                       <div className="mt-auto pt-5">
                         <Button
                           type="button"
-                          className="h-11 w-full rounded-xl bg-primary font-semibold shadow-[0_10px_22px_rgba(8,27,69,0.16)] transition group-hover:bg-[#0c2558]"
-                          onClick={() => setProfileTarget(alumni)}
+                          className="h-11 w-full rounded-xl font-semibold shadow-[0_10px_22px_rgba(8,27,69,0.16)] transition hover:bg-primary/90"
+                          onClick={() => navigate(`/directory/${alumni.alumni_id}`)}
                         >
                           View profile
                         </Button>
@@ -690,10 +605,10 @@ export function DirectoryPage() {
               })}
             </div>
 
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e6ecf4] bg-white/80 px-4 py-3">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                Page <span className="font-semibold text-primary">{page}</span> of{" "}
-                <span className="font-semibold text-primary">{totalPages}</span>
+                Page <span className="font-semibold text-foreground">{page}</span> of{" "}
+                <span className="font-semibold text-foreground">{totalPages}</span>
               </p>
               <div className="flex gap-2">
                 <Button
@@ -717,296 +632,6 @@ export function DirectoryPage() {
           </>
         )}
       </div>
-
-      {/* Profile preview modal */}
-      <Dialog
-        open={Boolean(profileTarget)}
-        onOpenChange={(open) => {
-          if (!open) setProfileTarget(null)
-        }}
-      >
-        <DialogContent
-          showCloseButton={false}
-          className="gap-0 overflow-hidden rounded-[1.35rem] border-[#e6ecf4] p-0 shadow-[0_30px_80px_rgba(8,27,69,0.22)] sm:max-w-lg"
-        >
-          {profileTarget ? (
-            <>
-              <div className="relative h-24 bg-[linear-gradient(135deg,#081b45_0%,#173b79_50%,#1e8f97_125%)]">
-                <div
-                  aria-hidden
-                  className="absolute inset-0 opacity-30"
-                  style={{
-                    backgroundImage:
-                      "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.35) 1px, transparent 0)",
-                    backgroundSize: "16px 16px",
-                  }}
-                />
-                <button
-                  type="button"
-                  className="absolute top-3 right-3 grid size-8 place-items-center rounded-lg bg-white/15 text-white backdrop-blur-sm transition hover:bg-white/25"
-                  onClick={() => setProfileTarget(null)}
-                  aria-label="Close"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
-
-              <div className="relative -mt-10 space-y-5 px-6 pb-2">
-                {(() => {
-                  const campus = resolveCampus(
-                    profileTarget,
-                    degreePrograms,
-                    campusesById,
-                  )
-                  const { city, campusLabel } = locationParts(
-                    profileTarget,
-                    campus,
-                  )
-                  const title =
-                    profileTarget.professional[0]?.job_title ??
-                    profileTarget.professional[0]?.role ??
-                    (profileTarget.primary_role &&
-                    !/^[A-Z]{2,4}$/.test(profileTarget.primary_role.trim())
-                      ? profileTarget.primary_role
-                      : null) ??
-                    "Alumni member"
-                  const companyCity = [
-                    profileTarget.professional[0]?.current_company,
-                    city,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")
-
-                  return (
-                    <>
-                      <div className="flex items-end gap-4">
-                        <AvatarBlock
-                          alumni={profileTarget}
-                          index={Math.max(profileIndex, 0)}
-                          size="xl"
-                        />
-                        <div className="min-w-0 pb-1">
-                          <DialogTitle className="font-display text-xl font-semibold tracking-tight text-primary capitalize">
-                            {profileTarget.full_name}
-                          </DialogTitle>
-                          <p className="mt-0.5 text-sm font-medium text-[#3d4f6c]">
-                            {title}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div>
-                        {companyCity ? (
-                          <p className="text-sm text-muted-foreground">
-                            {companyCity}
-                          </p>
-                        ) : null}
-                        {campusLabel ? (
-                          <p
-                            className={cn(
-                              "flex items-center gap-1.5 text-sm text-muted-foreground",
-                              companyCity && "mt-1",
-                            )}
-                          >
-                            <Building2 className="size-3.5 text-[#36babc]" />
-                            {campusLabel}
-                          </p>
-                        ) : !companyCity ? (
-                          <p className="text-sm text-muted-foreground">
-                            Location unavailable
-                          </p>
-                        ) : null}
-                        <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold tracking-wide text-emerald-800 uppercase">
-                          <Check className="size-3.5" strokeWidth={2.75} />
-                          Verified Alumni
-                        </span>
-                      </div>
-
-                      <div className="rounded-2xl border border-[#eef2f7] bg-[#f8fafc] p-4">
-                        <h3 className="text-sm font-bold tracking-wide text-primary uppercase">
-                          Professional profile
-                        </h3>
-                        <p className="mt-2 text-sm leading-relaxed text-[#5b6b82]">
-                          Experienced professional with a background in their
-                          field, open to meaningful alumni connections and
-                          collaboration.
-                        </p>
-                        <div className="mt-3.5 flex flex-wrap gap-1.5">
-                          {profileTags(
-                            profileTarget,
-                            degreeLabels,
-                            campus,
-                          ).map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-primary ring-1 ring-[#dce5f1]"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                          <span className="rounded-full bg-[#e6f7f6] px-2.5 py-1 text-[11px] font-semibold text-[#0b6e6a] ring-1 ring-[#bfe9e5]">
-                            Professional Network
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  )
-                })()}
-              </div>
-
-              <div className="flex justify-end gap-2 px-6 py-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl"
-                  onClick={() => setProfileTarget(null)}
-                >
-                  Close
-                </Button>
-                {profileTarget.alumni_id !== myAlumniId ? (
-                  profileTarget.is_contact_revealed ? (
-                    <Button type="button" className="rounded-xl" disabled>
-                      Connected
-                    </Button>
-                  ) : pendingTargets.has(profileTarget.alumni_id) ? (
-                    <Button type="button" className="rounded-xl" disabled>
-                      Request pending
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      className="rounded-xl shadow-[0_10px_22px_rgba(8,27,69,0.18)]"
-                      onClick={() => {
-                        setContactTarget(profileTarget)
-                        setContactReason("")
-                        setContactChannels(["email"])
-                      }}
-                    >
-                      Request contact
-                    </Button>
-                  )
-                ) : null}
-              </div>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      {/* Contact request modal */}
-      <Dialog
-        open={Boolean(contactTarget)}
-        onOpenChange={(open) => {
-          if (!open) setContactTarget(null)
-        }}
-      >
-        <DialogContent
-          showCloseButton={false}
-          className="gap-0 overflow-hidden rounded-[1.35rem] border-[#e6ecf4] p-0 shadow-[0_30px_80px_rgba(8,27,69,0.22)] sm:max-w-lg"
-        >
-          <div className="flex items-start justify-between gap-3 border-b border-[#eef2f7] bg-[#f8fafc] px-6 py-5">
-            <div>
-              <DialogTitle className="font-display text-xl font-semibold tracking-tight text-primary">
-                Request contact information
-              </DialogTitle>
-              <DialogDescription className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                Your request will be reviewed before consent is requested from
-                the alumnus.
-              </DialogDescription>
-            </div>
-            <button
-              type="button"
-              className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-primary shadow-sm ring-1 ring-[#e2e8f0]"
-              onClick={() => setContactTarget(null)}
-              aria-label="Close"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-
-          <div className="space-y-5 px-6 py-5">
-            <div>
-              <label
-                htmlFor="contact-reason"
-                className="text-sm font-semibold text-primary"
-              >
-                Purpose of request *
-              </label>
-              <Textarea
-                id="contact-reason"
-                value={contactReason}
-                onChange={(e) => setContactReason(e.target.value)}
-                rows={4}
-                placeholder="Explain why you would like to connect…"
-                className="mt-2 min-h-28 rounded-xl border-[#e2e8f0] bg-[#f7f9fc] focus-visible:bg-white"
-              />
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold text-primary">
-                Requested information
-              </p>
-              <div className="mt-2.5 space-y-2">
-                {(
-                  [
-                    ["email", "Email"],
-                    ["mobile", "Mobile"],
-                    ["whatsapp", "WhatsApp"],
-                  ] as const
-                ).map(([value, label]) => {
-                  const checked = contactChannels.includes(value)
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => toggleChannel(value)}
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-xl border px-4 py-3.5 text-sm font-semibold transition",
-                        checked
-                          ? "border-primary/30 bg-primary/[0.04] text-primary shadow-[inset_0_0_0_1px_rgba(8,27,69,0.04)]"
-                          : "border-[#e5eaf1] bg-white text-primary hover:border-[#c9d4e4]",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "grid size-5 place-items-center rounded-md border transition",
-                          checked
-                            ? "border-primary bg-primary text-white"
-                            : "border-[#c9d3e0] bg-white",
-                        )}
-                      >
-                        {checked ? (
-                          <Check className="size-3" strokeWidth={3} />
-                        ) : null}
-                      </span>
-                      <span>{label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="border-t border-[#eef2f7] bg-[#f8fafc] px-6 py-4 sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => setContactTarget(null)}
-              disabled={contactBusy}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="rounded-xl shadow-[0_10px_22px_rgba(8,27,69,0.18)]"
-              onClick={() => void submitContactRequest()}
-              disabled={contactBusy || contactReason.trim().length < 5}
-            >
-              {contactBusy ? "Submitting…" : "Submit request"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

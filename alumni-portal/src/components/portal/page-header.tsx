@@ -32,7 +32,7 @@ export function PageHeader({
         ) : null}
         <h1
           className={cn(
-            "font-display text-[1.85rem] leading-[1.15] font-semibold tracking-tight sm:text-[2.1rem]",
+            "font-display text-[1.85rem] leading-[1.15] font-semibold tracking-tight text-foreground sm:text-[2.1rem]",
             eyebrow ? "mt-2.5" : "mt-0",
           )}
         >

@@ -117,10 +117,10 @@ function AlumniCredit({
         </span>
       )}
       <span className="min-w-0">
-        <span className="block text-[10px] font-semibold tracking-[0.16em] text-[#1e8f97] uppercase">
+        <span className="block text-[10px] font-semibold tracking-[0.16em] text-accent uppercase">
           Featured alumni
         </span>
-        <span className="block truncate text-sm font-semibold text-primary group-hover/alumni:underline">
+        <span className="block truncate text-sm font-semibold text-foreground group-hover/alumni:underline">
           {alumni.full_name}
         </span>
         <span className="block truncate text-xs text-muted-foreground">
@@ -135,7 +135,7 @@ function FeaturedStory({ item }: { item: AnnouncementItem }) {
   const date = formatDate(item.published_at)
 
   return (
-    <article className="group overflow-hidden rounded-2xl bg-white shadow-[0_18px_50px_rgba(8,27,69,0.08)] ring-1 ring-[#e5eaf1]">
+    <article className="group overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[var(--portal-shadow)] ring-1 ring-border">
       <LinkWithFrom
         to={`/announcements/${item.id}`}
         className="relative block aspect-[2.15/1] overflow-hidden bg-[#0b1f4a] sm:aspect-[2.4/1]"
@@ -162,13 +162,13 @@ function FeaturedStory({ item }: { item: AnnouncementItem }) {
       <div className="grid gap-6 p-5 sm:grid-cols-[1fr_auto] sm:gap-10 sm:p-8">
         <div className="min-w-0">
           {item.content ? (
-            <p className="max-w-2xl text-[15px] leading-relaxed text-[#536176]">
+            <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
               {excerpt(item.content, 260)}
             </p>
           ) : null}
           <LinkWithFrom
             to={`/announcements/${item.id}`}
-            className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-[#1e8f97]"
+            className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-accent"
           >
             Continue reading
             <ArrowUpRight className="size-4" />
@@ -188,15 +188,15 @@ function StoryRow({ item }: { item: AnnouncementItem }) {
   const date = formatDate(item.published_at)
 
   return (
-    <article className="group grid gap-4 border-b border-[#e8edf4] py-6 last:border-b-0 sm:grid-cols-[72px_1fr_auto] sm:gap-6 sm:py-7">
+    <article className="group grid gap-4 border-b border-border py-6 last:border-b-0 sm:grid-cols-[72px_1fr_auto] sm:gap-6 sm:py-7">
       <time
         dateTime={item.published_at ?? undefined}
         className="flex shrink-0 flex-row items-baseline gap-2 sm:flex-col sm:items-start sm:gap-0"
       >
-        <span className="font-display text-2xl leading-none font-semibold text-primary">
+        <span className="font-display text-2xl leading-none font-semibold text-foreground">
           {date.day}
         </span>
-        <span className="text-[11px] font-semibold tracking-[0.14em] text-[#1e8f97] uppercase">
+        <span className="text-[11px] font-semibold tracking-[0.14em] text-accent uppercase">
           {date.month} {date.year}
         </span>
       </time>
@@ -210,12 +210,12 @@ function StoryRow({ item }: { item: AnnouncementItem }) {
         </p>
         <LinkWithFrom
           to={`/announcements/${item.id}`}
-          className="mt-1.5 block font-display text-xl leading-snug font-semibold tracking-tight text-primary transition-colors group-hover:text-[#123868]"
+          className="mt-1.5 block font-display text-xl leading-snug font-semibold tracking-tight text-foreground transition-colors hover:text-accent"
         >
           {item.title}
         </LinkWithFrom>
         {item.content ? (
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#64748b]">
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             {excerpt(item.content, 150)}
           </p>
         ) : null}
@@ -324,11 +324,11 @@ export function AnnouncementsPage() {
           </CardHeader>
         </Card>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-dashed border-[#d5deea] bg-white px-6 py-16 text-center">
-          <div className="grid size-14 place-items-center rounded-full bg-[#edf7f7] text-[#087b7e]">
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+          <div className="grid size-14 place-items-center rounded-full bg-accent/15 text-accent">
             <Megaphone className="size-6" strokeWidth={1.5} />
           </div>
-          <h2 className="mt-5 font-display text-xl font-semibold text-primary">
+          <h2 className="mt-5 font-display text-xl font-semibold text-foreground">
             Nothing published yet
           </h2>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
@@ -342,14 +342,14 @@ export function AnnouncementsPage() {
           {rest.length > 0 ? (
             <section>
               <div className="mb-1 flex items-baseline justify-between gap-3">
-                <h2 className="font-display text-lg font-semibold text-primary">
+                <h2 className="font-display text-lg font-semibold text-foreground">
                   Earlier updates
                 </h2>
                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                   Archive
                 </p>
               </div>
-              <div className="rounded-2xl bg-white px-4 shadow-[0_12px_35px_rgba(8,27,69,0.06)] ring-1 ring-[#e5eaf1] sm:px-6">
+              <div className="rounded-2xl bg-card px-4 shadow-[var(--portal-shadow)] ring-1 ring-border sm:px-6">
                 {rest.map((item) => (
                   <StoryRow key={item.id} item={item} />
                 ))}
@@ -396,7 +396,7 @@ export function AnnouncementDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto h-[32rem] w-full max-w-3xl animate-pulse rounded-2xl bg-[#e8eef6]" />
+      <div className="mx-auto h-[32rem] w-full max-w-3xl animate-pulse rounded-2xl bg-muted" />
     )
   }
 
@@ -420,29 +420,29 @@ export function AnnouncementDetailPage() {
         fallback={{ label: "Announcements", to: "/announcements" }}
       />
 
-      <article className="overflow-hidden rounded-2xl bg-white shadow-[0_18px_50px_rgba(8,27,69,0.08)] ring-1 ring-[#e5eaf1]">
+      <article className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[var(--portal-shadow)] ring-1 ring-border">
         <div className="aspect-[2.1/1] overflow-hidden bg-[#0b1f4a]">
           <MediaPlane item={item} />
         </div>
         <div className="space-y-6 px-5 py-7 sm:px-9 sm:py-9">
           <div>
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-[#1e8f97] uppercase">
+            <p className="text-[11px] font-semibold tracking-[0.16em] text-accent uppercase">
               {categoryLabel(item.category)}
               {date.full ? ` · ${date.full}` : ""}
             </p>
-            <h1 className="mt-3 font-display text-3xl leading-tight font-semibold tracking-tight text-primary sm:text-[2.35rem]">
+            <h1 className="mt-3 font-display text-3xl leading-tight font-semibold tracking-tight text-foreground sm:text-[2.35rem]">
               {item.title}
             </h1>
           </div>
 
           {item.featured_alumni ? (
-            <div className="border-y border-[#eef2f7] py-5">
+            <div className="border-y border-border py-5">
               <AlumniCredit alumni={item.featured_alumni} />
             </div>
           ) : null}
 
           {item.content ? (
-            <div className="text-[15px] leading-[1.75] whitespace-pre-wrap text-[#334155]">
+            <div className="text-[15px] leading-[1.75] whitespace-pre-wrap text-foreground/90">
               {item.content}
             </div>
           ) : null}
