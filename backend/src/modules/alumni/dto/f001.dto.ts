@@ -60,12 +60,11 @@ export class RegisterDto {
   @MaxLength(20)
   graduation_year: string;
 
-  @ApiPropertyOptional({
-    description: 'media_id from POST /auth/upload-photo',
+  @ApiProperty({
+    description: 'media_id from POST /auth/upload-photo (required)',
   })
-  @IsOptional()
   @IsUUID()
-  media_id?: string;
+  media_id: string;
 }
 
 export class ActivateDto {

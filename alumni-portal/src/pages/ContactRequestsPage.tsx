@@ -73,37 +73,37 @@ function statusMeta(status: string) {
     case "PENDING_ADMIN":
       return {
         label: "Pending admin review",
-        tone: "bg-amber-50 text-amber-800 ring-amber-200/80",
+        tone: "bg-amber-50 text-amber-800 ring-amber-200/80 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/30",
         icon: Clock3,
       }
     case "PENDING_ALUMNI":
       return {
         label: "Pending alumni response",
-        tone: "bg-sky-50 text-sky-800 ring-sky-200/80",
+        tone: "bg-sky-50 text-sky-800 ring-sky-200/80 dark:bg-sky-500/15 dark:text-sky-300 dark:ring-sky-500/30",
         icon: Clock3,
       }
     case "APPROVED":
       return {
         label: "Connected",
-        tone: "bg-emerald-50 text-emerald-800 ring-emerald-200/80",
+        tone: "bg-emerald-50 text-emerald-800 ring-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/30",
         icon: Check,
       }
     case "REJECTED_BY_ADMIN":
       return {
         label: "Rejected by admin",
-        tone: "bg-rose-50 text-rose-800 ring-rose-200/80",
+        tone: "bg-rose-50 text-rose-800 ring-rose-200/80 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-500/30",
         icon: XCircle,
       }
     case "REJECTED_BY_ALUMNI":
       return {
         label: "Rejected",
-        tone: "bg-rose-50 text-rose-800 ring-rose-200/80",
+        tone: "bg-rose-50 text-rose-800 ring-rose-200/80 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-500/30",
         icon: XCircle,
       }
     default:
       return {
         label: status,
-        tone: "bg-[#eef2f7] text-primary ring-[#dce5f1]",
+        tone: "bg-muted text-muted-foreground ring-border",
         icon: Clock3,
       }
   }
@@ -205,10 +205,10 @@ export function ContactRequestsPage() {
       <div className="relative space-y-8 px-5 pt-5 sm:px-6 sm:pt-6">
         <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
           <div className="min-w-0 max-w-xl">
-            <p className="text-[11px] font-bold tracking-[0.18em] text-[#1e8f97] uppercase">
+            <p className="text-[11px] font-bold tracking-[0.18em] text-accent uppercase">
               Network
             </p>
-            <h1 className="mt-2.5 font-display text-[2rem] leading-[1.15] font-semibold tracking-tight text-primary sm:text-[2.2rem]">
+            <h1 className="mt-2.5 font-display text-[2rem] leading-[1.15] font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
               My Contacts
             </h1>
             <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
@@ -217,18 +217,18 @@ export function ContactRequestsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2.5 sm:mt-8 sm:justify-end">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dfe7f2] bg-white/95 px-3.5 py-2 text-xs font-semibold text-primary shadow-sm">
-              <Check className="size-3.5 text-emerald-600" strokeWidth={2.5} />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-sm">
+              <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
               {contacts.length} connected
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dfe7f2] bg-white/95 px-3.5 py-2 text-xs font-semibold text-primary shadow-sm">
-              <Clock3 className="size-3.5 text-amber-600" strokeWidth={2.5} />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-sm">
+              <Clock3 className="size-3.5 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
               {requested.length} requested
             </span>
           </div>
         </header>
 
-        <div className="inline-flex w-full max-w-md rounded-2xl border border-[#e6ecf4] bg-white p-1.5 shadow-[0_12px_30px_rgba(8,27,69,0.05)] sm:w-auto">
+        <div className="inline-flex w-full max-w-md rounded-2xl border border-border bg-card p-1.5 shadow-[var(--portal-shadow)] sm:w-auto">
           {(
             [
               {
@@ -250,8 +250,8 @@ export function ContactRequestsPage() {
               className={cn(
                 "flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition sm:flex-none",
                 tab === option.id
-                  ? "bg-primary text-white shadow-[0_8px_18px_rgba(8,27,69,0.18)]"
-                  : "text-muted-foreground hover:text-primary",
+                  ? "bg-primary text-primary-foreground shadow-[0_8px_18px_rgba(8,27,69,0.18)]"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {option.label}
@@ -259,8 +259,8 @@ export function ContactRequestsPage() {
                 className={cn(
                   "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
                   tab === option.id
-                    ? "bg-white/15 text-white"
-                    : "bg-[#eef2f7] text-[#5b6b82]",
+                    ? "bg-primary-foreground/15 text-primary-foreground"
+                    : "bg-muted text-muted-foreground",
                 )}
               >
                 {option.count}
@@ -274,7 +274,7 @@ export function ContactRequestsPage() {
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-[108px] animate-pulse rounded-[1.25rem] bg-gradient-to-br from-[#e4ebf5] to-[#edf2f8]"
+                className="h-[108px] animate-pulse rounded-[1.25rem] bg-muted"
               />
             ))}
           </div>
@@ -286,15 +286,15 @@ export function ContactRequestsPage() {
             </CardHeader>
           </Card>
         ) : visible.length === 0 ? (
-          <div className="rounded-[1.35rem] border border-dashed border-[#cfd9e8] bg-white/90 px-8 py-14 text-center shadow-[0_12px_30px_rgba(8,27,69,0.04)]">
-            <div className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-[#eef3fa] text-primary">
+          <div className="rounded-[1.35rem] border border-dashed border-border bg-card px-8 py-14 text-center shadow-[var(--portal-shadow)]">
+            <div className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-muted text-foreground">
               {tab === "contacts" ? (
                 <ContactRound className="size-5" />
               ) : (
                 <Search className="size-5" />
               )}
             </div>
-            <p className="font-semibold text-primary">
+            <p className="font-semibold text-foreground">
               {tab === "contacts" ? "No contacts yet" : "No requests yet"}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -304,7 +304,7 @@ export function ContactRequestsPage() {
             </p>
             <Link
               to="/directory"
-              className="mt-5 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(8,27,69,0.16)]"
+              className="mt-5 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_10px_22px_rgba(8,27,69,0.16)]"
             >
               Browse directory
             </Link>
@@ -332,19 +332,19 @@ export function ContactRequestsPage() {
               return (
                 <article
                   key={item.id}
-                  className="group flex flex-col gap-4 rounded-[1.25rem] border border-[#e6ecf4] bg-white p-4 shadow-[0_12px_35px_rgba(8,27,69,0.05)] transition hover:-translate-y-0.5 hover:border-[#c9d6e8] hover:shadow-[0_18px_40px_rgba(8,27,69,0.1)] sm:flex-row sm:items-center sm:p-5"
+                  className="group flex flex-col gap-4 rounded-[1.25rem] border border-border bg-card p-5 text-card-foreground shadow-[var(--portal-shadow)] transition hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_18px_40px_rgba(8,27,69,0.1)] sm:flex-row sm:items-center sm:gap-5 sm:p-6"
                 >
                   <div className="flex min-w-0 flex-1 items-start gap-3.5">
                     {alumni?.photo_url ? (
                       <img
                         src={alumni.photo_url}
                         alt=""
-                        className="size-14 shrink-0 rounded-2xl object-cover ring-2 ring-white shadow-[0_8px_18px_rgba(8,27,69,0.1)]"
+                        className="size-14 shrink-0 rounded-2xl object-cover ring-2 ring-background shadow-[0_8px_18px_rgba(8,27,69,0.1)]"
                       />
                     ) : (
                       <div
                         className={cn(
-                          "flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-sm font-extrabold ring-2 ring-white shadow-[0_8px_18px_rgba(8,27,69,0.08)]",
+                          "flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-sm font-extrabold ring-2 ring-background shadow-[0_8px_18px_rgba(8,27,69,0.08)]",
                           tone,
                         )}
                       >
@@ -354,7 +354,7 @@ export function ContactRequestsPage() {
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="font-display text-lg font-semibold tracking-tight text-primary capitalize">
+                        <h2 className="font-display text-lg font-semibold tracking-tight text-foreground capitalize">
                           {name}
                         </h2>
                         <span
@@ -369,7 +369,7 @@ export function ContactRequestsPage() {
                       </div>
 
                       {subtitle ? (
-                        <p className="mt-0.5 truncate text-sm text-[#5b6b82]">
+                        <p className="mt-0.5 truncate text-sm text-muted-foreground">
                           {subtitle}
                         </p>
                       ) : null}
@@ -382,7 +382,7 @@ export function ContactRequestsPage() {
                         {channels.map((channel) => (
                           <span
                             key={channel}
-                            className="rounded-full bg-[#eef4fb] px-2.5 py-1 text-[11px] font-semibold text-[#2a3f63]"
+                            className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground"
                           >
                             {channel}
                           </span>
@@ -393,7 +393,7 @@ export function ContactRequestsPage() {
                       </div>
 
                       {item.rejection_reason ? (
-                        <p className="mt-2 text-xs text-rose-700">
+                        <p className="mt-2 text-xs text-rose-700 dark:text-rose-300">
                           Reason: {item.rejection_reason}
                         </p>
                       ) : null}
@@ -402,7 +402,7 @@ export function ContactRequestsPage() {
 
                   <LinkWithFrom
                     to={`/directory/${item.target_alumni_id}`}
-                    className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(8,27,69,0.16)] transition group-hover:bg-[#0c2558] sm:self-center"
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_10px_22px_rgba(8,27,69,0.16)] transition hover:bg-primary/90 sm:self-center"
                   >
                     View profile
                     <ArrowUpRight className="size-4 opacity-90" />

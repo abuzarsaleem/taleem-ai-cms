@@ -3,6 +3,7 @@ import { REGISTRATION_REQUEST_REPOSITORY } from '../../../common/constants/token
 import { PortalMediaType, RegistrationStatus } from '../../../common/enums';
 import {
   ConflictException,
+  BusinessException,
   ResourceNotFoundException,
 } from '../../../common/exceptions';
 import { RegisterDto } from '../dto/f001.dto';
@@ -38,14 +39,14 @@ export class RegistrationService {
       );
     }
 
-    let photoMediaId: string | null = null;
-    if (dto.media_id) {
-      await this.portalMediaService.requireById(
-        dto.media_id,
-        PortalMediaType.REGISTRATION_PHOTO,
-      );
-      photoMediaId = dto.media_id;
+    if (!dto.media_id) {
+      throw new BusinessException('Profile photo is required');
     }
+    await this.portalMediaService.requireById(
+      dto.media_id,
+      PortalMediaType.REGISTRATION_PHOTO,
+    );
+    const photoMediaId = dto.media_id;
 
     const referenceNumber =
       await this.registrationRepository.nextReferenceNumber();

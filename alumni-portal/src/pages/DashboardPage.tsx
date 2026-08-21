@@ -166,7 +166,7 @@ export function DashboardPage() {
             to="/directory"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
-              "rounded-[11px] border-white/20 bg-white text-primary hover:bg-white/90",
+              "rounded-[11px] border-white/20 bg-white text-primary hover:bg-white/90 dark:border-white/15 dark:bg-card dark:text-foreground dark:hover:bg-card/90",
             )}
           >
             Explore Alumni
@@ -290,7 +290,7 @@ export function DashboardPage() {
                 return (
                   <li
                     key={event.id}
-                    className="flex items-center gap-3 rounded-[14px] border border-border bg-white p-3"
+                    className="flex items-center gap-3 rounded-[14px] border border-border bg-card p-3"
                   >
                     <div className="grid size-[52px] shrink-0 place-items-center rounded-[13px] bg-[#edf7f7] text-center font-extrabold text-[#087b7e]">
                       <small className="block text-[9px] uppercase">{month}</small>

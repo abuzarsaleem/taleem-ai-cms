@@ -116,15 +116,16 @@ export function AlumniCardPage() {
 
   return (
     <div className="relative mx-auto max-w-6xl space-y-8">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-44 overflow-hidden rounded-[1.5rem] opacity-90"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(54,186,188,0.14),transparent_55%),radial-gradient(ellipse_at_top_left,rgba(8,27,69,0.07),transparent_50%)]" />
-      </div>
+      <div className="relative overflow-hidden rounded-[1.5rem] px-5 py-5 sm:px-6 sm:py-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-90"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(54,186,188,0.14),transparent_55%),radial-gradient(ellipse_at_top_left,rgba(8,27,69,0.07),transparent_50%)]" />
+        </div>
 
-      <div className="relative">
         <PageHeader
+          className="relative mb-0 sm:mb-0"
           eyebrow="Verified identity"
           title="Digital Alumni ID"
           description="Credit-card sized digital identity. Download as PDF for print or wallet use."
@@ -160,7 +161,7 @@ export function AlumniCardPage() {
       <div className="relative grid items-start gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <div
           id="printable-alumni-card"
-          className="relative flex justify-center rounded-[1.5rem] border border-[#e6ecf4] bg-[#f4f7fb] p-7 sm:p-10"
+          className="relative flex justify-center rounded-[1.5rem] border border-border bg-muted/50 p-7 sm:p-10"
         >
           <AlumniIdCard
             data={{
@@ -179,14 +180,14 @@ export function AlumniCardPage() {
           />
         </div>
 
-        <aside className="overflow-hidden rounded-[1.35rem] border border-[#e6ecf4] bg-white shadow-[0_14px_40px_rgba(8,27,69,0.06)]">
-          <div className="border-b border-[#eef2f7] bg-[#f8fafc] px-5 py-4">
+        <aside className="overflow-hidden rounded-[1.35rem] border border-border bg-card text-card-foreground shadow-[var(--portal-shadow)]">
+          <div className="border-b border-border bg-muted/40 px-5 py-4">
             <div className="flex items-center gap-2.5">
-              <span className="grid size-9 place-items-center rounded-xl bg-primary/5 text-primary ring-1 ring-primary/10">
+              <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-foreground ring-1 ring-primary/15">
                 <IdCard className="size-4" />
               </span>
               <div>
-                <h3 className="font-semibold text-primary">
+                <h3 className="font-semibold text-foreground">
                   Identity information
                 </h3>
                 <p className="text-xs text-muted-foreground">
@@ -209,13 +210,13 @@ export function AlumniCardPage() {
             ).map(([label, value]) => (
               <div
                 key={label}
-                className="flex items-center justify-between gap-3 border-b border-[#eef2f7] py-3.5"
+                className="flex items-center justify-between gap-3 border-b border-border py-3.5"
               >
                 <dt className="text-muted-foreground">{label}</dt>
-                <dd className="font-semibold text-primary">{value}</dd>
+                <dd className="font-semibold text-foreground">{value}</dd>
               </div>
             ))}
-            <div className="flex items-center justify-between gap-3 border-b border-[#eef2f7] py-3.5">
+            <div className="flex items-center justify-between gap-3 border-b border-border py-3.5">
               <dt className="text-muted-foreground">Identity status</dt>
               <dd>
                 <StatusPill variant="success">Active</StatusPill>
@@ -231,11 +232,11 @@ export function AlumniCardPage() {
             </div>
           </dl>
 
-          <div className="mx-5 mb-5 rounded-2xl border border-[#d7f0ee] bg-gradient-to-br from-[#f3fbfb] to-[#eef8f8] p-4">
+          <div className="mx-5 mb-5 rounded-2xl border border-accent/25 bg-accent/10 p-4">
             <div className="flex items-start gap-2.5">
-              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#1e8f97]" />
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" />
               <div>
-                <p className="text-sm font-semibold text-primary">
+                <p className="text-sm font-semibold text-foreground">
                   Campus access
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">

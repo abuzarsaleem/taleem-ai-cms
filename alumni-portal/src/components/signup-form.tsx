@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import type { Value as E164Number } from "react-phone-number-input"
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2, ImagePlus, Loader2 } from "lucide-react"
 
 import {
   AuthFieldLabel,
@@ -74,6 +74,8 @@ export function SignupForm() {
   const [graduationYear, setGraduationYear] = useState("")
   const [phoneNumber, setPhoneNumber] = useState<E164Number | undefined>()
   const [whatsappNumber, setWhatsappNumber] = useState<E164Number | undefined>()
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
   useEffect(() => {
     void catalogService
@@ -81,6 +83,16 @@ export function SignupForm() {
       .then(setDegreePrograms)
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!photo) {
+      setPhotoPreview(null)
+      return
+    }
+    const url = URL.createObjectURL(photo)
+    setPhotoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photo])
 
   const stepIndex = STEP_ORDER.indexOf(step)
 
@@ -219,6 +231,8 @@ export function SignupForm() {
         nextErrors.graduation_year
       ) {
         setStep("academic")
+      } else if (nextErrors.photo) {
+        setStep("identity")
       }
       return
     }
@@ -226,18 +240,16 @@ export function SignupForm() {
     setLoading(true)
     try {
       let mediaId: string | undefined
-      if (photo) {
-        try {
-          const upload = await authService.uploadPhoto(photo)
-          mediaId = upload.media_id
-          if (!mediaId) {
-            setErrors({ photo: "Photo upload did not return a media id" })
-            return
-          }
-        } catch (err) {
-          setErrors({ photo: errorMessage(err, "Photo upload failed") })
+      try {
+        const upload = await authService.uploadPhoto(photo!)
+        mediaId = upload.media_id
+        if (!mediaId) {
+          setErrors({ photo: "Photo upload did not return a media id" })
           return
         }
+      } catch (err) {
+        setErrors({ photo: errorMessage(err, "Photo upload failed") })
+        return
       }
 
       const result = await authService.register({
@@ -548,26 +560,70 @@ export function SignupForm() {
             <div className="grid gap-4">
               <Field data-invalid={!!errors.photo || undefined}>
                 <AuthFieldLabel htmlFor="photo">Profile photo</AuthFieldLabel>
-                <Input
+                <input
+                  ref={photoInputRef}
                   id="photo"
                   type="file"
                   accept="image/*"
+                  className="sr-only"
                   aria-invalid={!!errors.photo}
-                  className="h-11"
                   onChange={(event) =>
                     onPhotoChange(event.target.files?.[0] ?? null)
                   }
                 />
+                <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/30 p-3.5 sm:p-4">
+                  <div className="relative size-16 shrink-0 overflow-hidden rounded-full border-2 border-accent/40 bg-muted ring-2 ring-accent/10">
+                    {photoPreview ? (
+                      <img
+                        src={photoPreview}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex size-full items-center justify-center text-muted-foreground">
+                        <ImagePlus className="size-6" strokeWidth={1.5} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={() => photoInputRef.current?.click()}
+                      >
+                        {photo ? "Change photo" : "Upload photo"}
+                      </Button>
+                      {photo ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="rounded-xl text-muted-foreground"
+                          onClick={() => {
+                            onPhotoChange(null)
+                            if (photoInputRef.current) {
+                              photoInputRef.current.value = ""
+                            }
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      ) : null}
+                    </div>
+                    {photo ? (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {photo.name}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Required for your Digital Alumni ID. JPG or PNG, max
+                        5MB.
+                      </p>
+                    )}
+                  </div>
+                </div>
                 <FieldError>{errors.photo}</FieldError>
-                {photo ? (
-                  <p className="text-xs text-muted-foreground">
-                    Selected: {photo.name}
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Optional but recommended for your Digital Alumni ID.
-                  </p>
-                )}
               </Field>
             </div>
           ) : null}
@@ -600,11 +656,18 @@ export function SignupForm() {
                 disabled={loading}
                 className="h-11 min-w-[160px] tracking-wide uppercase"
               >
-                {step === "identity"
-                  ? loading
-                    ? "Submitting…"
-                    : "Submit request"
-                  : "Continue"}
+                {loading ? (
+                  <span className="inline-flex items-center gap-2 normal-case">
+                    <Loader2 className="size-4 animate-spin" />
+                    {photo && step === "identity"
+                      ? "Uploading…"
+                      : "Submitting…"}
+                  </span>
+                ) : step === "identity" ? (
+                  "Submit request"
+                ) : (
+                  "Continue"
+                )}
               </Button>
             </div>
           </div>

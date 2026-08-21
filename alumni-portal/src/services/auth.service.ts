@@ -22,7 +22,7 @@ export type RegisterPayload = {
   degree_program_id: string
   registration_roll_number: string
   graduation_year: string
-  media_id?: string
+  media_id: string
 }
 
 export type RegisterResponse = {

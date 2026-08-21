@@ -1,12 +1,22 @@
 import { cn } from "@/lib/utils"
 
-type StatusPillVariant = "success" | "warning" | "info" | "neutral" | "dark"
+type StatusPillVariant =
+  | "success"
+  | "warning"
+  | "info"
+  | "neutral"
+  | "danger"
+  | "dark"
 
 const variants: Record<StatusPillVariant, string> = {
-  success: "bg-emerald-50 text-emerald-800",
-  warning: "bg-amber-50 text-amber-800",
-  info: "bg-blue-50 text-blue-800",
-  neutral: "bg-slate-100 text-slate-600",
+  success:
+    "bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
+  warning:
+    "bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
+  info: "bg-blue-50 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300",
+  neutral:
+    "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300",
+  danger: "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300",
   dark: "bg-white/12 text-slate-100",
 }
 

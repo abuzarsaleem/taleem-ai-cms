@@ -3,12 +3,13 @@ import {
   Camera,
   Check,
   GraduationCap,
+  Loader2,
   Minus,
   Plus,
   Sparkles,
   UserRound,
 } from "lucide-react"
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react"
 import { Link, useLocation } from "react-router-dom"
 import type { Value as E164Number } from "react-phone-number-input"
 
@@ -99,6 +100,11 @@ export function ProfilePage() {
   const [error, setError] = useState("")
   const [message, setMessage] = useState<FormMessage | null>(null)
   const [savingProfile, setSavingProfile] = useState(false)
+  const [personalSaveAction, setPersonalSaveAction] = useState<
+    "save" | "next" | null
+  >(null)
+  const [savingAcademic, setSavingAcademic] = useState(false)
+  const [savingProfessional, setSavingProfessional] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
 
   const [country, setCountry] = useState(countryValue(null))
@@ -255,23 +261,27 @@ export function ProfilePage() {
     )
   }
 
-  async function onSaveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!profile) return
-    const form = new FormData(event.currentTarget)
+  async function savePersonalProfile(
+    form: HTMLFormElement,
+    action: "save" | "next",
+  ): Promise<boolean> {
+    if (!profile) return false
+    const data = new FormData(form)
+    setPersonalSaveAction(action)
     setSavingProfile(true)
     setMessage(null)
     try {
       const updated = await profileService.updateMyProfile({
         phone_number: phoneNumber || undefined,
         whatsapp_number: whatsappNumber || undefined,
-        address: String(form.get("address") || "") || undefined,
-        secondry_address: String(form.get("secondry_address") || "") || undefined,
+        address: String(data.get("address") || "") || undefined,
+        secondry_address:
+          String(data.get("secondry_address") || "") || undefined,
         city: city || undefined,
         country: country || undefined,
         gender: gender || undefined,
-        date_of_birth: String(form.get("date_of_birth") || "") || undefined,
-        linkedin_url: String(form.get("linkedin_url") || "") || undefined,
+        date_of_birth: String(data.get("date_of_birth") || "") || undefined,
+        linkedin_url: String(data.get("linkedin_url") || "") || undefined,
       })
       setProfile(updated)
       notifyProfileUpdated()
@@ -280,15 +290,30 @@ export function ProfilePage() {
         type: "success",
         text: "Profile updated",
       })
+      return true
     } catch (err) {
       showMessage({
         section: "personal",
         type: "error",
         text: err instanceof ApiError ? err.message : "Update failed",
       })
+      return false
     } finally {
       setSavingProfile(false)
+      setPersonalSaveAction(null)
     }
+  }
+
+  async function onSaveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await savePersonalProfile(event.currentTarget, "save")
+  }
+
+  async function onNextPersonal(event: MouseEvent<HTMLButtonElement>) {
+    const form = event.currentTarget.form
+    if (!form) return
+    const saved = await savePersonalProfile(form, "next")
+    if (saved) setActiveSection("academic")
   }
 
   async function onPhotoSelected(file: File | null) {
@@ -336,6 +361,7 @@ export function ProfilePage() {
   async function onAddProfessional(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
+    setSavingProfessional(true)
     setMessage(null)
     try {
       await careerService.createProfessional({
@@ -357,6 +383,8 @@ export function ProfilePage() {
         type: "error",
         text: err instanceof ApiError ? err.message : "Create failed",
       })
+    } finally {
+      setSavingProfessional(false)
     }
   }
 
@@ -375,6 +403,7 @@ export function ProfilePage() {
         return
       }
     }
+    setSavingAcademic(true)
     setMessage(null)
     try {
       await careerService.createAcademic({
@@ -405,6 +434,8 @@ export function ProfilePage() {
         type: "error",
         text: err instanceof ApiError ? err.message : "Create failed",
       })
+    } finally {
+      setSavingAcademic(false)
     }
   }
 
@@ -467,7 +498,11 @@ export function ProfilePage() {
               onClick={() => photoInputRef.current?.click()}
               aria-label="Change profile picture"
             >
-              <Camera className="size-4" />
+              {photoBusy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Camera className="size-4" />
+              )}
             </button>
             <input
               ref={photoInputRef}
@@ -692,12 +727,27 @@ export function ProfilePage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setActiveSection("academic")}
+                  disabled={savingProfile}
+                  onClick={(event) => void onNextPersonal(event)}
                 >
-                  Next
+                  {personalSaveAction === "next" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
+                      Saving…
+                    </span>
+                  ) : (
+                    "Next"
+                  )}
                 </Button>
                 <Button type="submit" disabled={savingProfile}>
-                  {savingProfile ? "Saving…" : "Save"}
+                  {personalSaveAction === "save" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
+                      Saving…
+                    </span>
+                  ) : (
+                    "Save"
+                  )}
                 </Button>
               </div>
             </div>
@@ -863,15 +913,28 @@ export function ProfilePage() {
                   <Button
                     type="button"
                     variant="outline"
+                    disabled={savingAcademic}
                     onClick={() => setAddingAcademic(false)}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    disabled={!newDegreeId || !newRegYear || !newGradYear}
+                    disabled={
+                      savingAcademic ||
+                      !newDegreeId ||
+                      !newRegYear ||
+                      !newGradYear
+                    }
                   >
-                    Save
+                    {savingAcademic ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="size-4 animate-spin" />
+                        Saving…
+                      </span>
+                    ) : (
+                      "Save"
+                    )}
                   </Button>
                 </div>
               </form>
@@ -993,11 +1056,21 @@ export function ProfilePage() {
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={savingProfessional}
                       onClick={() => setAddingProfessional(false)}
                     >
                       Cancel
                     </Button>
-                    <Button type="submit">Save</Button>
+                    <Button type="submit" disabled={savingProfessional}>
+                      {savingProfessional ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Loader2 className="size-4 animate-spin" />
+                          Saving…
+                        </span>
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
                   </div>
                 </div>
               </form>

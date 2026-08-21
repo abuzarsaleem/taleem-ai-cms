@@ -55,10 +55,10 @@ function rsvpStatusLabel(status: string | null | undefined) {
 
 function rsvpStatusVariant(
   status: string | null | undefined,
-): "success" | "warning" | "neutral" | "info" {
+): "success" | "warning" | "danger" | "info" {
   if (status === "GOING") return "success"
   if (status === "MAYBE") return "warning"
-  if (status === "NOT_GOING") return "neutral"
+  if (status === "NOT_GOING") return "danger"
   return "info"
 }
 
@@ -131,9 +131,9 @@ function RegistrationsTable({
   busyId: string | null
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_35px_rgba(8,27,69,0.06)] ring-1 ring-[#e5eaf1]">
-      <div className="border-b border-[#eef2f7] px-5 py-5 sm:px-6">
-        <h2 className="text-base font-semibold text-primary">
+    <section className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[var(--portal-shadow)] ring-1 ring-border">
+      <div className="border-b border-border px-5 py-5 sm:px-6">
+        <h2 className="text-base font-semibold text-foreground">
           My event registrations
         </h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
@@ -145,7 +145,7 @@ function RegistrationsTable({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[720px] text-left">
           <thead>
-            <tr className="border-b border-[#eef2f7] text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+            <tr className="border-b border-border text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
               <th className="px-6 py-3 font-semibold">Event</th>
               <th className="px-4 py-3 font-semibold">Date</th>
               <th className="px-4 py-3 font-semibold">Registration</th>
@@ -161,20 +161,20 @@ function RegistrationsTable({
               return (
                 <tr
                   key={event.id}
-                  className="border-b border-[#eef2f7] last:border-b-0"
+                  className="border-b border-border last:border-b-0"
                 >
                   <td className="px-6 py-4">
                     <LinkWithFrom
                       to={`/events/${event.id}`}
-                      className="font-semibold text-primary hover:underline"
+                      className="font-semibold text-foreground hover:underline"
                     >
                       {event.title}
                     </LinkWithFrom>
                   </td>
-                  <td className="px-4 py-4 text-sm text-[#536176]">
+                  <td className="px-4 py-4 text-sm text-muted-foreground">
                     {formatEventDate(event)}
                   </td>
-                  <td className="px-4 py-4 font-mono text-sm text-[#536176]">
+                  <td className="px-4 py-4 font-mono text-sm text-muted-foreground">
                     {code ?? "—"}
                   </td>
                   <td className="px-4 py-4">
@@ -216,7 +216,7 @@ function RegistrationsTable({
       </div>
 
       {/* Mobile stacked rows */}
-      <div className="divide-y divide-[#eef2f7] md:hidden">
+      <div className="divide-y divide-border md:hidden">
         {events.map((event) => {
           const registered = Boolean(event.my_rsvp_status)
           const code = registrationCode(event)
@@ -226,7 +226,7 @@ function RegistrationsTable({
               <div>
                 <LinkWithFrom
                   to={`/events/${event.id}`}
-                  className="font-semibold text-primary"
+                  className="font-semibold text-foreground"
                 >
                   {event.title}
                 </LinkWithFrom>
@@ -298,7 +298,7 @@ function EventCard({
   })()
 
   return (
-    <article className="group overflow-hidden rounded-2xl bg-white shadow-[0_12px_35px_rgba(8,27,69,0.06)] ring-1 ring-[#e5eaf1] transition-shadow hover:shadow-[0_18px_45px_rgba(8,27,69,0.1)]">
+    <article className="group overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[var(--portal-shadow)] ring-1 ring-border transition-shadow hover:shadow-[0_18px_45px_rgba(8,27,69,0.1)]">
       <LinkWithFrom
         to={`/events/${event.id}`}
         className="relative block aspect-[16/10] overflow-hidden bg-[#0b1f4a]"
@@ -311,24 +311,24 @@ function EventCard({
           <small className="block text-[9px] font-bold tracking-wide text-[#087b7e] uppercase">
             {date.month}
           </small>
-          <b className="text-lg leading-none text-primary">{date.day}</b>
+          <b className="text-lg leading-none text-[#081b45]">{date.day}</b>
         </div>
       </LinkWithFrom>
 
       <div className="space-y-3 p-4 sm:p-5">
         <div>
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[#1e8f97] uppercase">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-accent uppercase">
             {event.event_type || "Event"}
           </p>
           {linkTitle ? (
             <LinkWithFrom
               to={`/events/${event.id}`}
-              className="mt-1 block font-display text-lg leading-snug font-semibold text-primary hover:underline"
+              className="mt-1 block font-display text-lg leading-snug font-semibold text-foreground hover:underline"
             >
               {event.title}
             </LinkWithFrom>
           ) : (
-            <h2 className="mt-1 font-display text-lg leading-snug font-semibold text-primary">
+            <h2 className="mt-1 font-display text-lg leading-snug font-semibold text-foreground">
               {event.title}
             </h2>
           )}
@@ -353,7 +353,7 @@ function EventCard({
         </div>
 
         {event.description ? (
-          <p className="line-clamp-2 text-sm leading-relaxed text-[#64748b] whitespace-pre-wrap">
+          <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
             {event.description}
           </p>
         ) : null}
@@ -490,12 +490,12 @@ export function EventsPage() {
 
       {loading ? (
         <div className="space-y-4">
-          <div className="h-48 animate-pulse rounded-2xl bg-[#e8eef6]" />
+          <div className="h-48 animate-pulse rounded-2xl bg-muted" />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-72 animate-pulse rounded-2xl bg-[#e8eef6]"
+                className="h-72 animate-pulse rounded-2xl bg-muted"
               />
             ))}
           </div>
@@ -508,11 +508,11 @@ export function EventsPage() {
           </CardHeader>
         </Card>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-dashed border-[#d5deea] bg-white px-6 py-16 text-center">
-          <div className="grid size-14 place-items-center rounded-full bg-[#edf7f7] text-[#087b7e]">
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+          <div className="grid size-14 place-items-center rounded-full bg-accent/15 text-accent">
             <CalendarDays className="size-6" strokeWidth={1.5} />
           </div>
-          <h2 className="mt-5 font-display text-xl font-semibold text-primary">
+          <h2 className="mt-5 font-display text-xl font-semibold text-foreground">
             No upcoming events
           </h2>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
@@ -523,7 +523,7 @@ export function EventsPage() {
         <div className="space-y-8">
           <section className="space-y-4">
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-display text-lg font-semibold text-primary">
+              <h2 className="font-display text-lg font-semibold text-foreground">
                 Upcoming events
               </h2>
               <p className="text-xs tracking-wide text-muted-foreground uppercase">
@@ -607,7 +607,7 @@ export function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto h-[28rem] w-full max-w-2xl animate-pulse rounded-2xl bg-[#e8eef6]" />
+      <div className="mx-auto h-[28rem] w-full max-w-2xl animate-pulse rounded-2xl bg-muted" />
     )
   }
 
@@ -641,12 +641,12 @@ export function EventDetailPage() {
         linkTitle={false}
       />
       {event.my_rsvp_status && (code || calendarUrl) ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-5 py-4 ring-1 ring-[#e5eaf1]">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-card px-5 py-4 ring-1 ring-border">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
               Registration
             </p>
-            <p className="mt-1 font-mono text-sm font-semibold text-primary">
+            <p className="mt-1 font-mono text-sm font-semibold text-foreground">
               {code ?? "—"}
             </p>
           </div>

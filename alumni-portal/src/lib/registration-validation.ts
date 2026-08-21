@@ -101,12 +101,12 @@ export function validateRegistration(
     }
   }
 
-  if (values.photo) {
-    if (!values.photo.type.startsWith("image/")) {
-      errors.photo = "Profile photo must be an image file"
-    } else if (values.photo.size > MAX_PHOTO_BYTES) {
-      errors.photo = "Profile photo must be 5MB or smaller"
-    }
+  if (!values.photo) {
+    errors.photo = "Profile photo is required"
+  } else if (!values.photo.type.startsWith("image/")) {
+    errors.photo = "Profile photo must be an image file"
+  } else if (values.photo.size > MAX_PHOTO_BYTES) {
+    errors.photo = "Profile photo must be 5MB or smaller"
   }
 
   return errors
