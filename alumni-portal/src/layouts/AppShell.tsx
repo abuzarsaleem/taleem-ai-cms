@@ -111,7 +111,7 @@ function NavSection({
       <p className="px-3 pt-4 pb-2 text-[11px] font-semibold tracking-[0.14em] text-sidebar-foreground/55 uppercase">
         {label}
       </p>
-      <nav className="space-y-0.5">
+      <nav className="flex flex-col gap-0.5">
         {items.map((item) => (
           <SidebarLink
             key={item.to}

@@ -70,14 +70,14 @@ export function SearchableSelect({
             type="button"
             variant="outline"
             className={cn(
-              "h-8 w-full justify-between px-2.5 font-normal",
+              "h-8 w-full min-w-0 justify-between gap-2 overflow-hidden px-2.5 font-normal",
               !selected && !value && "text-muted-foreground",
               className,
             )}
           />
         }
       >
-        <span className="truncate">
+        <span className="min-w-0 flex-1 truncate text-left">
           {selected?.label || (value ? value : placeholder)}
         </span>
         <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
@@ -93,12 +93,13 @@ export function SearchableSelect({
                   key={option.value || "empty"}
                   value={`${option.label} ${option.value}`}
                   data-checked={option.value === value || undefined}
+                  className="min-w-0"
                   onSelect={() => {
                     onChange(option.value)
                     setOpen(false)
                   }}
                 >
-                  {option.label}
+                  <span className="truncate">{option.label}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

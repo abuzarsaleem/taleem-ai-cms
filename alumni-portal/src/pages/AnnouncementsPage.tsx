@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 
 import { LinkWithFrom, PageBreadcrumb } from "@/components/page-breadcrumb"
+import { PageHeader } from "@/components/portal/page-header"
 import {
   Card,
   CardDescription,
@@ -276,36 +277,20 @@ export function AnnouncementsPage() {
   const [featured, ...rest] = items
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <header className="relative overflow-hidden rounded-2xl bg-[linear-gradient(120deg,#081b45_0%,#173b79_58%,#1e8f97_140%)] px-6 py-8 text-white shadow-[0_18px_50px_rgba(8,27,69,0.16)] sm:px-8 sm:py-10">
-        <div
-          aria-hidden
-          className="absolute -top-16 -right-10 size-56 rounded-full border border-white/10"
-        />
-        <div
-          aria-hidden
-          className="absolute -bottom-20 left-1/3 size-64 rounded-full bg-[#36babc]/15 blur-2xl"
-        />
-        <p className="relative text-[11px] font-semibold tracking-[0.18em] text-[#7fe2de] uppercase">
-          University communication
-        </p>
-        <div className="relative mt-3.5 flex flex-wrap items-end justify-between gap-5">
-          <div className="min-w-0 max-w-xl">
-            <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-              Announcements
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#c8d5ed]">
-              Official updates from the Alumni Office — events, recognition, and
-              campus news in one place.
-            </p>
-          </div>
-          {!loading && !error ? (
-            <p className="relative rounded-lg border border-white/15 bg-white/10 px-3.5 py-2.5 text-xs font-semibold tracking-wide text-white/90">
+    <div className="space-y-8">
+      <PageHeader
+        tone="hero"
+        eyebrow="University communication"
+        title="Announcements"
+        description="Official updates from the Alumni Office — events, recognition, and campus news in one place."
+        actions={
+          !loading && !error ? (
+            <span className="rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold tracking-wide text-white/90">
               {items.length} published
-            </p>
-          ) : null}
-        </div>
-      </header>
+            </span>
+          ) : null
+        }
+      />
 
       {loading ? (
         <div className="space-y-6">

@@ -115,53 +115,44 @@ export function AlumniCardPage() {
     : null
 
   return (
-    <div className="relative mx-auto max-w-6xl space-y-8">
-      <div className="relative overflow-hidden rounded-[1.5rem] px-5 py-5 sm:px-6 sm:py-6">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-90"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(54,186,188,0.14),transparent_55%),radial-gradient(ellipse_at_top_left,rgba(8,27,69,0.07),transparent_50%)]" />
-        </div>
+    <div className="space-y-8">
+      <PageHeader
+        tone="hero"
+        eyebrow="Verified identity"
+        title="Digital Alumni ID"
+        description="Credit-card sized digital identity. Download as PDF for print or wallet use."
+        actions={
+          <div className="flex flex-wrap gap-2.5">
+            <Button
+              type="button"
+              className="no-print gap-1.5 rounded-xl border-0 bg-accent font-semibold text-accent-foreground shadow-[0_10px_22px_rgba(8,27,69,0.16)] hover:bg-accent/90"
+              disabled={pdfBusy}
+              onClick={() => void onDownloadPdf()}
+            >
+              {pdfBusy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Download className="size-4" />
+              )}
+              {pdfBusy ? "Preparing…" : "Download PDF"}
+            </Button>
+            <Link
+              to="/profile"
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "no-print rounded-xl border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white",
+              )}
+            >
+              Edit profile
+            </Link>
+          </div>
+        }
+      />
 
-        <PageHeader
-          className="relative mb-0 sm:mb-0"
-          eyebrow="Verified identity"
-          title="Digital Alumni ID"
-          description="Credit-card sized digital identity. Download as PDF for print or wallet use."
-          actions={
-            <div className="flex flex-wrap gap-2.5">
-              <Button
-                type="button"
-                className="no-print gap-1.5 rounded-xl shadow-[0_10px_22px_rgba(8,27,69,0.16)]"
-                disabled={pdfBusy}
-                onClick={() => void onDownloadPdf()}
-              >
-                {pdfBusy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Download className="size-4" />
-                )}
-                {pdfBusy ? "Preparing…" : "Download PDF"}
-              </Button>
-              <Link
-                to="/profile"
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "no-print rounded-xl",
-                )}
-              >
-                Edit profile
-              </Link>
-            </div>
-          }
-        />
-      </div>
-
-      <div className="relative grid items-start gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+      <div className="relative mx-auto grid max-w-6xl items-start gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <div
           id="printable-alumni-card"
-          className="relative flex justify-center rounded-[1.5rem] border border-border bg-muted/50 p-7 sm:p-10"
+          className="relative flex justify-center rounded-[1.5rem] border border-border bg-muted/50 p-4 sm:p-10"
         >
           <AlumniIdCard
             data={{

@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { LinkWithFrom, PageBreadcrumb } from "@/components/page-breadcrumb"
+import { PageHeader } from "@/components/portal/page-header"
 import { StatusPill } from "@/components/portal/status-pill"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -457,36 +458,25 @@ export function EventsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      <header className="relative overflow-hidden rounded-2xl bg-[linear-gradient(120deg,#081b45_0%,#173b79_58%,#1e8f97_140%)] px-6 py-8 text-white shadow-[0_18px_50px_rgba(8,27,69,0.16)] sm:px-8 sm:py-10">
-        <div
-          aria-hidden
-          className="absolute -top-16 -right-10 size-56 rounded-full border border-white/10"
-        />
-        <p className="relative text-[11px] font-semibold tracking-[0.18em] text-[#7fe2de] uppercase">
-          Community calendar
-        </p>
-        <div className="relative mt-3.5 flex flex-wrap items-end justify-between gap-5">
-          <div className="min-w-0 max-w-xl">
-            <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-              Alumni Events
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#c8d5ed]">
-              Meet, learn, reconnect and celebrate with your alumni community.
-            </p>
-          </div>
-          {!loading && !error ? (
-            <div className="relative flex flex-wrap gap-2.5 text-xs font-semibold">
-              <span className="rounded-lg border border-white/15 bg-white/10 px-3.5 py-2.5">
+    <div className="space-y-8">
+      <PageHeader
+        tone="hero"
+        eyebrow="Community calendar"
+        title="Alumni Events"
+        description="Meet, learn, reconnect and celebrate with your alumni community."
+        actions={
+          !loading && !error ? (
+            <>
+              <span className="rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold text-white/90">
                 {items.length} upcoming
               </span>
-              <span className="rounded-lg border border-white/15 bg-white/10 px-3.5 py-2.5">
+              <span className="rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold text-white/90">
                 {registeredCount} registered
               </span>
-            </div>
-          ) : null}
-        </div>
-      </header>
+            </>
+          ) : null
+        }
+      />
 
       {loading ? (
         <div className="space-y-4">

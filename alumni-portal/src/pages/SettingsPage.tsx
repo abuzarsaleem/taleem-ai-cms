@@ -1,17 +1,15 @@
-import { KeyRound, LogOut, Moon, ShieldCheck, Sun } from "lucide-react"
+import { KeyRound, LogOut, ShieldCheck } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthContext"
+import { PageHeader } from "@/components/portal/page-header"
 import { StatusPill } from "@/components/portal/status-pill"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useTheme } from "@/theme/ThemeProvider"
 
 export function SettingsPage() {
   const { clearSession } = useAuth()
   const navigate = useNavigate()
-  const { theme } = useTheme()
 
   function logout() {
     clearSession()
@@ -19,46 +17,15 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="relative mx-auto max-w-3xl">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-40 overflow-hidden rounded-[1.5rem] opacity-90"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(54,186,188,0.14),transparent_55%),radial-gradient(ellipse_at_top_left,rgba(8,27,69,0.07),transparent_50%)]" />
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        tone="hero"
+        eyebrow="Account control"
+        title="Settings"
+        description="Manage your password and account session."
+      />
 
-      <div className="relative space-y-8 px-5 pt-5 sm:px-6 sm:pt-6">
-        <header className="max-w-xl">
-          <p className="text-[11px] font-bold tracking-[0.18em] text-[#1e8f97] uppercase">
-            Account control
-          </p>
-          <h1 className="mt-2.5 font-display text-[2rem] leading-[1.15] font-semibold tracking-tight text-primary sm:text-[2.2rem]">
-            Settings
-          </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-            Manage your password, appearance, and account session.
-          </p>
-        </header>
-
-        <section className="overflow-hidden rounded-[1.35rem] border border-border bg-card shadow-[0_14px_40px_rgba(8,27,69,0.06)]">
-          <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-5 py-4">
-            <span className="grid size-10 place-items-center rounded-xl bg-primary/5 text-primary ring-1 ring-primary/10">
-              {theme === "dark" ? (
-                <Moon className="size-4" />
-              ) : (
-                <Sun className="size-4" />
-              )}
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2 className="font-semibold text-primary">Appearance</h2>
-              <p className="text-xs text-muted-foreground">
-                Switch between light and dark theme
-              </p>
-            </div>
-            <ThemeToggle />
-          </div>
-        </section>
-
+      <div className="mx-auto max-w-3xl space-y-8">
         <div className="grid gap-5 sm:grid-cols-2">
           <section className="overflow-hidden rounded-[1.35rem] border border-border bg-card shadow-[0_14px_40px_rgba(8,27,69,0.06)]">
             <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-5 py-4">

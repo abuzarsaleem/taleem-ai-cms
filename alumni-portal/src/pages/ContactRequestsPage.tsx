@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 
 import { LinkWithFrom } from "@/components/page-breadcrumb"
+import { PageHeader } from "@/components/portal/page-header"
 import {
   Card,
   CardDescription,
@@ -194,40 +195,27 @@ export function ContactRequestsPage() {
   const visible = tab === "contacts" ? contacts : requested
 
   return (
-    <div className="relative mx-auto max-w-4xl">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-40 overflow-hidden rounded-[1.5rem] opacity-90"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(54,186,188,0.12),transparent_55%),radial-gradient(ellipse_at_top_left,rgba(8,27,69,0.06),transparent_50%)]" />
-      </div>
-
-      <div className="relative space-y-8 px-5 pt-5 sm:px-6 sm:pt-6">
-        <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
-          <div className="min-w-0 max-w-xl">
-            <p className="text-[11px] font-bold tracking-[0.18em] text-accent uppercase">
-              Network
-            </p>
-            <h1 className="mt-2.5 font-display text-[2rem] leading-[1.15] font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
-              My Contacts
-            </h1>
-            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-              People you’ve connected with, and requests still in progress.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2.5 sm:mt-8 sm:justify-end">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-sm">
-              <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+    <div className="space-y-8">
+      <PageHeader
+        tone="hero"
+        eyebrow="Network"
+        title="My Contacts"
+        description="People you’ve connected with, and requests still in progress."
+        actions={
+          <>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold text-white/90">
+              <Check className="size-3.5" strokeWidth={2.5} />
               {contacts.length} connected
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-sm">
-              <Clock3 className="size-3.5 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold text-white/90">
+              <Clock3 className="size-3.5" strokeWidth={2.5} />
               {requested.length} requested
             </span>
-          </div>
-        </header>
+          </>
+        }
+      />
 
+      <div className="mx-auto max-w-4xl space-y-8">
         <div className="inline-flex w-full max-w-md rounded-2xl border border-border bg-card p-1.5 shadow-[var(--portal-shadow)] sm:w-auto">
           {(
             [

@@ -2,6 +2,7 @@ import { Check, Building2, MapPin, Plus, Search, SlidersHorizontal } from "lucid
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 
+import { PageHeader } from "@/components/portal/page-header"
 import { SearchableSelect } from "@/components/searchable-select"
 import { Button } from "@/components/ui/button"
 import {
@@ -168,7 +169,7 @@ export function DirectoryPage() {
   const [items, setItems] = useState<DirectoryAlumni[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [pageSize] = useState(12)
+  const [pageSize] = useState(4)
   const [degreePrograms, setDegreePrograms] = useState<DegreeProgram[]>([])
   const [campuses, setCampuses] = useState<Campus[]>([])
   const [degreeLabels, setDegreeLabels] = useState<Map<string, string>>(
@@ -309,114 +310,85 @@ export function DirectoryPage() {
   }, [searchParams])
 
   return (
-    <div className="relative mx-auto max-w-6xl">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-44 overflow-hidden rounded-[1.5rem] opacity-90"
+    <div className="space-y-8">
+      <PageHeader
+        tone="hero"
+        eyebrow="Community"
+        title="Alumni Directory"
+        description="Discover verified alumni by profession, program, campus and more."
+        actions={
+          total > 0 ? (
+            <span className="rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold text-white/90">
+              {total.toLocaleString()} verified alumni
+            </span>
+          ) : null
+        }
+      />
+
+      <form
+        onSubmit={applyFilters}
+        className="rounded-[1.35rem] border border-border bg-card p-3.5 shadow-[var(--portal-shadow)] sm:p-4"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(54,186,188,0.14),transparent_55%),radial-gradient(ellipse_at_top_left,rgba(8,27,69,0.07),transparent_50%)]" />
-        <div
-          className="absolute inset-0 opacity-[0.3]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(8,27,69,0.06) 1px, transparent 0)",
-            backgroundSize: "22px 22px",
-          }}
-        />
-      </div>
-
-      <div className="relative space-y-8 px-5 pt-5 sm:px-6 sm:pt-6">
-        <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
-          <div className="min-w-0 max-w-2xl">
-            <p className="text-[11px] font-bold tracking-[0.18em] text-accent uppercase">
-              Community
-            </p>
-            <h1 className="mt-2.5 font-display text-[2rem] leading-[1.15] font-semibold tracking-tight text-foreground sm:text-[2.35rem]">
-              Alumni Directory
-            </h1>
-            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-              Discover verified alumni by profession, program, campus and more.
-            </p>
-          </div>
-          {total > 0 ? (
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-emerald-500/30 bg-card px-3.5 py-2 shadow-sm sm:mt-8">
-              <span className="grid size-6 place-items-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                <Check className="size-3.5" strokeWidth={2.75} />
-              </span>
-              <span className="text-sm font-semibold text-foreground">
-                {total.toLocaleString()}{" "}
-                <span className="font-medium text-muted-foreground">
-                  verified alumni
-                </span>
-              </span>
-            </div>
-          ) : null}
-        </header>
-
-        <form
-          onSubmit={applyFilters}
-          className="rounded-[1.35rem] border border-border bg-card p-3.5 shadow-[var(--portal-shadow)] sm:p-4"
-        >
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.85fr)_minmax(11rem,0.85fr)_auto]">
-            <div className="relative min-w-0 sm:col-span-2 xl:col-span-1">
-              <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Search by name, organization, profession…"
-                className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-[15px] shadow-none focus-visible:bg-background"
-              />
-            </div>
-            <SearchableSelect
-              value={campusId}
-              onChange={setCampusId}
-              options={campuses.map((campus) => ({
-                value: campus.id,
-                label: campus.name,
-              }))}
-              placeholder="All campuses"
-              searchPlaceholder="Search campus…"
-              allowEmpty
-              emptyLabel="All campuses"
-              className="h-12 w-full rounded-xl border-border bg-muted/40 px-3.5"
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Search by name or organization"
+              className="h-12 min-w-0 rounded-xl border-border bg-muted/40 pr-4 pl-11 text-[15px] shadow-none focus-visible:bg-background"
             />
-            <SearchableSelect
-              value={city}
-              onChange={setCity}
-              options={filterOptions.cities.map((value) => ({
-                value,
-                label: value,
-              }))}
-              placeholder="All cities"
-              searchPlaceholder="Search city…"
-              allowEmpty
-              emptyLabel="All cities"
-              className="h-12 w-full rounded-xl border-border bg-muted/40 px-3.5"
-            />
-            <div className="flex gap-3 sm:col-span-2 xl:col-span-1">
-              <Button
-                type="button"
-                variant="outline"
-                className={cn(
-                  "h-12 shrink-0 rounded-xl px-4 font-semibold",
-                  filtersOpen && "border-primary/25 bg-primary/5",
-                )}
-                onClick={() => setFiltersOpen((open) => !open)}
-              >
-                <SlidersHorizontal className="mr-1.5 size-4" />
-                Filters
-                {filtersOpen ? null : (
-                  <Plus className="ml-1 size-3.5 opacity-60" />
-                )}
-              </Button>
-              <Button
-                type="submit"
-                className="h-12 min-w-[6.5rem] flex-1 rounded-xl px-6 font-semibold shadow-[0_10px_22px_rgba(8,27,69,0.18)] xl:flex-none"
-              >
-                Search
-              </Button>
-            </div>
           </div>
+          <SearchableSelect
+            value={campusId}
+            onChange={setCampusId}
+            options={campuses.map((campus) => ({
+              value: campus.id,
+              label: campus.name,
+            }))}
+            placeholder="All campuses"
+            searchPlaceholder="Search campus…"
+            allowEmpty
+            emptyLabel="All campuses"
+            className="h-12 w-full min-w-0 rounded-xl border-border bg-muted/40 px-3.5 lg:w-48"
+          />
+          <SearchableSelect
+            value={city}
+            onChange={setCity}
+            options={filterOptions.cities.map((value) => ({
+              value,
+              label: value,
+            }))}
+            placeholder="All cities"
+            searchPlaceholder="Search city…"
+            allowEmpty
+            emptyLabel="All cities"
+            className="h-12 w-full min-w-0 rounded-xl border-border bg-muted/40 px-3.5 lg:w-40"
+          />
+          <div className="flex shrink-0 gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                "h-12 shrink-0 rounded-xl px-4 font-semibold",
+                filtersOpen && "border-primary/25 bg-primary/5",
+              )}
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              <SlidersHorizontal className="mr-1.5 size-4" />
+              Filters
+              {filtersOpen ? null : (
+                <Plus className="ml-1 size-3.5 opacity-60" />
+              )}
+            </Button>
+            <Button
+              type="submit"
+              className="h-12 min-w-[6.5rem] flex-1 rounded-xl px-6 font-semibold shadow-[0_10px_22px_rgba(8,27,69,0.18)] lg:flex-none"
+            >
+              Search
+            </Button>
+          </div>
+        </div>
 
           {filtersOpen ? (
             <div className="mt-4 grid animate-in fade-in slide-in-from-top-1 gap-3 border-t border-border pt-4 duration-200 sm:grid-cols-2 lg:grid-cols-4">
@@ -492,7 +464,7 @@ export function DirectoryPage() {
 
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
                 className="h-[300px] animate-pulse rounded-[1.35rem] bg-muted"
@@ -552,9 +524,9 @@ export function DirectoryPage() {
                         </span>
                       </div>
 
-                      <h2 className="mt-4 font-display text-[1.2rem] leading-snug font-semibold tracking-tight text-foreground capitalize">
-                        {alumni.full_name}
-                      </h2>
+                      <h2 className="mt-4 truncate font-display text-[1.2rem] leading-snug font-semibold tracking-tight text-foreground capitalize">
+                          {alumni.full_name}
+                        </h2>
 
                       <p className="mt-1.5 line-clamp-2 text-sm leading-snug text-muted-foreground">
                         {role || "Verified alumni member"}
@@ -582,7 +554,7 @@ export function DirectoryPage() {
                           {tags.map((tag) => (
                             <span
                               key={tag}
-                              className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold tracking-wide text-foreground"
+                              className="max-w-full truncate rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold tracking-wide text-foreground"
                             >
                               {tag}
                             </span>
@@ -631,7 +603,6 @@ export function DirectoryPage() {
             </div>
           </>
         )}
-      </div>
     </div>
   )
 }

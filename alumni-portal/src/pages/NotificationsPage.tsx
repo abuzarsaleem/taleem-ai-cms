@@ -43,15 +43,16 @@ export function NotificationsPage() {
   }, [markSeen])
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
+        tone="hero"
         eyebrow="Inbox"
         title="Notifications"
         description="Updates about your registration, identity, events and alumni activity."
         actions={
           <Button
             variant="outline"
-            className="rounded-[11px]"
+            className="rounded-xl border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white"
             onClick={() => void markSeen()}
           >
             Mark all read
