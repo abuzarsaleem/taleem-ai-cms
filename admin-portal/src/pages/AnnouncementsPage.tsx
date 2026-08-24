@@ -10,6 +10,7 @@ import {
 
 import { useAuth } from "@/auth/AuthContext"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
+import { PageHero } from "@/components/admin/page-hero"
 import { TablePagination } from "@/components/admin/table-pagination"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -185,12 +186,11 @@ export default function AnnouncementsPage() {
   return (
     <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Announcements</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create and manage alumni announcements
-          </p>
-        </div>
+        <PageHero
+          eyebrow="University communication"
+          title="Announcements"
+          description="Create and manage alumni announcements."
+        />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 lg:px-6">

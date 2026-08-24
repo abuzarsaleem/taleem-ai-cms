@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { ChevronRightIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { PageHero } from "@/components/admin/page-hero"
 import { SearchableSelect } from "@/components/admin/searchable-select"
 import { TablePagination } from "@/components/admin/table-pagination"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -215,10 +216,11 @@ export default function AlumniDirectoryPage() {
   return (
     <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
-        <h1 className="text-2xl font-bold tracking-tight">Alumni directory</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Search and browse active alumni
-        </p>
+        <PageHero
+          eyebrow="Alumni network"
+          title="Alumni directory"
+          description="Search and browse active alumni."
+        />
       </div>
 
       <form

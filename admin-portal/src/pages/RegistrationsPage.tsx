@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { ChevronRightIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { PageHero } from "@/components/admin/page-hero"
 import { TablePagination } from "@/components/admin/table-pagination"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -147,14 +148,15 @@ export default function RegistrationsPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
-      <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between lg:px-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Registrations</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Review and decide on alumni applications
-          </p>
-        </div>
+      <div className="px-4 lg:px-6">
+        <PageHero
+          eyebrow="Membership review"
+          title="Registrations"
+          description="Review and decide on alumni applications."
+        />
+      </div>
 
+      <div className="px-4 lg:px-6">
         <div className="inline-flex w-fit rounded-lg border bg-muted/40 p-1">
           {STATUS_FILTERS.map((filter) => (
             <button

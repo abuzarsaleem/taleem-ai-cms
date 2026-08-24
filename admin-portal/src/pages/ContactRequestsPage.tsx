@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { MailIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
+import { PageHero } from "@/components/admin/page-hero"
 import { TablePagination } from "@/components/admin/table-pagination"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -164,10 +165,11 @@ export default function ContactRequestsPage() {
   return (
     <div className="flex flex-1 flex-col gap-5 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
-        <h1 className="text-2xl font-bold tracking-tight">Contact requests</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Review alumni contact requests
-        </p>
+        <PageHero
+          eyebrow="Alumni introductions"
+          title="Contact requests"
+          description="Review alumni contact requests."
+        />
       </div>
 
       <div className="px-4 lg:px-6">
