@@ -35,6 +35,7 @@ import {
   type AdminDashboard,
   type DashboardAnnouncement,
 } from "@/services/dashboard.service"
+import { eventService, type AdminEvent } from "@/services/event.service"
 
 function formatCount(value: number) {
   return new Intl.NumberFormat().format(value)
@@ -86,6 +87,9 @@ function DashboardSkeleton() {
       <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
         <Skeleton className="h-72 rounded-2xl" />
         <Skeleton className="h-72 rounded-2xl lg:col-span-2" />
+      </div>
+      <div className="px-4 lg:px-6">
+        <Skeleton className="h-56 rounded-2xl" />
       </div>
     </div>
   )
@@ -153,6 +157,38 @@ function StatCard({
   )
 }
 
+function EventItem({ item }: { item: AdminEvent }) {
+  const location = useLocation()
+  const time = item.start_time?.slice(0, 5)
+  return (
+    <Link
+      to={`/events/${item.id}`}
+      state={withNavTrail(location)}
+      className="flex gap-3 rounded-xl border border-border/80 bg-background/60 p-3.5 transition-colors hover:border-[#00c2b2]/40 hover:bg-[#00c2b2]/5"
+    >
+      {item.image_url ? (
+        <img
+          src={item.image_url}
+          alt=""
+          className="size-16 shrink-0 rounded-lg object-cover"
+        />
+      ) : (
+        <div className="flex size-16 shrink-0 items-center justify-center rounded-lg bg-[#081b45]/8 text-[#081b45] dark:bg-white/8 dark:text-white">
+          <CalendarDaysIcon className="size-5" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="line-clamp-2 text-sm font-medium">{item.title}</p>
+        <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+          {formatDate(item.event_date)}
+          {time ? ` · ${time}` : ""}
+          {item.venue ? ` · ${item.venue}` : ""}
+        </p>
+      </div>
+    </Link>
+  )
+}
+
 function AnnouncementItem({ item }: { item: DashboardAnnouncement }) {
   const location = useLocation()
   return (
@@ -196,6 +232,7 @@ export default function DashboardPage() {
   const { token } = useAuth()
   const location = useLocation()
   const [data, setData] = useState<AdminDashboard | null>(null)
+  const [upcomingEvents, setUpcomingEvents] = useState<AdminEvent[]>([])
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
 
@@ -208,8 +245,16 @@ export default function DashboardPage() {
       setLoading(true)
       setError("")
       try {
-        const result = await dashboardService.getDashboard(token)
-        if (!cancelled) setData(result)
+        const [result, events] = await Promise.all([
+          dashboardService.getDashboard(token),
+          eventService
+            .list(token, { scope: "upcoming", page: 1, page_size: 4 })
+            .catch(() => ({ items: [] as AdminEvent[] })),
+        ])
+        if (!cancelled) {
+          setData(result)
+          setUpcomingEvents(events.items)
+        }
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -456,6 +501,38 @@ export default function DashboardPage() {
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No announcements published yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="px-4 lg:px-6">
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
+            <div>
+              <CardTitle>Events</CardTitle>
+              <CardDescription>Upcoming events on the calendar</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link to="/events" state={withNavTrail(location)} />}
+            >
+              View more
+              <ArrowUpRightIcon />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {upcomingEvents.length ? (
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {upcomingEvents.map((item) => (
+                  <EventItem key={item.id} item={item} />
+                ))}
+              </div>
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No upcoming events.
               </p>
             )}
           </CardContent>
