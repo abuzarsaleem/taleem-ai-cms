@@ -1,8 +1,9 @@
-import { Check, Building2, MapPin, Plus, Search, SlidersHorizontal } from "lucide-react"
+import { Building2, MapPin, Plus, Search, SlidersHorizontal, User } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 
 import { PageHeader } from "@/components/portal/page-header"
+import { PageLoader } from "@/components/portal/page-loader"
 import { SearchableSelect } from "@/components/searchable-select"
 import { Button } from "@/components/ui/button"
 import {
@@ -29,6 +30,30 @@ const avatarTones = [
   "from-[#e8e4ff] to-[#d4cef8] text-[#4b3f9a]",
   "from-[#ffe8d6] to-[#ffd4b8] text-[#9a4d1c]",
 ]
+
+const MOBILE_PAGE_SIZE = 4
+const DESKTOP_PAGE_SIZE = 6
+/** Matches Tailwind `lg` — 3-column card grid. */
+const DESKTOP_MEDIA = "(min-width: 1024px)"
+
+function useDirectoryPageSize() {
+  const [pageSize, setPageSize] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia(DESKTOP_MEDIA).matches
+      ? DESKTOP_PAGE_SIZE
+      : MOBILE_PAGE_SIZE,
+  )
+
+  useEffect(() => {
+    const media = window.matchMedia(DESKTOP_MEDIA)
+    const sync = () =>
+      setPageSize(media.matches ? DESKTOP_PAGE_SIZE : MOBILE_PAGE_SIZE)
+    sync()
+    media.addEventListener("change", sync)
+    return () => media.removeEventListener("change", sync)
+  }, [])
+
+  return pageSize
+}
 
 function initials(name: string) {
   return name
@@ -169,7 +194,7 @@ export function DirectoryPage() {
   const [items, setItems] = useState<DirectoryAlumni[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [pageSize] = useState(4)
+  const pageSize = useDirectoryPageSize()
   const [degreePrograms, setDegreePrograms] = useState<DegreeProgram[]>([])
   const [campuses, setCampuses] = useState<Campus[]>([])
   const [degreeLabels, setDegreeLabels] = useState<Map<string, string>>(
@@ -272,6 +297,10 @@ export function DirectoryPage() {
     () => Math.max(1, Math.ceil(total / pageSize)),
     [total, pageSize],
   )
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages))
+  }, [totalPages])
 
   function applyFilters(event?: React.FormEvent) {
     event?.preventDefault()
@@ -463,14 +492,7 @@ export function DirectoryPage() {
         </form>
 
         {loading ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-[300px] animate-pulse rounded-[1.35rem] bg-muted"
-              />
-            ))}
-          </div>
+          <PageLoader label="Loading directory…" />
         ) : error ? (
           <Card>
             <CardHeader>
@@ -519,9 +541,15 @@ export function DirectoryPage() {
                     <div className="relative -mt-8 flex flex-1 flex-col px-5 pb-5">
                       <div className="flex items-start justify-between gap-3">
                         <AvatarBlock alumni={alumni} index={index} size="lg" />
-                        <span className="mt-10 grid size-7 place-items-center rounded-full bg-emerald-500/15 text-emerald-700 ring-2 ring-card shadow-sm dark:text-emerald-300">
-                          <Check className="size-3.5" strokeWidth={2.75} />
-                        </span>
+                        {alumni.is_contact_revealed ? (
+                          <span
+                            className="mt-10 inline-flex max-w-[8.5rem] items-center gap-1 rounded-full bg-accent/12 px-2 py-1 text-[10px] font-semibold leading-tight text-foreground ring-2 ring-card"
+                            title="This alumni is in your contacts"
+                          >
+                            <User className="size-3.5 shrink-0" strokeWidth={2.25} />
+                            In your contacts
+                          </span>
+                        ) : null}
                       </div>
 
                       <h2 className="mt-4 truncate font-display text-[1.2rem] leading-snug font-semibold tracking-tight text-foreground capitalize">

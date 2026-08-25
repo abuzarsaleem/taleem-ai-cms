@@ -5,6 +5,7 @@ export * from './verification.enum';
 export * from './contact-request-status.enum';
 export * from './contact-requested-field.enum';
 export * from './event-type.enum';
+export * from './event-lifecycle-status.enum';
 export * from './rsvp-status.enum';
 export * from './announcement-category.enum';
 export * from './portal-media-type.enum';

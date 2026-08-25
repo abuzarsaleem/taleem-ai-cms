@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { AlumniIdCard } from "@/components/alumni-id-card"
 import { PageHeader } from "@/components/portal/page-header"
+import { PageLoader } from "@/components/portal/page-loader"
 import { StatusPill } from "@/components/portal/status-pill"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { ApiError } from "@/lib/api-client"
@@ -86,9 +87,7 @@ export function AlumniCardPage() {
   }
 
   if (loading) {
-    return (
-      <div className="h-72 animate-pulse rounded-[1.35rem] bg-gradient-to-br from-[#e4ebf5] to-[#edf2f8]" />
-    )
+    return <PageLoader label="Loading digital ID…" />
   }
 
   if (error || !profile) {

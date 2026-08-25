@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 
 import { StatCard } from "@/components/portal/stat-card"
 import { StatusPill } from "@/components/portal/status-pill"
+import { PageLoader } from "@/components/portal/page-loader"
 import { buttonVariants } from "@/components/ui/button"
 import { ApiError } from "@/lib/api-client"
 import { rsvpChipClass } from "@/lib/rsvp"
@@ -116,16 +117,7 @@ export function DashboardPage() {
   )
 
   if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="portal-hero h-48 animate-pulse rounded-3xl opacity-60" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-36 animate-pulse rounded-[var(--radius)] bg-muted" />
-          ))}
-        </div>
-      </div>
-    )
+    return <PageLoader label="Loading dashboard…" />
   }
 
   if (error) {

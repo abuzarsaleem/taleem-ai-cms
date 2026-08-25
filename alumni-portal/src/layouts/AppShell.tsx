@@ -146,9 +146,9 @@ export function AppShell({
     <div className="min-h-screen bg-background text-foreground">
       {/* Sidebar — desktop */}
       <aside className="portal-sidebar fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col px-3.5 py-5 text-sidebar-foreground md:flex print:hidden">
-        <div className="px-1 pb-5">
+        <div className="px-0.5 pb-4">
           <NavLink to="/home" className="block outline-none">
-            <BrandLogo onDark className="h-10 max-w-[200px]" />
+            <BrandLogo onDark className="h-[4.75rem] w-auto max-w-full" />
           </NavLink>
         </div>
 

@@ -1,19 +1,80 @@
 import { KeyRound, LogOut, ShieldCheck } from "lucide-react"
-import { Link, useNavigate } from "react-router-dom"
+import { useEffect, useState, type FormEvent } from "react"
+import { useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthContext"
 import { PageHeader } from "@/components/portal/page-header"
 import { StatusPill } from "@/components/portal/status-pill"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { ApiError } from "@/lib/api-client"
+import { authService } from "@/services/auth.service"
+import { profileService } from "@/services/profile.service"
 
 export function SettingsPage() {
   const { clearSession } = useAuth()
   const navigate = useNavigate()
+  const [passwordOpen, setPasswordOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
+  useEffect(() => {
+    let cancelled = false
+    void profileService
+      .getMyProfile()
+      .then((profile) => {
+        if (!cancelled && profile.email) setEmail(profile.email)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function logout() {
     clearSession()
     navigate("/login")
+  }
+
+  function openPasswordDialog() {
+    setError("")
+    setSuccess("")
+    setPasswordOpen(true)
+  }
+
+  async function onSendReset(event: FormEvent) {
+    event.preventDefault()
+    const trimmed = email.trim()
+    if (!trimmed) {
+      setError("Enter your account email")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+    setSuccess("")
+    try {
+      const result = await authService.forgotPassword(trimmed)
+      setSuccess(
+        result.message ??
+          "If an account exists for this email, a password reset link has been sent.",
+      )
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not send reset email",
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -48,15 +109,13 @@ export function SettingsPage() {
                   link.
                 </p>
               </div>
-              <Link
-                to="/forgot-password"
-                className={cn(
-                  buttonVariants(),
-                  "h-11 w-full rounded-xl font-semibold shadow-[0_10px_22px_rgba(8,27,69,0.14)]",
-                )}
+              <Button
+                type="button"
+                className="h-11 w-full rounded-xl font-semibold shadow-[0_10px_22px_rgba(8,27,69,0.14)]"
+                onClick={openPasswordDialog}
               >
                 Change password
-              </Link>
+              </Button>
             </div>
           </section>
 
@@ -98,6 +157,77 @@ export function SettingsPage() {
           </section>
         </div>
       </div>
+
+      <Dialog open={passwordOpen} onOpenChange={setPasswordOpen}>
+        <DialogContent
+          className="gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 text-card-foreground sm:max-w-md"
+        >
+          <form onSubmit={(event) => void onSendReset(event)}>
+            <div className="space-y-1.5 px-5 pt-5">
+              <DialogTitle className="text-lg font-semibold text-foreground">
+                Change password
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Enter your account email and we&apos;ll send a secure reset
+                link.
+              </DialogDescription>
+            </div>
+
+            <div className="space-y-4 px-5 py-5">
+              <div>
+                <label
+                  htmlFor="settings-reset-email"
+                  className="text-sm font-semibold text-foreground"
+                >
+                  Email
+                </label>
+                <Input
+                  id="settings-reset-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="mt-1.5 h-11"
+                />
+              </div>
+
+              {error ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              {success ? (
+                <p
+                  className="rounded-xl border border-[#159570]/25 bg-[#159570]/8 px-3 py-2 text-sm text-[#0f6b52]"
+                  role="status"
+                >
+                  {success}
+                </p>
+              ) : null}
+            </div>
+
+            <DialogFooter className="border-t border-border px-5 py-4 sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setPasswordOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="rounded-xl"
+                disabled={loading}
+              >
+                {loading ? "Sending…" : "Send reset link"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

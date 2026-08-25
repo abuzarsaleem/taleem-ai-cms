@@ -7,7 +7,11 @@ export type NotificationTemplateId =
   | 'contact_request_approved'
   | 'contact_request_rejected'
   | 'event_published'
+  | 'event_updated'
+  | 'event_cancelled'
+  | 'event_postponed'
   | 'announcement_published'
+  | 'announcement_updated'
   | 'password_reset';
 
 export interface NotificationPayload {

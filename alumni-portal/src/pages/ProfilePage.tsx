@@ -14,6 +14,7 @@ import { Link, useLocation } from "react-router-dom"
 import type { Value as E164Number } from "react-phone-number-input"
 
 import { AuthFieldLabel } from "@/components/auth-flow-layout"
+import { PageLoader } from "@/components/portal/page-loader"
 import { SearchableSelect } from "@/components/searchable-select"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -440,7 +441,7 @@ export function ProfilePage() {
   }
 
   if (loading) {
-    return <div className="h-56 animate-pulse rounded-xl bg-muted" />
+    return <PageLoader label="Loading profile…" />
   }
 
   if (error || !profile) {

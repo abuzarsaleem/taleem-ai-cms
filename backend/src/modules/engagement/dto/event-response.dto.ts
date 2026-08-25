@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { EventType, RsvpStatus } from '../../../common/enums';
+import {
+  EventLifecycleStatus,
+  EventType,
+  RsvpStatus,
+} from '../../../common/enums';
 import { EventTargetCriteriaDto } from './event.dto';
 
 export class EventRsvpCountsDto {
@@ -49,6 +53,12 @@ export class EventResponseDto {
 
   @ApiProperty()
   is_draft: boolean;
+
+  @ApiProperty({ enum: EventLifecycleStatus })
+  status: EventLifecycleStatus;
+
+  @ApiPropertyOptional({ nullable: true })
+  status_reason: string | null;
 
   @ApiPropertyOptional({ type: EventTargetCriteriaDto, nullable: true })
   target_criteria: EventTargetCriteriaDto | null;

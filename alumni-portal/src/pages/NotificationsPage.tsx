@@ -1,23 +1,36 @@
 import { formatDistanceToNow, parseISO } from "date-fns"
 import { CalendarDays, Megaphone, Users } from "lucide-react"
-import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { PageHeader } from "@/components/portal/page-header"
 import { Button } from "@/components/ui/button"
 import { useNotifications } from "@/hooks/use-notifications"
+import { cn } from "@/lib/utils"
 import type { NotificationItem } from "@/services/notifications.service"
+
+function notificationLabel(item: NotificationItem) {
+  const prefixes = ["Updated: ", "Cancelled: ", "Postponed: "] as const
+  const prefix = prefixes.find((value) => item.title.startsWith(value))
+  const title = prefix ? item.title.slice(prefix.length) : item.title
+
+  if (item.type === "alumni") return `New alumni · ${title}`
+  if (item.type === "event") {
+    if (prefix === "Updated: ") return `Event updated · ${title}`
+    if (prefix === "Cancelled: ") return `Event cancelled · ${title}`
+    if (prefix === "Postponed: ") return `Event postponed · ${title}`
+    return `Event · ${title}`
+  }
+  if (prefix === "Updated: ") return `Announcement updated · ${title}`
+  return `Announcement · ${title}`
+}
 
 function notificationHref(item: NotificationItem) {
   if (item.type === "alumni") return `/directory/${item.id}`
-  if (item.type === "event") return `/events/${item.id}`
+  if (item.type === "event") {
+    if (item.title.startsWith("Cancelled: ")) return "/events"
+    return `/events/${item.id}`
+  }
   return `/announcements/${item.id}`
-}
-
-function notificationLabel(item: NotificationItem) {
-  if (item.type === "alumni") return `New alumni · ${item.title}`
-  if (item.type === "event") return `Event · ${item.title}`
-  return `Announcement · ${item.title}`
 }
 
 function relativeTime(value: string) {
@@ -37,10 +50,7 @@ function iconFor(type: NotificationItem["type"]) {
 export function NotificationsPage() {
   const navigate = useNavigate()
   const { summary, markSeen } = useNotifications()
-
-  useEffect(() => {
-    void markSeen()
-  }, [markSeen])
+  const hasUnread = summary.unread_count > 0
 
   return (
     <div className="space-y-8">
@@ -53,6 +63,7 @@ export function NotificationsPage() {
           <Button
             variant="outline"
             className="rounded-xl border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+            disabled={!hasUnread}
             onClick={() => void markSeen()}
           >
             Mark all read
@@ -66,32 +77,66 @@ export function NotificationsPage() {
             You&apos;re all caught up
           </p>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="space-y-1.5">
             {summary.items.map((item) => {
               const Icon = iconFor(item.type)
+              const isNew = !item.is_read
               return (
-                <li key={`${item.type}-${item.id}`}>
+                <li key={`${item.type}-${item.id}-${item.notification_id ?? ""}`}>
                   <button
                     type="button"
-                    className="flex w-full items-start gap-3 rounded-xl px-3 py-3.5 text-left transition-colors hover:bg-muted/60"
-                    onClick={() =>
+                    className={cn(
+                      "flex w-full items-start gap-3 rounded-xl px-3 py-3.5 text-left transition-colors",
+                      isNew
+                        ? "bg-accent/10 ring-1 ring-accent/25 hover:bg-accent/15"
+                        : "hover:bg-muted/60",
+                    )}
+                    onClick={() => {
+                      if (isNew && item.notification_id) {
+                        void markSeen([item.notification_id])
+                      }
                       navigate(notificationHref(item), {
                         state: { from: "/notifications" },
                       })
-                    }
+                    }}
                   >
-                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full",
+                        isNew
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-accent/15 text-accent",
+                      )}
+                    >
                       <Icon className="size-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold leading-snug">
-                        {notificationLabel(item)}
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            "block text-sm leading-snug",
+                            isNew
+                              ? "font-bold text-foreground"
+                              : "font-semibold text-foreground",
+                          )}
+                        >
+                          {notificationLabel(item)}
+                        </span>
+                        {isNew ? (
+                          <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-accent-foreground uppercase">
+                            New
+                          </span>
+                        ) : null}
                       </span>
-                      {!item.is_read ? (
-                        <span className="mt-1 inline-block size-1.5 rounded-full bg-accent" />
-                      ) : null}
                     </span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
+                    <span
+                      className={cn(
+                        "shrink-0 text-xs",
+                        isNew
+                          ? "font-semibold text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
                       {relativeTime(item.occurred_at)}
                     </span>
                   </button>

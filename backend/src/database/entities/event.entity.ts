@@ -9,7 +9,12 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { EVENT_TYPE_ENUM, EventType } from '../../common/enums';
+import {
+  EVENT_LIFECYCLE_STATUS_ENUM,
+  EVENT_TYPE_ENUM,
+  EventLifecycleStatus,
+  EventType,
+} from '../../common/enums';
 import { AccountEntity } from './account.entity';
 import { EventRsvpEntity } from './event-rsvp.entity';
 import { PortalMediaEntity } from './portal-media.entity';
@@ -66,6 +71,18 @@ export class EventEntity {
 
   @Column({ name: 'is_draft', type: 'boolean', default: false })
   isDraft: boolean;
+
+  @Column({
+    name: 'status',
+    type: 'enum',
+    enum: EventLifecycleStatus,
+    enumName: EVENT_LIFECYCLE_STATUS_ENUM,
+    default: EventLifecycleStatus.SCHEDULED,
+  })
+  status: EventLifecycleStatus;
+
+  @Column({ name: 'status_reason', type: 'text', nullable: true })
+  statusReason: string | null;
 
   @Column({ name: 'target_criteria', type: 'jsonb', nullable: true, default: null })
   targetCriteria: EventTargetCriteria | null;

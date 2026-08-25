@@ -161,6 +161,8 @@ export type EventItem = {
   venue: string
   guest_speaker: string | null
   image_url: string | null
+  status?: "SCHEDULED" | "POSTPONED"
+  status_reason?: string | null
   my_rsvp_status: string | null
   rsvp_counts?: {
     going: number

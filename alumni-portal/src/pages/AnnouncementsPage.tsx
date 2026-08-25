@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom"
 
 import { LinkWithFrom, PageBreadcrumb } from "@/components/page-breadcrumb"
 import { PageHeader } from "@/components/portal/page-header"
+import { PageLoader } from "@/components/portal/page-loader"
 import {
   Card,
   CardDescription,
@@ -293,14 +294,7 @@ export function AnnouncementsPage() {
       />
 
       {loading ? (
-        <div className="space-y-6">
-          <div className="h-[22rem] animate-pulse rounded-2xl bg-[#e8eef6]" />
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-xl bg-[#e8eef6]" />
-            ))}
-          </div>
-        </div>
+        <PageLoader label="Loading announcements…" />
       ) : error ? (
         <Card>
           <CardHeader>
@@ -380,9 +374,7 @@ export function AnnouncementDetailPage() {
   }, [announcementId])
 
   if (loading) {
-    return (
-      <div className="mx-auto h-[32rem] w-full max-w-3xl animate-pulse rounded-2xl bg-muted" />
-    )
+    return <PageLoader label="Loading announcement…" />
   }
 
   if (error || !item) {
@@ -399,7 +391,7 @@ export function AnnouncementDetailPage() {
   const date = formatDate(item.published_at)
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5">
+    <div className="w-full space-y-5">
       <PageBreadcrumb
         current={item.title}
         fallback={{ label: "Announcements", to: "/announcements" }}

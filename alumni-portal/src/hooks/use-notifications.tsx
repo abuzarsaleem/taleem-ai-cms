@@ -27,7 +27,7 @@ const empty: NotificationsSummary = {
 type NotificationsContextValue = {
   summary: NotificationsSummary
   refresh: () => Promise<void>
-  markSeen: () => Promise<void>
+  markSeen: (notificationIds?: string[]) => Promise<void>
 }
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(
@@ -62,26 +62,51 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer)
   }, [token, refresh])
 
-  const markSeen = useCallback(async () => {
-    if (!token) return
-    const id = ++requestId.current
+  const markSeen = useCallback(
+    async (notificationIds?: string[]) => {
+      if (!token) return
+      const id = ++requestId.current
+      const ids = notificationIds?.filter(Boolean)
 
-    setSummary((current) => ({
-      ...current,
-      unread_count: 0,
-      alumni: 0,
-      events: 0,
-      announcements: 0,
-      items: current.items.map((item) => ({ ...item, is_read: true })),
-    }))
+      setSummary((current) => {
+        if (!ids?.length) {
+          return {
+            ...current,
+            unread_count: 0,
+            alumni: 0,
+            events: 0,
+            announcements: 0,
+            items: current.items.map((item) => ({ ...item, is_read: true })),
+          }
+        }
 
-    try {
-      const next = await notificationsService.markRead()
-      if (id === requestId.current) setSummary(next)
-    } catch {
-      /* optimistic clear already applied */
-    }
-  }, [token])
+        const idSet = new Set(ids)
+        const items = current.items.map((item) =>
+          item.notification_id && idSet.has(item.notification_id)
+            ? { ...item, is_read: true }
+            : item,
+        )
+        const unread = items.filter((item) => !item.is_read)
+        return {
+          ...current,
+          items,
+          unread_count: unread.length,
+          alumni: unread.filter((item) => item.type === "alumni").length,
+          events: unread.filter((item) => item.type === "event").length,
+          announcements: unread.filter((item) => item.type === "announcement")
+            .length,
+        }
+      })
+
+      try {
+        const next = await notificationsService.markRead(ids)
+        if (id === requestId.current) setSummary(next)
+      } catch {
+        /* optimistic clear already applied */
+      }
+    },
+    [token],
+  )
 
   const value = useMemo(
     () => ({ summary, refresh, markSeen }),

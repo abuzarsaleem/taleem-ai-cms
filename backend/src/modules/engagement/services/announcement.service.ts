@@ -150,7 +150,7 @@ export class AnnouncementService {
     });
 
     if (isPublished && withRelation) {
-      void this.notifyAlumniAboutAnnouncement(withRelation);
+      void this.notifyAlumniAboutAnnouncement(withRelation, 'published');
     }
 
     return this.toResponse(withRelation ?? saved);
@@ -211,8 +211,9 @@ export class AnnouncementService {
       },
     });
 
-    if (!wasPublished && saved.isPublished && withRelation) {
-      void this.notifyAlumniAboutAnnouncement(withRelation);
+    if (saved.isPublished && withRelation) {
+      const reason = wasPublished ? 'updated' : 'published';
+      void this.notifyAlumniAboutAnnouncement(withRelation, reason);
     }
 
     return this.toResponse(withRelation ?? saved);
@@ -319,6 +320,7 @@ export class AnnouncementService {
 
   private async notifyAlumniAboutAnnouncement(
     announcement: AnnouncementEntity,
+    reason: 'published' | 'updated' = 'published',
   ): Promise<void> {
     try {
       const profiles = await this.alumniRepository.findAll();
@@ -329,7 +331,10 @@ export class AnnouncementService {
       if (this.alumniNotificationsService) {
         await this.alumniNotificationsService.notifyAllActiveAlumni({
           type: AlumniNotificationType.ANNOUNCEMENT,
-          title: announcement.title,
+          title:
+            reason === 'updated'
+              ? `Updated: ${announcement.title}`
+              : announcement.title,
           referenceId: announcement.id,
         });
       }
@@ -343,7 +348,10 @@ export class AnnouncementService {
         active.map((profile) =>
           this.notificationSender.send({
             to: profile.alumni.email,
-            templateId: 'announcement_published',
+            templateId:
+              reason === 'updated'
+                ? 'announcement_updated'
+                : 'announcement_published',
             variables: {
               fullName: profile.alumni.fullName,
               announcementTitle: announcement.title,
@@ -357,7 +365,7 @@ export class AnnouncementService {
 
       const failed = results.filter((r) => r.status === 'rejected').length;
       this.logger.log(
-        `ANNOUNCEMENT_NOTIFY id=${announcement.id} sent=${results.length - failed} failed=${failed}`,
+        `ANNOUNCEMENT_NOTIFY reason=${reason} id=${announcement.id} sent=${results.length - failed} failed=${failed}`,
       );
     } catch (error) {
       this.logger.error(

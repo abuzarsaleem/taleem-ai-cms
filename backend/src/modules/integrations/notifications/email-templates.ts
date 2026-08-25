@@ -70,6 +70,51 @@ export function renderNotificationEmail(
         guestSpeaker,
         description,
         portalUrl,
+        mode: 'published',
+      });
+    case 'event_updated':
+      return eventPublished({
+        name,
+        eventTitle,
+        eventType,
+        eventDate,
+        startTime,
+        endTime,
+        venue,
+        guestSpeaker,
+        description,
+        portalUrl,
+        mode: 'updated',
+      });
+    case 'event_cancelled':
+      return eventPublished({
+        name,
+        eventTitle,
+        eventType,
+        eventDate,
+        startTime,
+        endTime,
+        venue,
+        guestSpeaker,
+        description,
+        portalUrl,
+        mode: 'cancelled',
+        reason,
+      });
+    case 'event_postponed':
+      return eventPublished({
+        name,
+        eventTitle,
+        eventType,
+        eventDate,
+        startTime,
+        endTime,
+        venue,
+        guestSpeaker,
+        description,
+        portalUrl,
+        mode: 'postponed',
+        reason,
       });
     case 'announcement_published':
       return announcementPublished(
@@ -78,6 +123,16 @@ export function renderNotificationEmail(
         category,
         content,
         imageUrl,
+        false,
+      );
+    case 'announcement_updated':
+      return announcementPublished(
+        name,
+        announcementTitle,
+        category,
+        content,
+        imageUrl,
+        true,
       );
     case 'contact_request_forwarded':
       return contactForwarded(name, requesterName, reason, portalUrl);
@@ -202,6 +257,8 @@ function eventPublished(input: {
   guestSpeaker: string;
   description: string;
   portalUrl: string;
+  mode?: 'published' | 'updated' | 'cancelled' | 'postponed';
+  reason?: string;
 }): RenderedEmail {
   const timeLabel = [input.startTime, input.endTime]
     .filter(Boolean)
@@ -217,17 +274,61 @@ function eventPublished(input: {
   if (input.eventType) {
     details.push({ label: 'Type', value: formatLabel(input.eventType) });
   }
+  if (input.reason) {
+    details.push({ label: 'Reason', value: input.reason });
+  }
 
   const eventsUrl = `${input.portalUrl.replace(/\/$/, '')}/events`;
+  const mode = input.mode ?? 'published';
+
+  const copy = {
+    published: {
+      subject: `New event: ${input.eventTitle}`,
+      textLead: 'A new alumni event has been published.',
+      preheader: `${input.eventTitle} — open in the alumni portal to RSVP.`,
+      eyebrow: 'New alumni event',
+      bodyLead: 'a new event is live for the alumni community.',
+      cta: 'View event & RSVP',
+      note: 'Open the alumni portal to confirm your attendance.',
+    },
+    updated: {
+      subject: `Event updated: ${input.eventTitle}`,
+      textLead: 'An alumni event has been updated.',
+      preheader: `${input.eventTitle} was updated — open the alumni portal for details.`,
+      eyebrow: 'Event updated',
+      bodyLead: 'an alumni event has been updated.',
+      cta: 'View updated event',
+      note: 'Open the alumni portal to review the latest details.',
+    },
+    cancelled: {
+      subject: `Event cancelled: ${input.eventTitle}`,
+      textLead: 'An alumni event has been cancelled.',
+      preheader: `${input.eventTitle} has been cancelled.`,
+      eyebrow: 'Event cancelled',
+      bodyLead: 'an alumni event has been cancelled.',
+      cta: 'View other events',
+      note: 'This event is no longer taking place.',
+    },
+    postponed: {
+      subject: `Event postponed: ${input.eventTitle}`,
+      textLead: 'An alumni event has been postponed.',
+      preheader: `${input.eventTitle} has been postponed.`,
+      eyebrow: 'Event postponed',
+      bodyLead: 'an alumni event has been postponed.',
+      cta: 'View event details',
+      note: 'Open the alumni portal for the latest schedule.',
+    },
+  }[mode];
 
   return {
-    subject: `New event: ${input.eventTitle}`,
+    subject: copy.subject,
     text: [
       `Hi ${input.name},`,
       '',
-      'A new alumni event has been published.',
+      copy.textLead,
       '',
       input.eventTitle,
+      input.reason ? `Reason: ${input.reason}` : '',
       input.eventDate
         ? `Date: ${input.eventDate}${timeLabel ? ` at ${timeLabel}` : ''}`
         : '',
@@ -235,22 +336,22 @@ function eventPublished(input: {
       input.guestSpeaker ? `Guest speaker: ${input.guestSpeaker}` : '',
       input.description ? `\n${input.description}` : '',
       '',
-      `RSVP in the alumni portal: ${eventsUrl}`,
+      `View in the alumni portal: ${eventsUrl}`,
       '',
       `— ${BRAND.name}`,
     ]
       .filter((line) => line !== '')
       .join('\n'),
     html: layout({
-      preheader: `${input.eventTitle} — open in the alumni portal to RSVP.`,
-      eyebrow: 'New alumni event',
+      preheader: copy.preheader,
+      eyebrow: copy.eyebrow,
       title: escapeHtml(input.eventTitle),
       bodyHtml: `
-        <p style="${pStyle}">Hi ${escapeHtml(input.name)}, a new event is live for the alumni community.</p>
-        ${input.description ? `<p style="${pStyle}">${escapeHtml(input.description)}</p>` : ''}
+        <p style="${pStyle}">Hi ${escapeHtml(input.name)}, ${copy.bodyLead}</p>
+        ${input.description && mode !== 'cancelled' ? `<p style="${pStyle}">${escapeHtml(input.description)}</p>` : ''}
         ${detailsCard(details)}
-        ${ctaButton(eventsUrl, 'View event & RSVP')}
-        ${infoNote('Open the alumni portal to confirm your attendance.')}
+        ${ctaButton(eventsUrl, copy.cta)}
+        ${infoNote(copy.note)}
       `,
     }),
   };
@@ -262,6 +363,7 @@ function announcementPublished(
   category: string,
   content: string,
   imageUrl: string,
+  isUpdate = false,
 ): RenderedEmail {
   const imageBlock = imageUrl
     ? `
@@ -276,9 +378,13 @@ function announcementPublished(
     : '';
 
   return {
-    subject: `Announcement: ${title}`,
+    subject: isUpdate ? `Announcement updated: ${title}` : `Announcement: ${title}`,
     text: [
       `Hi ${name},`,
+      '',
+      isUpdate
+        ? 'An announcement has been updated.'
+        : 'A new announcement was published.',
       '',
       `${title}${category ? ` (${category})` : ''}`,
       '',
@@ -290,11 +396,19 @@ function announcementPublished(
       .filter((line) => line !== '')
       .join('\n'),
     html: layout({
-      preheader: title,
-      eyebrow: category ? formatLabel(category) : 'Announcement',
+      preheader: isUpdate ? `Updated: ${title}` : title,
+      eyebrow: isUpdate
+        ? 'Announcement updated'
+        : category
+          ? formatLabel(category)
+          : 'Announcement',
       title: escapeHtml(title),
       bodyHtml: `
-        <p style="${pStyle}">Hi ${escapeHtml(name)},</p>
+        <p style="${pStyle}">Hi ${escapeHtml(name)}, ${
+          isUpdate
+            ? 'an announcement has been updated.'
+            : 'here is a new announcement from the alumni office.'
+        }</p>
         ${imageBlock}
         <p style="${pStyle}">${escapeHtml(content)}</p>
       `,

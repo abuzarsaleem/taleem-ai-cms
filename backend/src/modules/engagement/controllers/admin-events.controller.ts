@@ -39,8 +39,10 @@ import {
 } from '../../../common/swagger/api-wrapped-response.decorator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import {
+  CancelEventDto,
   CreateEventDto,
   EventListQueryDto,
+  PostponeEventDto,
   UploadEventImageResponseDto,
   UpdateEventDto,
 } from '../dto/event.dto';
@@ -126,6 +128,32 @@ export class AdminEventsController {
     return ApiResponseDto.of(data);
   }
 
+  @Post(':id/cancel')
+  @ApiOperation({
+    summary: 'Cancel event (notify alumni if published, then delete)',
+  })
+  @ApiWrappedOkResponse(DeletedIdResponseDto)
+  async cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CancelEventDto,
+  ) {
+    const data = await this.eventService.cancel(id, dto);
+    return ApiResponseDto.of(data, 'Event cancelled');
+  }
+
+  @Post(':id/postpone')
+  @ApiOperation({
+    summary: 'Postpone a published event and notify alumni',
+  })
+  @ApiWrappedOkResponse(EventResponseDto)
+  async postpone(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PostponeEventDto,
+  ) {
+    const data = await this.eventService.postpone(id, dto);
+    return ApiResponseDto.of(data, 'Event postponed');
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Admin get event by id' })
   @ApiWrappedOkResponse(EventDetailResponseDto)
@@ -149,7 +177,7 @@ export class AdminEventsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete an event' })
+  @ApiOperation({ summary: 'Delete an event without notifying alumni' })
   @ApiWrappedOkResponse(DeletedIdResponseDto)
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.eventService.remove(id);

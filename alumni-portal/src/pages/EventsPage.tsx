@@ -6,6 +6,7 @@ import { toast } from "sonner"
 
 import { LinkWithFrom, PageBreadcrumb } from "@/components/page-breadcrumb"
 import { PageHeader } from "@/components/portal/page-header"
+import { PageLoader } from "@/components/portal/page-loader"
 import { StatusPill } from "@/components/portal/status-pill"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -333,6 +334,21 @@ function EventCard({
               {event.title}
             </h2>
           )}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {event.status === "POSTPONED" ? (
+              <StatusPill variant="warning">Postponed</StatusPill>
+            ) : null}
+            {event.my_rsvp_status ? (
+              <StatusPill variant={rsvpStatusVariant(event.my_rsvp_status)}>
+                {rsvpStatusLabel(event.my_rsvp_status)}
+              </StatusPill>
+            ) : null}
+          </div>
+          {event.status === "POSTPONED" && event.status_reason ? (
+            <p className="mt-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+              {event.status_reason}
+            </p>
+          ) : null}
           <div className="mt-2 space-y-1 text-xs text-muted-foreground">
             <p className="flex items-center gap-1.5">
               <Clock3 className="size-3.5 shrink-0" />
@@ -343,14 +359,6 @@ function EventCard({
               <span className="truncate">{event.venue}</span>
             </p>
           </div>
-          {event.my_rsvp_status ? (
-            <StatusPill
-              variant={rsvpStatusVariant(event.my_rsvp_status)}
-              className="mt-2"
-            >
-              {rsvpStatusLabel(event.my_rsvp_status)}
-            </StatusPill>
-          ) : null}
         </div>
 
         {event.description ? (
@@ -479,17 +487,7 @@ export function EventsPage() {
       />
 
       {loading ? (
-        <div className="space-y-4">
-          <div className="h-48 animate-pulse rounded-2xl bg-muted" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-72 animate-pulse rounded-2xl bg-muted"
-              />
-            ))}
-          </div>
-        </div>
+        <PageLoader label="Loading events…" />
       ) : error ? (
         <Card>
           <CardHeader>
@@ -596,9 +594,7 @@ export function EventDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="mx-auto h-[28rem] w-full max-w-2xl animate-pulse rounded-2xl bg-muted" />
-    )
+    return <PageLoader label="Loading event…" />
   }
 
   if (error && !event) {
@@ -618,7 +614,7 @@ export function EventDetailPage() {
   const code = registrationCode(event)
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-4">
+    <div className="w-full space-y-4">
       <PageBreadcrumb
         current={event.title}
         fallback={{ label: "Events", to: "/events" }}

@@ -6,7 +6,7 @@ import {
   NOTIFICATION_SENDER,
   PHOTO_STORAGE,
 } from '../../../common/constants/tokens';
-import { AlumniStatus, PortalMediaType, RsvpStatus, UserRole } from '../../../common/enums';
+import { AlumniStatus, EventLifecycleStatus, PortalMediaType, RsvpStatus, UserRole } from '../../../common/enums';
 import {
   BusinessException,
   ConflictException,
@@ -28,10 +28,12 @@ import { AlumniNotificationsService } from '../../alumni/services/alumni-notific
 import { AlumniNotificationType } from '../../../database/entities';
 import { PortalMediaService } from '../../media/portal-media.service';
 import {
+  CancelEventDto,
   CreateEventDto,
   EventListQueryDto,
   EventListScope,
   EventTargetCriteriaDto,
+  PostponeEventDto,
   RsvpEventDto,
   UpdateEventDto,
 } from '../dto/event.dto';
@@ -203,6 +205,8 @@ export class EventService {
       guestSpeaker: dto.guest_speaker?.trim() ?? null,
       imageMediaId: dto.media_id ?? null,
       isDraft,
+      status: EventLifecycleStatus.SCHEDULED,
+      statusReason: null,
       targetCriteria,
       createdBy: adminUserId,
     });
@@ -213,7 +217,7 @@ export class EventService {
       relations: { imageMedia: true },
     });
     if (!isDraft) {
-      void this.notifyAlumniAboutEvent(withMedia ?? saved);
+      void this.notifyAlumniAboutEvent(withMedia ?? saved, 'published');
     }
     return this.toEventResponse(withMedia ?? saved);
   }
@@ -265,8 +269,10 @@ export class EventService {
       where: { id: saved.id },
       relations: { imageMedia: true },
     });
-    if (wasDraft && !saved.isDraft) {
-      void this.notifyAlumniAboutEvent(withMedia ?? saved);
+
+    if (!saved.isDraft) {
+      const reason = wasDraft ? 'published' : 'updated';
+      void this.notifyAlumniAboutEvent(withMedia ?? saved, reason);
     }
     return this.toEventResponse(withMedia ?? saved);
   }
@@ -277,7 +283,68 @@ export class EventService {
       throw new ResourceNotFoundException('Event', eventId);
     }
     await this.eventRepo.remove(event);
-    return { id: eventId, deleted: true };
+    return { id: eventId, deleted: true as const };
+  }
+
+  /**
+   * Notify eligible alumni (if published), then permanently delete the event.
+   */
+  async cancel(eventId: string, dto: CancelEventDto) {
+    const event = await this.eventRepo.findOne({
+      where: { id: eventId },
+      relations: { imageMedia: true },
+    });
+    if (!event) {
+      throw new ResourceNotFoundException('Event', eventId);
+    }
+
+    const reason = dto.reason?.trim() || undefined;
+    if (!event.isDraft) {
+      await this.notifyAlumniAboutEvent(event, 'cancelled', reason);
+    }
+
+    await this.eventRepo.remove(event);
+    return { id: eventId, deleted: true as const };
+  }
+
+  /**
+   * Mark a published event as postponed, optionally reschedule, and notify alumni.
+   */
+  async postpone(eventId: string, dto: PostponeEventDto) {
+    const event = await this.eventRepo.findOne({
+      where: { id: eventId },
+      relations: { imageMedia: true },
+    });
+    if (!event) {
+      throw new ResourceNotFoundException('Event', eventId);
+    }
+    if (event.isDraft) {
+      throw new BusinessException('Publish the event before postponing it');
+    }
+
+    const reason = dto.reason.trim();
+    if (dto.event_date !== undefined) {
+      event.eventDate = dto.event_date.slice(0, 10);
+    }
+    if (dto.start_time !== undefined) {
+      event.startTime = normalizeTime(dto.start_time);
+    }
+    if (dto.end_time !== undefined) {
+      event.endTime = dto.end_time ? normalizeTime(dto.end_time) : null;
+    }
+    if (dto.venue !== undefined) {
+      event.venue = dto.venue.trim();
+    }
+    event.status = EventLifecycleStatus.POSTPONED;
+    event.statusReason = reason;
+
+    const saved = await this.eventRepo.save(event);
+    const withMedia = await this.eventRepo.findOne({
+      where: { id: saved.id },
+      relations: { imageMedia: true },
+    });
+    await this.notifyAlumniAboutEvent(withMedia ?? saved, 'postponed', reason);
+    return this.toEventResponse(withMedia ?? saved);
   }
 
   async createRsvp(viewerUserId: string, eventId: string, dto: RsvpEventDto) {
@@ -696,7 +763,11 @@ export class EventService {
     );
   }
 
-  private async notifyAlumniAboutEvent(event: EventEntity): Promise<void> {
+  private async notifyAlumniAboutEvent(
+    event: EventEntity,
+    reason: 'published' | 'updated' | 'cancelled' | 'postponed' = 'published',
+    statusReason?: string,
+  ): Promise<void> {
     try {
       const profiles = await this.alumniRepository.findAll();
       const active = profiles.filter(
@@ -711,11 +782,29 @@ export class EventService {
         }
       }
 
+      const titlePrefix =
+        reason === 'updated'
+          ? 'Updated: '
+          : reason === 'cancelled'
+            ? 'Cancelled: '
+            : reason === 'postponed'
+              ? 'Postponed: '
+              : '';
+
+      const templateId =
+        reason === 'updated'
+          ? 'event_updated'
+          : reason === 'cancelled'
+            ? 'event_cancelled'
+            : reason === 'postponed'
+              ? 'event_postponed'
+              : 'event_published';
+
       if (this.alumniNotificationsService && eligible.length > 0) {
         await this.alumniNotificationsService.notifySpecificAlumni({
           alumniIds: eligible.map((profile) => profile.alumni.id),
           type: AlumniNotificationType.EVENT,
-          title: event.title,
+          title: `${titlePrefix}${event.title}`,
           referenceId: event.id,
         });
       }
@@ -724,7 +813,7 @@ export class EventService {
         eligible.map((profile) =>
           this.notificationSender.send({
             to: profile.alumni.email,
-            templateId: 'event_published',
+            templateId,
             variables: {
               fullName: profile.alumni.fullName,
               eventTitle: event.title,
@@ -737,6 +826,7 @@ export class EventService {
               venue: event.venue,
               guestSpeaker: event.guestSpeaker ?? '',
               description: event.description ?? '',
+              reason: statusReason ?? event.statusReason ?? '',
             },
           }),
         ),
@@ -744,7 +834,7 @@ export class EventService {
 
       const failed = results.filter((r) => r.status === 'rejected').length;
       this.logger.log(
-        `EVENT_NOTIFY eventId=${event.id} sent=${results.length - failed} failed=${failed}`,
+        `EVENT_NOTIFY reason=${reason} eventId=${event.id} sent=${results.length - failed} failed=${failed}`,
       );
     } catch (error) {
       this.logger.error(
@@ -796,6 +886,8 @@ export class EventService {
       guest_speaker: event.guestSpeaker,
       image_url,
       is_draft: event.isDraft,
+      status: event.status ?? EventLifecycleStatus.SCHEDULED,
+      status_reason: event.statusReason ?? null,
       target_criteria: event.targetCriteria ?? null,
       created_by: event.createdBy,
       created_at: event.createdAt,

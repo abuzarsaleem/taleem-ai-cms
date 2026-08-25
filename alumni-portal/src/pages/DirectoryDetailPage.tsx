@@ -12,6 +12,7 @@ import { useParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { PageBreadcrumb } from "@/components/page-breadcrumb"
+import { PageLoader } from "@/components/portal/page-loader"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -185,15 +186,7 @@ export function DirectoryDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-6xl space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-muted" />
-        <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_1fr]">
-          <div className="h-[28rem] animate-pulse rounded-xl bg-muted" />
-          <div className="h-[28rem] animate-pulse rounded-xl bg-muted" />
-        </div>
-      </div>
-    )
+    return <PageLoader label="Loading profile…" />
   }
 
   if (error || !alumni) {

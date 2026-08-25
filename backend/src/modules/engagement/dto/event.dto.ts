@@ -128,6 +128,56 @@ export class CreateEventDto {
 
 export class UpdateEventDto extends PartialType(CreateEventDto) {}
 
+export class CancelEventDto {
+  @ApiPropertyOptional({
+    description: 'Optional reason shared with alumni in the cancellation notice',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(1000)
+  reason?: string;
+}
+
+export class PostponeEventDto {
+  @ApiProperty({
+    description: 'Reason for postponement (sent to alumni)',
+    example: 'Venue unavailable — new date to be confirmed',
+  })
+  @IsString()
+  @MinLength(3)
+  @MaxLength(1000)
+  reason: string;
+
+  @ApiPropertyOptional({ example: '2026-10-15' })
+  @IsOptional()
+  @IsDateString()
+  event_date?: string;
+
+  @ApiPropertyOptional({ example: '18:00:00' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{2}:\d{2}(:\d{2})?$/, {
+    message: 'start_time must be HH:mm or HH:mm:ss',
+  })
+  start_time?: string;
+
+  @ApiPropertyOptional({ example: '21:00:00' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{2}:\d{2}(:\d{2})?$/, {
+    message: 'end_time must be HH:mm or HH:mm:ss',
+  })
+  end_time?: string | null;
+
+  @ApiPropertyOptional({ example: 'Main Campus Auditorium' })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(255)
+  venue?: string;
+}
+
 export class UploadEventImageResponseDto extends UploadMediaResponseDto {}
 
 export class RsvpEventDto {

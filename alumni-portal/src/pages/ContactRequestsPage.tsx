@@ -12,6 +12,7 @@ import { Link } from "react-router-dom"
 
 import { LinkWithFrom } from "@/components/page-breadcrumb"
 import { PageHeader } from "@/components/portal/page-header"
+import { PageLoader } from "@/components/portal/page-loader"
 import {
   Card,
   CardDescription,
@@ -215,7 +216,7 @@ export function ContactRequestsPage() {
         }
       />
 
-      <div className="mx-auto max-w-4xl space-y-8">
+      <div className="space-y-8">
         <div className="inline-flex w-full max-w-md rounded-2xl border border-border bg-card p-1.5 shadow-[var(--portal-shadow)] sm:w-auto">
           {(
             [
@@ -258,14 +259,7 @@ export function ContactRequestsPage() {
         </div>
 
         {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-[108px] animate-pulse rounded-[1.25rem] bg-muted"
-              />
-            ))}
-          </div>
+          <PageLoader label="Loading contacts…" />
         ) : error ? (
           <Card>
             <CardHeader>
