@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom"
 import {
   ArrowUpRightIcon,
   CalendarDaysIcon,
-  CalendarPlusIcon,
   ClipboardListIcon,
   MailIcon,
   MegaphoneIcon,
@@ -23,6 +22,11 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { ApiError } from "@/lib/api"
 import { withNavTrail } from "@/lib/nav-trail"
 import { cn } from "@/lib/utils"
@@ -274,44 +278,77 @@ export default function DashboardPage() {
               <p className="mt-3 text-xs text-white/50">{formatLongDate()}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                className="bg-[#00c2b2] text-[#042a2a] hover:bg-[#00d4c2]"
-                render={
-                  <Link
-                    to="/registrations?status=PENDING"
-                    state={withNavTrail(location)}
-                  />
-                }
-              >
-                Review queue
-                <ArrowUpRightIcon />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                render={
-                  <Link
-                    to="/announcements/new"
-                    state={withNavTrail(location)}
-                  />
-                }
-              >
-                <PlusIcon />
-                Announcement
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                render={
-                  <Link to="/events/new" state={withNavTrail(location)} />
-                }
-              >
-                <CalendarPlusIcon />
-                Event
-              </Button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      size="sm"
+                      className="bg-[#00c2b2] text-[#042a2a] hover:bg-[#00d4c2]"
+                      nativeButton={false}
+                      render={
+                        <Link
+                          to="/registrations?status=PENDING"
+                          state={withNavTrail(location)}
+                        />
+                      }
+                    />
+                  }
+                >
+                  Review pending registrations
+                  <ArrowUpRightIcon />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Review pending alumni registration requests
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                      nativeButton={false}
+                      render={
+                        <Link
+                          to="/announcements/new"
+                          state={withNavTrail(location)}
+                        />
+                      }
+                    />
+                  }
+                >
+                  <PlusIcon />
+                  Announcement
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Create a new announcement
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                      nativeButton={false}
+                      render={
+                        <Link
+                          to="/events/new"
+                          state={withNavTrail(location)}
+                        />
+                      }
+                    />
+                  }
+                >
+                  <PlusIcon />
+                  Event
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Create a new event
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </section>

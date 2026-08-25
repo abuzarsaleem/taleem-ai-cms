@@ -11,7 +11,7 @@ import {
 import { useAuth } from "@/auth/AuthContext"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { PageHero } from "@/components/admin/page-hero"
-import { TablePagination } from "@/components/admin/table-pagination"
+import { TablePagination, parsePageSize } from "@/components/admin/table-pagination"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -88,10 +88,10 @@ export default function AnnouncementsPage() {
   const statusFilter: AnnouncementStatusTab =
     statusParam === "draft" || statusParam === "all" ? statusParam : "published"
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
+  const pageSize = parsePageSize(searchParams.get("pageSize"))
 
   const [items, setItems] = useState<Announcement[]>([])
   const [total, setTotal] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [pendingDelete, setPendingDelete] = useState<Announcement | null>(null)
@@ -103,7 +103,6 @@ export default function AnnouncementsPage() {
     setError("")
     try {
       if (statusFilter === "draft") {
-        const pageSize = 10
         const collected: Announcement[] = []
         let fetchedPage = 1
         let remoteTotal = Number.POSITIVE_INFINITY
@@ -123,16 +122,14 @@ export default function AnnouncementsPage() {
         const drafts = collected.filter((item) => !item.is_published)
         setItems(drafts.slice((page - 1) * pageSize, page * pageSize))
         setTotal(drafts.length)
-        setPageSize(pageSize)
       } else {
         const result = await announcementService.list(token, {
           page,
-          page_size: 10,
+          page_size: pageSize,
           include_drafts: statusFilter === "all",
         })
         setItems(result.items)
         setTotal(result.total)
-        setPageSize(result.page_size)
       }
     } catch (err) {
       setError(
@@ -148,7 +145,7 @@ export default function AnnouncementsPage() {
   useEffect(() => {
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, page, statusFilter])
+  }, [token, page, pageSize, statusFilter])
 
   async function handleDelete() {
     if (!token || !pendingDelete) return
@@ -171,8 +168,9 @@ export default function AnnouncementsPage() {
   }
 
   function setStatus(next: AnnouncementStatusTab) {
-    const params = new URLSearchParams()
-    if (next !== "published") params.set("status", next)
+    const params = new URLSearchParams(searchParams)
+    if (next === "published") params.delete("status")
+    else params.set("status", next)
     params.set("page", "1")
     setSearchParams(params)
   }
@@ -180,6 +178,14 @@ export default function AnnouncementsPage() {
   function goToPage(nextPage: number) {
     const params = new URLSearchParams(searchParams)
     params.set("page", String(nextPage))
+    setSearchParams(params)
+  }
+
+  function changePageSize(nextSize: number) {
+    const params = new URLSearchParams(searchParams)
+    if (nextSize === 10) params.delete("pageSize")
+    else params.set("pageSize", String(nextSize))
+    params.set("page", "1")
     setSearchParams(params)
   }
 
@@ -461,6 +467,7 @@ export default function AnnouncementsPage() {
             total={total}
             pageSize={pageSize}
             onPageChange={goToPage}
+            onPageSizeChange={changePageSize}
           />
         ) : null}
       </div>

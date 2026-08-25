@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
-import { ImageIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
 import { BackButton } from "@/components/admin/back-button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { FeaturedAlumniPicker } from "@/components/admin/featured-alumni-picker"
+import { ImageFilePicker } from "@/components/admin/image-file-picker"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
 import { trailStateFor } from "@/lib/nav-trail"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
 import {
   announcementService,
   type AnnouncementCategory,
@@ -298,6 +297,25 @@ export default function AnnouncementFormPage() {
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
+              <CardTitle>Image</CardTitle>
+              <CardDescription>Optional cover image</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ImageFilePicker
+                previewUrl={imagePreview}
+                uploading={uploading}
+                disabled={saving}
+                onSelect={(file) => void handleImageChange(file)}
+                onClear={() => {
+                  setMediaId(undefined)
+                  setImagePreview(null)
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Publish</CardTitle>
               <CardDescription>Visibility settings</CardDescription>
             </CardHeader>
@@ -318,44 +336,6 @@ export default function AnnouncementFormPage() {
               </div>
 
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Image</CardTitle>
-              <CardDescription>Optional cover image</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Announcement preview"
-                  className="aspect-video w-full rounded-lg border object-cover"
-                />
-              ) : (
-                <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
-                  <ImageIcon className="size-8" />
-                  <span className="text-xs">No image selected</span>
-                </div>
-              )}
-              <Input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                disabled={saving || uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null
-                  void handleImageChange(file)
-                }}
-              />
-              <p
-                className={cn(
-                  "text-xs text-muted-foreground",
-                  uploading && "text-foreground",
-                )}
-              >
-                {uploading ? "Uploading…" : "JPEG, PNG, or WEBP up to 5MB"}
-              </p>
             </CardContent>
           </Card>
         </div>

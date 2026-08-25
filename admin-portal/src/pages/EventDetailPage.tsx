@@ -71,7 +71,7 @@ function DetailRow({
   value: React.ReactNode
 }) {
   return (
-    <div className="grid gap-1 border-b py-3 last:border-b-0 sm:grid-cols-[10rem_1fr] sm:gap-4">
+    <div className="grid min-h-12 content-center gap-1 border-b py-3 last:border-b-0 sm:grid-cols-[9rem_1fr] sm:items-baseline sm:gap-4">
       <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="text-sm font-medium break-words whitespace-pre-wrap">
         {value || "—"}
@@ -206,26 +206,50 @@ export default function EventDetailPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
         <BackButton fallback="/events" />
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">{item.title}</h1>
-            <Badge
-              className={cn(
-                "font-normal",
-                item.is_draft
-                  ? "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                  : "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-              )}
-            >
-              {item.is_draft ? "Draft" : "Published"}
-            </Badge>
-            <Badge variant="outline">{typeLabel(item.event_type)}</Badge>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">{item.title}</h1>
+              <Badge
+                className={cn(
+                  "font-normal",
+                  item.is_draft
+                    ? "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                    : "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                )}
+              >
+                {item.is_draft ? "Draft" : "Published"}
+              </Badge>
+              <Badge variant="outline">{typeLabel(item.event_type)}</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {formatDate(item.event_date)} · {formatTime(item.start_time)}
+              {item.end_time ? `–${formatTime(item.end_time)}` : ""} ·{" "}
+              {item.venue}
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {formatDate(item.event_date)} · {formatTime(item.start_time)}
-            {item.end_time ? `–${formatTime(item.end_time)}` : ""} ·{" "}
-            {item.venue}
-          </p>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="outline"
+              render={
+                <Link
+                  to={`/events/${item.id}/edit`}
+                  state={withNavTrail(location)}
+                />
+              }
+            >
+              <PencilIcon />
+              Edit
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2Icon />
+              Delete
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -233,45 +257,26 @@ export default function EventDetailPage() {
         <p className="px-4 text-sm text-destructive lg:px-6">{error}</p>
       ) : null}
 
-      <div className="grid gap-4 px-4 lg:grid-cols-3 lg:px-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Description</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">
-              {item.description || "No description provided."}
-            </p>
-          </CardContent>
-        </Card>
-
-        <div className="flex flex-col gap-4">
-          <Card>
+      <div className="grid items-stretch gap-4 px-4 lg:grid-cols-3 lg:px-6">
+        <div className="flex h-full min-h-0 flex-col gap-4 lg:col-span-2">
+          <Card size="sm" className="min-h-28 shrink-0">
             <CardHeader>
-              <CardTitle>Image</CardTitle>
+              <CardTitle>Description</CardTitle>
             </CardHeader>
-            <CardContent>
-              {item.image_url ? (
-                <img
-                  src={item.image_url}
-                  alt={item.title}
-                  className="aspect-video w-full rounded-lg border object-cover"
-                />
-              ) : (
-                <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
-                  <ImageIcon className="size-8" />
-                  <span className="text-xs">No image</span>
-                </div>
-              )}
+            <CardContent className="min-h-24">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                {item.description || "No description provided."}
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="min-h-72 flex-1">
             <CardHeader>
               <CardTitle>Details</CardTitle>
+              <CardDescription>Event information and audience</CardDescription>
             </CardHeader>
-            <CardContent>
-              <dl>
+            <CardContent className="flex min-h-0 flex-1 flex-col">
+              <dl className="grid h-full flex-1 auto-rows-fr gap-x-8 sm:grid-cols-2">
                 <DetailRow label="Type" value={typeLabel(item.event_type)} />
                 <DetailRow label="Date" value={formatDate(item.event_date)} />
                 <DetailRow
@@ -303,28 +308,50 @@ export default function EventDetailPage() {
               </dl>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="flex h-full min-h-0 flex-col gap-4">
+          <Card className="min-h-0 flex-1">
+            <CardHeader>
+              <CardTitle>Image</CardTitle>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col">
+              {item.image_url ? (
+                <img
+                  src={item.image_url}
+                  alt={item.title}
+                  className="h-full min-h-32 w-full flex-1 rounded-lg border object-cover"
+                />
+              ) : (
+                <div className="flex min-h-32 flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
+                  <ImageIcon className="size-8" />
+                  <span className="text-xs">No image</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {counts ? (
-            <Card>
+            <Card className="min-h-28 shrink-0" size="sm">
               <CardHeader>
                 <CardTitle>RSVP summary</CardTitle>
                 <CardDescription>{counts.total} total responses</CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-lg border p-3">
-                  <p className="text-lg font-semibold tabular-nums">
+                <div className="flex min-h-16 flex-col items-center justify-center rounded-lg border px-2 py-3">
+                  <p className="text-base font-semibold tabular-nums">
                     {counts.going}
                   </p>
                   <p className="text-xs text-muted-foreground">Going</p>
                 </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-lg font-semibold tabular-nums">
+                <div className="flex min-h-16 flex-col items-center justify-center rounded-lg border px-2 py-3">
+                  <p className="text-base font-semibold tabular-nums">
                     {counts.maybe}
                   </p>
                   <p className="text-xs text-muted-foreground">Maybe</p>
                 </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-lg font-semibold tabular-nums">
+                <div className="flex min-h-16 flex-col items-center justify-center rounded-lg border px-2 py-3">
+                  <p className="text-base font-semibold tabular-nums">
                     {counts.not_going}
                   </p>
                   <p className="text-xs text-muted-foreground">Not going</p>
@@ -420,29 +447,6 @@ export default function EventDetailPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      <div className="flex justify-end gap-2 px-4 lg:px-6">
-        <Button
-          variant="outline"
-          render={
-            <Link
-              to={`/events/${item.id}/edit`}
-              state={withNavTrail(location)}
-            />
-          }
-        >
-          <PencilIcon />
-          Edit
-        </Button>
-        <Button
-          variant="destructive"
-          disabled={busy}
-          onClick={() => setConfirmDelete(true)}
-        >
-          <Trash2Icon />
-          Delete
-        </Button>
       </div>
 
       <ConfirmDialog

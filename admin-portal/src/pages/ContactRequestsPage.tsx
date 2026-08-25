@@ -4,7 +4,7 @@ import { ChevronRightIcon, MailIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
 import { PageHero } from "@/components/admin/page-hero"
-import { TablePagination } from "@/components/admin/table-pagination"
+import { TablePagination, parsePageSize } from "@/components/admin/table-pagination"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -30,6 +30,7 @@ const STATUS_FILTERS: Array<{
 }> = [
   { label: "Pending", value: "PENDING_ADMIN" },
   { label: "Approved", value: "APPROVED" },
+  { label: "Rejected", value: "REJECTED_BY_ADMIN" },
   { label: "All", value: "" },
 ]
 
@@ -94,11 +95,13 @@ export default function ContactRequestsPage() {
   const statusFilter =
     statusParam === "all"
       ? ""
-      : statusParam === "PENDING_ADMIN" || statusParam === "APPROVED"
+      : statusParam === "PENDING_ADMIN" ||
+          statusParam === "APPROVED" ||
+          statusParam === "REJECTED_BY_ADMIN"
         ? statusParam
         : "PENDING_ADMIN"
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
-  const pageSize = 10
+  const pageSize = parsePageSize(searchParams.get("pageSize"))
 
   const [items, setItems] = useState<ContactRequest[]>([])
   const [loading, setLoading] = useState(true)
@@ -128,7 +131,7 @@ export default function ContactRequestsPage() {
   }, [token, statusFilter])
 
   function setStatus(next: ContactRequestStatus | "") {
-    const params = new URLSearchParams()
+    const params = new URLSearchParams(searchParams)
     if (!next) params.set("status", "all")
     else params.set("status", next)
     params.set("page", "1")
@@ -138,6 +141,14 @@ export default function ContactRequestsPage() {
   function goToPage(nextPage: number) {
     const params = new URLSearchParams(searchParams)
     params.set("page", String(nextPage))
+    setSearchParams(params)
+  }
+
+  function changePageSize(nextSize: number) {
+    const params = new URLSearchParams(searchParams)
+    if (nextSize === 10) params.delete("pageSize")
+    else params.set("pageSize", String(nextSize))
+    params.set("page", "1")
     setSearchParams(params)
   }
 
@@ -173,7 +184,7 @@ export default function ContactRequestsPage() {
       </div>
 
       <div className="px-4 lg:px-6">
-        <div className="inline-flex max-w-full flex-wrap rounded-lg border bg-muted/40 p-1">
+        <div className="inline-flex w-fit max-w-full flex-wrap rounded-lg border bg-muted/40 p-1">
           {STATUS_FILTERS.map((filter) => (
             <button
               key={filter.label}
@@ -339,6 +350,7 @@ export default function ContactRequestsPage() {
             total={items.length}
             pageSize={pageSize}
             onPageChange={goToPage}
+            onPageSizeChange={changePageSize}
           />
         ) : null}
       </div>

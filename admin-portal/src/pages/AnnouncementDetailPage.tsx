@@ -152,24 +152,48 @@ export default function AnnouncementDetailPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex flex-col gap-3 px-4 lg:px-6">
         <BackButton fallback="/announcements" />
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">{item.title}</h1>
-            <Badge
-              className={cn(
-                "font-normal",
-                item.is_published
-                  ? "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                  : "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400",
-              )}
-            >
-              {item.is_published ? "Published" : "Draft"}
-            </Badge>
-            <Badge variant="outline">{categoryLabel(item.category)}</Badge>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">{item.title}</h1>
+              <Badge
+                className={cn(
+                  "font-normal",
+                  item.is_published
+                    ? "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                    : "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                )}
+              >
+                {item.is_published ? "Published" : "Draft"}
+              </Badge>
+              <Badge variant="outline">{categoryLabel(item.category)}</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Published {formatDate(item.published_at)}
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Published {formatDate(item.published_at)}
-          </p>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="outline"
+              render={
+                <Link
+                  to={`/announcements/${item.id}/edit`}
+                  state={withNavTrail(location)}
+                />
+              }
+            >
+              <PencilIcon />
+              Edit
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2Icon />
+              Delete
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -247,29 +271,6 @@ export default function AnnouncementDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-
-      <div className="flex justify-end gap-2 px-4 lg:px-6">
-        <Button
-          variant="outline"
-          render={
-            <Link
-              to={`/announcements/${item.id}/edit`}
-              state={withNavTrail(location)}
-            />
-          }
-        >
-          <PencilIcon />
-          Edit
-        </Button>
-        <Button
-          variant="destructive"
-          disabled={busy}
-          onClick={() => setConfirmDelete(true)}
-        >
-          <Trash2Icon />
-          Delete
-        </Button>
       </div>
 
       <ConfirmDialog

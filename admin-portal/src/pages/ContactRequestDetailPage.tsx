@@ -114,6 +114,24 @@ function DetailRow({
   )
 }
 
+function PersonDetailRow({
+  label,
+  value,
+}: {
+  label: string
+  value?: string | number | null
+}) {
+  const text = value == null || value === "" ? "" : String(value)
+  return (
+    <div className="grid h-11 grid-cols-[8rem_1fr] items-center gap-4 border-b last:border-b-0">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="truncate text-sm font-medium" title={text || undefined}>
+        {text || "—"}
+      </dd>
+    </div>
+  )
+}
+
 function PersonCard({
   title,
   description,
@@ -161,7 +179,7 @@ function PersonCard({
               )}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <Link
               to={`/alumni/${alumniId}`}
               state={withNavTrail({
@@ -169,28 +187,26 @@ function PersonCard({
                 search: location.search,
                 state: { ...(location.state as object | null), request },
               })}
-              className="font-semibold underline-offset-4 hover:underline"
+              className="block truncate font-semibold underline-offset-4 hover:underline"
             >
               {name}
             </Link>
-            {jobTitle ? (
-              <p className="text-sm text-muted-foreground">{jobTitle}</p>
-            ) : null}
-            {graduationYear ? (
-              <p className="text-sm text-muted-foreground">
-                Class of {graduationYear}
-              </p>
-            ) : null}
+            <p className="truncate text-sm text-muted-foreground">
+              {jobTitle || "—"}
+            </p>
+            <p className="truncate text-sm text-muted-foreground">
+              {graduationYear ? `Class of ${graduationYear}` : "—"}
+            </p>
           </div>
         </div>
 
         <dl>
-          <DetailRow label="Email" value={alumni?.email} />
-          <DetailRow label="Phone" value={alumni?.phone_number} />
-          <DetailRow label="WhatsApp" value={alumni?.whatsapp_number} />
-          <DetailRow label="Location" value={locationLabel} />
-          <DetailRow label="Graduation year" value={graduationYear} />
-          <DetailRow label="Company" value={company} />
+          <PersonDetailRow label="Email" value={alumni?.email} />
+          <PersonDetailRow label="Phone" value={alumni?.phone_number} />
+          <PersonDetailRow label="WhatsApp" value={alumni?.whatsapp_number} />
+          <PersonDetailRow label="Location" value={locationLabel} />
+          <PersonDetailRow label="Graduation year" value={graduationYear} />
+          <PersonDetailRow label="Company" value={company} />
         </dl>
       </CardContent>
     </Card>

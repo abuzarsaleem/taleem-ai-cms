@@ -4,7 +4,7 @@ import { ChevronRightIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
 import { PageHero } from "@/components/admin/page-hero"
-import { TablePagination } from "@/components/admin/table-pagination"
+import { TablePagination, parsePageSize } from "@/components/admin/table-pagination"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,10 +32,10 @@ import {
 
 const STATUS_FILTERS: Array<{ label: string; value: RegistrationStatus | "" }> =
   [
-    { label: "All", value: "" },
     { label: "Pending", value: "PENDING" },
     { label: "Approved", value: "APPROVED" },
     { label: "Rejected", value: "REJECTED" },
+    { label: "All", value: "" },
   ]
 
 function initialsFromName(name: string) {
@@ -95,7 +95,7 @@ export default function RegistrationsPage() {
         ? statusParam
         : "PENDING"
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
-  const pageSize = 10
+  const pageSize = parsePageSize(searchParams.get("pageSize"))
 
   const [items, setItems] = useState<RegistrationListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -131,7 +131,7 @@ export default function RegistrationsPage() {
   }, [token, statusFilter])
 
   function setStatus(next: RegistrationStatus | "") {
-    const params = new URLSearchParams()
+    const params = new URLSearchParams(searchParams)
     if (!next) params.set("status", "all")
     else params.set("status", next)
     params.set("page", "1")
@@ -141,6 +141,14 @@ export default function RegistrationsPage() {
   function goToPage(nextPage: number) {
     const params = new URLSearchParams(searchParams)
     params.set("page", String(nextPage))
+    setSearchParams(params)
+  }
+
+  function changePageSize(nextSize: number) {
+    const params = new URLSearchParams(searchParams)
+    if (nextSize === 10) params.delete("pageSize")
+    else params.set("pageSize", String(nextSize))
+    params.set("page", "1")
     setSearchParams(params)
   }
 
@@ -157,7 +165,7 @@ export default function RegistrationsPage() {
       </div>
 
       <div className="px-4 lg:px-6">
-        <div className="inline-flex w-fit rounded-lg border bg-muted/40 p-1">
+        <div className="inline-flex w-fit max-w-full flex-wrap rounded-lg border bg-muted/40 p-1">
           {STATUS_FILTERS.map((filter) => (
             <button
               key={filter.label}
@@ -262,7 +270,7 @@ export default function RegistrationsPage() {
                     Program
                   </TableHead>
                   <TableHead className="hidden h-11 bg-muted/40 px-4 text-xs uppercase tracking-wide text-muted-foreground lg:table-cell">
-                    Roll
+                    Roll number
                   </TableHead>
                   <TableHead className="h-11 bg-muted/40 px-4 text-xs uppercase tracking-wide text-muted-foreground">
                     Status
@@ -379,6 +387,7 @@ export default function RegistrationsPage() {
             total={items.length}
             pageSize={pageSize}
             onPageChange={goToPage}
+            onPageSizeChange={changePageSize}
           />
         ) : null}
       </div>

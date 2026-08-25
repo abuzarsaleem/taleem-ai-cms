@@ -5,7 +5,7 @@ import { ChevronRightIcon } from "lucide-react"
 import { useAuth } from "@/auth/AuthContext"
 import { PageHero } from "@/components/admin/page-hero"
 import { SearchableSelect } from "@/components/admin/searchable-select"
-import { TablePagination } from "@/components/admin/table-pagination"
+import { TablePagination, parsePageSize } from "@/components/admin/table-pagination"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -96,6 +96,7 @@ export default function AlumniDirectoryPage() {
   const country = searchParams.get("country") ?? ""
   const city = isPakistan(country) ? (searchParams.get("city") ?? "") : ""
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
+  const pageSize = parsePageSize(searchParams.get("pageSize"))
 
   const [searchInput, setSearchInput] = useState(search)
   const [yearInput, setYearInput] = useState(graduationYear)
@@ -108,7 +109,6 @@ export default function AlumniDirectoryPage() {
   )
   const [items, setItems] = useState<AdminAlumniListItem[]>([])
   const [total, setTotal] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -151,12 +151,11 @@ export default function AlumniDirectoryPage() {
           city,
           country,
           page,
-          page_size: 10,
+          page_size: pageSize,
         })
         if (!cancelled) {
           setItems(result.items)
           setTotal(result.total)
-          setPageSize(result.page_size)
         }
       } catch (err) {
         if (!cancelled) {
@@ -182,6 +181,7 @@ export default function AlumniDirectoryPage() {
     city,
     country,
     page,
+    pageSize,
   ])
 
   function applyFilters(event: React.FormEvent) {
@@ -195,6 +195,7 @@ export default function AlumniDirectoryPage() {
       next.set("city", cityInput.trim())
     }
     next.set("page", "1")
+    if (pageSize !== 10) next.set("pageSize", String(pageSize))
     setSearchParams(next)
   }
 
@@ -210,6 +211,14 @@ export default function AlumniDirectoryPage() {
   function goToPage(nextPage: number) {
     const next = new URLSearchParams(searchParams)
     next.set("page", String(nextPage))
+    setSearchParams(next)
+  }
+
+  function changePageSize(nextSize: number) {
+    const next = new URLSearchParams(searchParams)
+    if (nextSize === 10) next.delete("pageSize")
+    else next.set("pageSize", String(nextSize))
+    next.set("page", "1")
     setSearchParams(next)
   }
 
@@ -465,6 +474,7 @@ export default function AlumniDirectoryPage() {
             total={total}
             pageSize={pageSize}
             onPageChange={goToPage}
+            onPageSizeChange={changePageSize}
           />
         ) : null}
       </div>

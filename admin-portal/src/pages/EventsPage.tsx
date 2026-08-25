@@ -11,7 +11,7 @@ import {
 import { useAuth } from "@/auth/AuthContext"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { PageHero } from "@/components/admin/page-hero"
-import { TablePagination } from "@/components/admin/table-pagination"
+import { TablePagination, parsePageSize } from "@/components/admin/table-pagination"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -91,10 +91,10 @@ export default function EventsPage() {
   const scope: EventListScope =
     scopeParam === "past" || scopeParam === "all" ? scopeParam : "upcoming"
   const page = Math.max(1, Number(searchParams.get("page") || 1) || 1)
+  const pageSize = parsePageSize(searchParams.get("pageSize"))
 
   const [items, setItems] = useState<AdminEvent[]>([])
   const [total, setTotal] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [pendingDelete, setPendingDelete] = useState<AdminEvent | null>(null)
@@ -108,11 +108,10 @@ export default function EventsPage() {
       const result = await eventService.list(token, {
         scope,
         page,
-        page_size: 10,
+        page_size: pageSize,
       })
       setItems(result.items)
       setTotal(result.total)
-      setPageSize(result.page_size)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load events")
     } finally {
@@ -123,7 +122,7 @@ export default function EventsPage() {
   useEffect(() => {
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, scope, page])
+  }, [token, scope, page, pageSize])
 
   async function handleDelete() {
     if (!token || !pendingDelete) return
@@ -156,6 +155,14 @@ export default function EventsPage() {
   function goToPage(nextPage: number) {
     const params = new URLSearchParams(searchParams)
     params.set("page", String(nextPage))
+    setSearchParams(params)
+  }
+
+  function changePageSize(nextSize: number) {
+    const params = new URLSearchParams(searchParams)
+    if (nextSize === 10) params.delete("pageSize")
+    else params.set("pageSize", String(nextSize))
+    params.set("page", "1")
     setSearchParams(params)
   }
 
@@ -454,6 +461,7 @@ export default function EventsPage() {
             total={total}
             pageSize={pageSize}
             onPageChange={goToPage}
+            onPageSizeChange={changePageSize}
           />
         ) : null}
       </div>
