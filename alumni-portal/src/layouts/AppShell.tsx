@@ -74,7 +74,7 @@ function SidebarLink({
         cn(
           "flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-sm font-medium transition-colors",
           isActive
-            ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+            ? "bg-sidebar-accent text-white shadow-[inset_3px_0_0_0_var(--sidebar-primary)] hover:bg-sidebar-accent hover:text-white"
             : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         )
       }
