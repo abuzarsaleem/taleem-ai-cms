@@ -290,11 +290,11 @@ export default function AlumniDirectoryPage() {
           }
         />
         <div className="flex gap-2">
-          <Button type="submit" className="flex-1">
-            Filter
-          </Button>
           <Button type="button" variant="outline" onClick={clearFilters}>
             Clear
+          </Button>
+          <Button type="submit" className="flex-1">
+            Filter
           </Button>
         </div>
       </form>

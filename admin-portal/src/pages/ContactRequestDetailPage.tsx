@@ -468,15 +468,15 @@ export default function ContactRequestDetailPage() {
           {canReview ? (
             <CardFooter className="justify-end bg-transparent">
               <div className="flex gap-2">
-                <Button disabled={busy} onClick={openAccept}>
-                  Approve
-                </Button>
                 <Button
                   variant="destructive"
                   disabled={busy}
                   onClick={openReject}
                 >
                   Reject
+                </Button>
+                <Button disabled={busy} onClick={openAccept}>
+                  Approve
                 </Button>
               </div>
             </CardFooter>

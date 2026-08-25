@@ -407,9 +407,6 @@ export default function RegistrationDetailPage() {
 
       {isPending ? (
         <div className="flex justify-end gap-2 px-4 lg:px-6">
-          <Button disabled={busy} onClick={openAccept}>
-            Accept
-          </Button>
           <Button
             variant="destructive"
             disabled={busy}
@@ -417,14 +414,17 @@ export default function RegistrationDetailPage() {
           >
             Reject
           </Button>
+          <Button disabled={busy} onClick={openAccept}>
+            Approve
+          </Button>
         </div>
       ) : null}
 
       <ConfirmDialog
         open={confirmAction === "APPROVED"}
         title="Confirm CNIC"
-        description={`Enter the applicant's CNIC to accept ${item.full_name}. This will activate their alumni account.`}
-        confirmLabel="Accept"
+        description={`Enter the applicant's CNIC to approve ${item.full_name}. This will activate their alumni account.`}
+        confirmLabel="Approve"
         busy={busy}
         onOpenChange={(open) => {
           if (!open) closeConfirm()

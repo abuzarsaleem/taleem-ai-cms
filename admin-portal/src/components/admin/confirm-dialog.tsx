@@ -16,6 +16,7 @@ type ConfirmDialogProps = {
   cancelLabel?: string
   variant?: "default" | "destructive"
   busy?: boolean
+  contentClassName?: string
   children?: React.ReactNode
   onOpenChange: (open: boolean) => void
   onConfirm: () => void | Promise<void>
@@ -29,6 +30,7 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   variant = "default",
   busy = false,
+  contentClassName,
   children,
   onOpenChange,
   onConfirm,
@@ -40,7 +42,7 @@ export function ConfirmDialog({
         if (!busy) onOpenChange(next)
       }}
     >
-      <DialogContent showCloseButton={!busy}>
+      <DialogContent showCloseButton={!busy} className={contentClassName}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

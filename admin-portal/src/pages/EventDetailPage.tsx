@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import {
+  BanIcon,
+  CalendarClockIcon,
   ImageIcon,
   PencilIcon,
   Trash2Icon,
@@ -9,6 +11,8 @@ import {
 import { useAuth } from "@/auth/AuthContext"
 import { BackButton } from "@/components/admin/back-button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
+import { DatePicker } from "@/components/admin/date-picker"
+import { TimePicker } from "@/components/admin/time-picker"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,6 +22,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -27,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
 import { ApiError } from "@/lib/api"
 import { useBackNavigation, withNavTrail } from "@/lib/nav-trail"
 import { toast } from "sonner"
@@ -63,6 +70,37 @@ function formatTime(value: string | null) {
   return value.slice(0, 5)
 }
 
+function toHm(value: string | null) {
+  return value ? value.slice(0, 5) : ""
+}
+
+function normalizeTime(value: string) {
+  if (!value) return ""
+  return value.length === 5 ? `${value}:00` : value
+}
+
+function eventStatus(item: AdminEvent) {
+  if (item.is_draft) {
+    return {
+      label: "Draft",
+      className:
+        "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    }
+  }
+  if (item.status === "POSTPONED") {
+    return {
+      label: "Postponed",
+      className:
+        "border-transparent bg-orange-500/10 text-orange-700 dark:text-orange-400",
+    }
+  }
+  return {
+    label: "Published",
+    className:
+      "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  }
+}
+
 function DetailRow({
   label,
   value,
@@ -97,6 +135,15 @@ export default function EventDetailPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [confirmPostpone, setConfirmPostpone] = useState(false)
+  const [cancelReason, setCancelReason] = useState("")
+  const [postponeReason, setPostponeReason] = useState("")
+  const [postponeDate, setPostponeDate] = useState("")
+  const [postponeStart, setPostponeStart] = useState("")
+  const [postponeEnd, setPostponeEnd] = useState("")
+  const [postponeVenue, setPostponeVenue] = useState("")
+  const [fieldError, setFieldError] = useState("")
 
   useEffect(() => {
     if (!token || !id) return
@@ -181,6 +228,96 @@ export default function EventDetailPage() {
     }
   }
 
+  function openCancel() {
+    setCancelReason("")
+    setFieldError("")
+    setConfirmCancel(true)
+  }
+
+  function openPostpone() {
+    if (!item) return
+    setPostponeReason(item.status_reason ?? "")
+    setPostponeDate(item.event_date.slice(0, 10))
+    setPostponeStart(toHm(item.start_time))
+    setPostponeEnd(toHm(item.end_time))
+    setPostponeVenue(item.venue)
+    setFieldError("")
+    setConfirmPostpone(true)
+  }
+
+  async function handleCancel() {
+    if (!token || !item) return
+
+    const reason = cancelReason.trim()
+    if (reason && reason.length < 3) {
+      setFieldError("Reason must be at least 3 characters")
+      return
+    }
+
+    setBusy(true)
+    setError("")
+    setFieldError("")
+    try {
+      await eventService.cancel(token, item.id, {
+        ...(cancelReason.trim() ? { reason: cancelReason.trim() } : {}),
+      })
+      setConfirmCancel(false)
+      toast.success("Event cancelled")
+      navigate(
+        backTo,
+        backState ? { state: backState, replace: true } : { replace: true },
+      )
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : "Failed to cancel event"
+      setError(message)
+      toast.error(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handlePostpone() {
+    if (!token || !item) return
+
+    const reason = postponeReason.trim()
+    if (reason.length < 3) {
+      setFieldError("Reason must be at least 3 characters")
+      return
+    }
+
+    setBusy(true)
+    setError("")
+    setFieldError("")
+    try {
+      const updated = await eventService.postpone(token, item.id, {
+        reason,
+        ...(postponeDate ? { event_date: postponeDate } : {}),
+        ...(postponeStart
+          ? { start_time: normalizeTime(postponeStart) }
+          : {}),
+        end_time: postponeEnd ? normalizeTime(postponeEnd) : null,
+        ...(postponeVenue.trim().length >= 2
+          ? { venue: postponeVenue.trim() }
+          : {}),
+      })
+      const refreshed = await eventService.getById(token, item.id).catch(() => updated)
+      setItem({
+        ...refreshed,
+        rsvp_counts: refreshed.rsvp_counts ?? item.rsvp_counts,
+      })
+      setConfirmPostpone(false)
+      toast.success("Event postponed")
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : "Failed to postpone event"
+      setError(message)
+      toast.error(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
@@ -201,6 +338,8 @@ export default function EventDetailPage() {
   }
 
   const counts = item.rsvp_counts
+  const status = eventStatus(item)
+  const isPublished = !item.is_draft
 
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -210,15 +349,8 @@ export default function EventDetailPage() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight">{item.title}</h1>
-              <Badge
-                className={cn(
-                  "font-normal",
-                  item.is_draft
-                    ? "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                    : "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-                )}
-              >
-                {item.is_draft ? "Draft" : "Published"}
+              <Badge className={cn("font-normal", status.className)}>
+                {status.label}
               </Badge>
               <Badge variant="outline">{typeLabel(item.event_type)}</Badge>
             </div>
@@ -228,7 +360,35 @@ export default function EventDetailPage() {
               {item.venue}
             </p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-wrap justify-end gap-2">
+            <Button
+              variant="destructive"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2Icon />
+              Delete
+            </Button>
+            {isPublished ? (
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={openCancel}
+              >
+                <BanIcon />
+                Cancel event
+              </Button>
+            ) : null}
+            {isPublished ? (
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={openPostpone}
+              >
+                <CalendarClockIcon />
+                Postpone
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               render={
@@ -240,14 +400,6 @@ export default function EventDetailPage() {
             >
               <PencilIcon />
               Edit
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={busy}
-              onClick={() => setConfirmDelete(true)}
-            >
-              <Trash2Icon />
-              Delete
             </Button>
           </div>
         </div>
@@ -287,6 +439,12 @@ export default function EventDetailPage() {
                 />
                 <DetailRow label="Venue" value={item.venue} />
                 <DetailRow label="Guest speaker" value={item.guest_speaker} />
+                {item.status === "POSTPONED" ? (
+                  <DetailRow
+                    label="Postpone reason"
+                    value={item.status_reason}
+                  />
+                ) : null}
                 <DetailRow label="Campuses" value={campusLabels} />
                 <DetailRow label="Degree programs" value={degreeProgramLabels} />
                 <DetailRow
@@ -459,6 +617,116 @@ export default function EventDetailPage() {
         onOpenChange={setConfirmDelete}
         onConfirm={handleDelete}
       />
+      <ConfirmDialog
+        open={confirmCancel}
+        title="Cancel event"
+        description={`Cancel “${item.title}”? Alumni will be notified and the event will be removed. This cannot be undone.`}
+        confirmLabel="Cancel event"
+        cancelLabel="Keep event"
+        variant="destructive"
+        busy={busy}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmCancel(false)
+            setCancelReason("")
+            setFieldError("")
+          }
+        }}
+        onConfirm={handleCancel}
+      >
+        <Field data-invalid={fieldError ? true : undefined}>
+          <FieldLabel htmlFor="cancel-reason">Reason (optional)</FieldLabel>
+          <Textarea
+            id="cancel-reason"
+            value={cancelReason}
+            onChange={(e) => {
+              setCancelReason(e.target.value)
+              setFieldError("")
+            }}
+            placeholder="Shared with alumni in the cancellation notice"
+            rows={3}
+            disabled={busy}
+          />
+          {fieldError ? <FieldError>{fieldError}</FieldError> : null}
+        </Field>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={confirmPostpone}
+        title="Postpone event"
+        description={`Postpone “${item.title}”? Alumni will be notified. You can keep the current schedule or set a new date, time, and venue.`}
+        confirmLabel="Postpone"
+        busy={busy}
+        contentClassName="sm:max-w-lg"
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmPostpone(false)
+            setFieldError("")
+          }
+        }}
+        onConfirm={handlePostpone}
+      >
+        <div className="grid gap-3">
+          <Field data-invalid={fieldError ? true : undefined}>
+            <FieldLabel htmlFor="postpone-reason">Reason</FieldLabel>
+            <Textarea
+              id="postpone-reason"
+              value={postponeReason}
+              onChange={(e) => {
+                setPostponeReason(e.target.value)
+                setFieldError("")
+              }}
+              placeholder="Venue unavailable — new date to be confirmed"
+              rows={3}
+              disabled={busy}
+            />
+            {fieldError ? <FieldError>{fieldError}</FieldError> : null}
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="postpone-date">New date</FieldLabel>
+              <DatePicker
+                id="postpone-date"
+                value={postponeDate}
+                disabled={busy}
+                placeholder="Keep current date"
+                onChange={setPostponeDate}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="postpone-venue">Venue</FieldLabel>
+              <Input
+                id="postpone-venue"
+                value={postponeVenue}
+                onChange={(e) => {
+                  setPostponeVenue(e.target.value)
+                  setFieldError("")
+                }}
+                disabled={busy}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="postpone-start">Start time</FieldLabel>
+              <TimePicker
+                id="postpone-start"
+                value={postponeStart}
+                disabled={busy}
+                placeholder="Start time"
+                onChange={setPostponeStart}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="postpone-end">End time</FieldLabel>
+              <TimePicker
+                id="postpone-end"
+                value={postponeEnd}
+                disabled={busy}
+                placeholder="Optional end time"
+                onChange={setPostponeEnd}
+              />
+            </Field>
+          </div>
+        </div>
+      </ConfirmDialog>
     </div>
   )
 }

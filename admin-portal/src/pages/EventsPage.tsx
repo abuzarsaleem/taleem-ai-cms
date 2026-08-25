@@ -60,6 +60,28 @@ function formatTime(value: string | null) {
   return value.slice(0, 5)
 }
 
+function eventStatus(item: AdminEvent) {
+  if (item.is_draft) {
+    return {
+      label: "Draft",
+      className:
+        "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    }
+  }
+  if (item.status === "POSTPONED") {
+    return {
+      label: "Postponed",
+      className:
+        "border-transparent bg-orange-500/10 text-orange-700 dark:text-orange-400",
+    }
+  }
+  return {
+    label: "Published",
+    className:
+      "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  }
+}
+
 function TableSkeleton() {
   return (
     <div className="overflow-hidden rounded-xl border">
@@ -239,12 +261,10 @@ export default function EventsPage() {
                           <Badge
                             className={cn(
                               "shrink-0 font-normal",
-                              item.is_draft
-                                ? "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                : "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                              eventStatus(item).className,
                             )}
                           >
-                            {item.is_draft ? "Draft" : "Published"}
+                            {eventStatus(item).label}
                           </Badge>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -270,6 +290,19 @@ export default function EventsPage() {
                       <Button
                         size="icon-sm"
                         variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        disabled={deleting && pendingDelete?.id === item.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setPendingDelete(item)
+                        }}
+                      >
+                        <Trash2Icon />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
                         render={
                           <Link
                             to={`/events/${item.id}/edit`}
@@ -280,19 +313,6 @@ export default function EventsPage() {
                       >
                         <PencilIcon />
                         <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive"
-                        disabled={deleting && pendingDelete?.id === item.id}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setPendingDelete(item)
-                        }}
-                      >
-                        <Trash2Icon />
-                        <span className="sr-only">Delete</span>
                       </Button>
                     </div>
                   </div>
@@ -382,16 +402,27 @@ export default function EventsPage() {
                       <Badge
                         className={cn(
                           "font-normal",
-                          item.is_draft
-                            ? "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                            : "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                          eventStatus(item).className,
                         )}
                       >
-                        {item.is_draft ? "Draft" : "Published"}
+                        {eventStatus(item).label}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          disabled={deleting && pendingDelete?.id === item.id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setPendingDelete(item)
+                          }}
+                        >
+                          <Trash2Icon />
+                          <span className="sr-only">Delete</span>
+                        </Button>
                         <Button
                           size="icon-sm"
                           variant="ghost"
@@ -405,19 +436,6 @@ export default function EventsPage() {
                         >
                           <PencilIcon />
                           <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          disabled={deleting && pendingDelete?.id === item.id}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setPendingDelete(item)
-                          }}
-                        >
-                          <Trash2Icon />
-                          <span className="sr-only">Delete</span>
                         </Button>
                         <Button
                           size="icon-sm"

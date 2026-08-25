@@ -178,7 +178,14 @@ function EventItem({ item }: { item: AdminEvent }) {
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-sm font-medium">{item.title}</p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="line-clamp-2 text-sm font-medium">{item.title}</p>
+          {item.status === "POSTPONED" ? (
+            <Badge className="shrink-0 border-transparent bg-orange-500/10 font-normal text-orange-700 dark:text-orange-400">
+              Postponed
+            </Badge>
+          ) : null}
+        </div>
         <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
           {formatDate(item.event_date)}
           {time ? ` · ${time}` : ""}

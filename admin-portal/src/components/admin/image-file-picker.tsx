@@ -143,15 +143,6 @@ export function ImageFilePicker({
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={openPicker}
-              >
-                Change
-              </Button>
               {onClear ? (
                 <Button
                   type="button"
@@ -163,6 +154,15 @@ export function ImageFilePicker({
                   Remove
                 </Button>
               ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={openPicker}
+              >
+                Change
+              </Button>
             </div>
           </div>
         </div>

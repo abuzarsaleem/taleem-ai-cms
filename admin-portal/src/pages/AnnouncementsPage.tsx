@@ -288,6 +288,19 @@ export default function AnnouncementsPage() {
                       <Button
                         size="icon-sm"
                         variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        disabled={deleting && pendingDelete?.id === item.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setPendingDelete(item)
+                        }}
+                      >
+                        <Trash2Icon />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
                         render={
                           <Link
                             to={`/announcements/${item.id}/edit`}
@@ -298,19 +311,6 @@ export default function AnnouncementsPage() {
                       >
                         <PencilIcon />
                         <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive"
-                        disabled={deleting && pendingDelete?.id === item.id}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setPendingDelete(item)
-                        }}
-                      >
-                        <Trash2Icon />
-                        <span className="sr-only">Delete</span>
                       </Button>
                     </div>
                   </div>
@@ -401,6 +401,19 @@ export default function AnnouncementsPage() {
                         <Button
                           size="icon-sm"
                           variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          disabled={deleting && pendingDelete?.id === item.id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setPendingDelete(item)
+                          }}
+                        >
+                          <Trash2Icon />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
                           render={
                             <Link
                               to={`/announcements/${item.id}/edit`}
@@ -411,19 +424,6 @@ export default function AnnouncementsPage() {
                         >
                           <PencilIcon />
                           <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          disabled={deleting && pendingDelete?.id === item.id}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setPendingDelete(item)
-                          }}
-                        >
-                          <Trash2Icon />
-                          <span className="sr-only">Delete</span>
                         </Button>
                         <Button
                           size="icon-sm"

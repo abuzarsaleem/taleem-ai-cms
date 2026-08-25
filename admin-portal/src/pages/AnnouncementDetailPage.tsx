@@ -174,6 +174,14 @@ export default function AnnouncementDetailPage() {
           </div>
           <div className="flex shrink-0 gap-2">
             <Button
+              variant="destructive"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2Icon />
+              Delete
+            </Button>
+            <Button
               variant="outline"
               render={
                 <Link
@@ -184,14 +192,6 @@ export default function AnnouncementDetailPage() {
             >
               <PencilIcon />
               Edit
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={busy}
-              onClick={() => setConfirmDelete(true)}
-            >
-              <Trash2Icon />
-              Delete
             </Button>
           </div>
         </div>

@@ -23,6 +23,8 @@ export type EventRsvpCounts = {
   total: number
 }
 
+export type EventLifecycleStatus = "SCHEDULED" | "POSTPONED"
+
 export type AdminEvent = {
   id: string
   title: string
@@ -35,6 +37,8 @@ export type AdminEvent = {
   guest_speaker: string | null
   image_url: string | null
   is_draft: boolean
+  status?: EventLifecycleStatus
+  status_reason?: string | null
   target_criteria: EventTargetCriteria | null
   created_by: string
   created_at: string
@@ -84,6 +88,18 @@ export type AdminRsvpListItem = {
 export type UploadEventImageResponse = {
   media_id: string
   public_url: string
+}
+
+export type CancelEventPayload = {
+  reason?: string
+}
+
+export type PostponeEventPayload = {
+  reason: string
+  event_date?: string
+  start_time?: string
+  end_time?: string | null
+  venue?: string
 }
 
 function authHeaders(token: string) {
@@ -148,6 +164,32 @@ export const eventService = {
     >(`/admin/events/${id}`, {
       headers: authHeaders(token),
     })
+    return data.data
+  },
+
+  async cancel(
+    token: string,
+    id: string,
+    payload: CancelEventPayload = {},
+  ): Promise<{ id: string; deleted: boolean }> {
+    const { data } = await apiClient.post<
+      ApiResponse<{ id: string; deleted: boolean }>
+    >(`/admin/events/${id}/cancel`, payload, {
+      headers: authHeaders(token),
+    })
+    return data.data
+  },
+
+  async postpone(
+    token: string,
+    id: string,
+    payload: PostponeEventPayload,
+  ): Promise<AdminEvent> {
+    const { data } = await apiClient.post<ApiResponse<AdminEvent>>(
+      `/admin/events/${id}/postpone`,
+      payload,
+      { headers: authHeaders(token) },
+    )
     return data.data
   },
 
