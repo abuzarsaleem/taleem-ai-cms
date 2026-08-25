@@ -111,12 +111,14 @@ export function AlumniIdCard({
 
   return (
     <div
-      className={cn("mx-auto w-full max-w-[540px]", className)}
-      style={{ aspectRatio: ALUMNI_CARD_ASPECT }}
+      className={cn(
+        "mx-auto w-full max-w-[540px] max-sm:aspect-auto sm:aspect-[85.6/53.98]",
+        className,
+      )}
     >
       <div
         id={cardId}
-        className="relative flex h-full w-full flex-col overflow-hidden rounded-[14px] border border-[#cfd9e8] bg-[#fbfcfe]"
+        className="relative flex h-full w-full flex-col overflow-hidden rounded-[14px] border border-[#cfd9e8] bg-[#fbfcfe] max-sm:min-h-0"
         style={{ boxShadow: "0 16px 36px rgba(8, 27, 69, 0.12)" }}
       >
         {/* Header */}
@@ -132,69 +134,74 @@ export function AlumniIdCard({
           </span>
         </div>
 
-        {/* Body — photo | details | QR (bottom-aligned, matches PDF) */}
-        <div className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-stretch gap-2 overflow-hidden px-3 pt-2.5 pb-2 sm:gap-3.5 sm:px-5 sm:pt-3.5 sm:pb-2.5">
-          <div className="shrink-0 self-start overflow-hidden rounded-md border border-[#dde5f0] bg-[#e8eef6]">
-            {data.photoUrl ? (
-              <img
-                src={data.photoUrl}
-                alt=""
-                className="size-[52px] object-cover object-top sm:size-[76px]"
-              />
-            ) : (
-              <div className="flex size-[52px] items-center justify-center text-sm font-extrabold text-[#174ea6] sm:size-[76px] sm:text-lg">
-                {initials}
-              </div>
-            )}
-          </div>
+        {/* Body — stacks on narrow screens so fields are not clipped */}
+        <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-3 overflow-hidden px-3 pt-3 pb-3 max-sm:overflow-visible sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-3.5 sm:px-5 sm:pt-3.5 sm:pb-2.5">
+          <div className="flex items-start gap-3 sm:contents">
+            <div className="shrink-0 self-start overflow-hidden rounded-md border border-[#dde5f0] bg-[#e8eef6]">
+              {data.photoUrl ? (
+                <img
+                  src={data.photoUrl}
+                  alt=""
+                  className="size-[64px] object-cover object-top sm:size-[76px]"
+                />
+              ) : (
+                <div className="flex size-[64px] items-center justify-center text-sm font-extrabold text-[#174ea6] sm:size-[76px] sm:text-lg">
+                  {initials}
+                </div>
+              )}
+            </div>
 
-          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-            <p className="text-[7px] font-bold tracking-[0.14em] text-[#1e8f97] uppercase sm:text-[9px]">
-              Verified Alumni
-            </p>
-            <h2 className="mt-0.5 truncate text-[0.9rem] leading-tight font-bold text-[#081b45] capitalize sm:mt-1 sm:text-[1.125rem]">
-              {data.fullName}
-            </h2>
-            {data.registrationRollNumber ? (
-              <p className="mt-0.5 truncate text-[10px] font-medium text-[#64748b] sm:text-[11px]">
-                Roll {data.registrationRollNumber}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden max-sm:overflow-visible">
+              <p className="text-[8px] font-bold tracking-[0.14em] text-[#1e8f97] uppercase sm:text-[9px]">
+                Verified Alumni
               </p>
-            ) : null}
+              <h2 className="mt-0.5 text-[1rem] leading-tight font-bold break-words text-[#081b45] capitalize sm:mt-1 sm:truncate sm:text-[1.125rem]">
+                {data.fullName}
+              </h2>
+              {data.registrationRollNumber ? (
+                <p className="mt-0.5 text-[11px] font-medium break-words text-[#64748b] sm:truncate">
+                  Roll {data.registrationRollNumber}
+                </p>
+              ) : null}
 
-            <div className="mt-auto grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-[#e8eef4] pt-1.5 sm:gap-x-4 sm:gap-y-3 sm:pt-2.5">
-              <Field label="Degree" value={degreeShort} />
-              <Field label="Graduation" value={data.graduationYear ?? "—"} />
-              <Field label="Campus" value={campus} />
-              <Field label="CNIC" value={maskCnic(data.cnic)} />
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-[#e8eef4] pt-2 sm:mt-auto sm:gap-x-4 sm:gap-y-3 sm:pt-2.5">
+                <Field label="Degree" value={degreeShort} />
+                <Field label="Graduation" value={data.graduationYear ?? "—"} />
+                <Field label="Campus" value={campus} />
+                <Field label="CNIC" value={maskCnic(data.cnic)} />
+              </div>
             </div>
           </div>
 
           {showQr ? (
-            <div className="shrink-0 self-end rounded border border-[#dde5f0] bg-white p-0.5">
+            <div className="shrink-0 self-end justify-self-end rounded border border-[#dde5f0] bg-white p-0.5 max-sm:mt-1">
               {qrSrc ? (
                 <img
                   src={qrSrc}
                   alt="Verification QR"
-                  className="size-[42px] sm:size-[50px]"
+                  className="size-[48px] sm:size-[50px]"
                 />
               ) : (
-                <div className="flex size-[42px] items-center justify-center text-[7px] text-[#94a3b8] sm:size-[50px]">
+                <div className="flex size-[48px] items-center justify-center text-[7px] text-[#94a3b8] sm:size-[50px]">
                   QR
                 </div>
               )}
             </div>
           ) : (
-            <div className="w-[42px] self-end sm:w-[50px]" aria-hidden />
+            <div
+              className="hidden w-[50px] self-end sm:block"
+              aria-hidden
+            />
           )}
         </div>
 
         {/* Footer — white, navy ID text (must match PDF) */}
-        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-[#e8eef4] bg-white px-3 py-1.5 sm:px-5 sm:py-2">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-[#e8eef4] bg-white px-3 py-2 sm:px-5">
           <div className="min-w-0">
             <p className="text-[7px] font-semibold tracking-[0.12em] text-[#64748b] uppercase sm:text-[8px]">
               Alumni ID · {year}
             </p>
-            <p className="truncate text-[9px] font-bold tracking-wide text-[#081b45] sm:text-[10px]">
+            <p className="truncate text-[10px] font-bold tracking-wide text-[#081b45] sm:text-[10px]">
               {shortAlumniId(data.alumniId)}
             </p>
           </div>
@@ -216,10 +223,10 @@ export function AlumniIdCard({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-[7px] font-bold tracking-[0.1em] text-[#94a3b8] uppercase sm:text-[8px]">
+      <p className="text-[8px] font-bold tracking-[0.1em] text-[#94a3b8] uppercase sm:text-[8px]">
         {label}
       </p>
-      <p className="mt-0.5 truncate text-[9px] font-semibold text-[#0f172a] sm:mt-1 sm:text-[11px]">
+      <p className="mt-0.5 text-[11px] leading-snug font-semibold break-words text-[#0f172a] sm:mt-1 sm:truncate sm:text-[11px]">
         {value}
       </p>
     </div>

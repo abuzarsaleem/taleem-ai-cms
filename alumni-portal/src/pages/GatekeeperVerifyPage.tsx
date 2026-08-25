@@ -73,31 +73,30 @@ export default function GatekeeperVerifyPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-        {state.kind === 'loading' ? (
+      <main className="mx-auto min-w-0 max-w-5xl overflow-x-hidden px-4 py-6 sm:px-6 sm:py-12">
+        {state.kind === "loading" ? (
           <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-muted-foreground">
             <Loader2 className="h-8 w-8 animate-spin text-emerald-700" />
             <p>Verifying alumni card…</p>
           </div>
         ) : null}
 
-        {state.kind === 'error' ? (
+        {state.kind === "error" ? (
           <div className="mx-auto max-w-lg rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm">
             <ShieldAlert className="mx-auto h-10 w-10 text-red-600" />
             <h2 className="mt-4 text-lg font-semibold text-red-950">
               Verification failed
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {state.message}
-            </p>
+            <p className="mt-2 text-sm text-muted-foreground">{state.message}</p>
           </div>
         ) : null}
 
-        {state.kind === 'ready' ? (
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,360px)_1fr] lg:items-start lg:gap-10">
-            <section className="flex justify-center lg:justify-start">
+        {state.kind === "ready" ? (
+          <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,360px)_1fr] lg:items-start lg:gap-10">
+            <section className="flex min-w-0 justify-center lg:justify-start">
               {isValid && state.data.full_name ? (
                 <AlumniIdCard
+                  className="w-full"
                   data={{
                     fullName: state.data.full_name,
                     photoUrl: state.data.photo_url,
@@ -115,13 +114,13 @@ export default function GatekeeperVerifyPage() {
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
                     {state.data.message ??
-                      'This alumni card could not be verified.'}
+                      "This alumni card could not be verified."}
                   </p>
                 </div>
               )}
             </section>
 
-            <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm sm:p-8">
+            <section className="min-w-0 rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm sm:p-8">
               <div className="flex items-start gap-3">
                 {isValid ? (
                   <BadgeCheck className="mt-0.5 h-8 w-8 shrink-0 text-emerald-600" />
@@ -146,8 +145,8 @@ export default function GatekeeperVerifyPage() {
                   <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Status
                   </dt>
-                  <dd className="mt-1 text-sm font-medium text-emerald-950">
-                    {state.data.status ?? 'Unknown'}
+                  <dd className="mt-1 text-sm font-medium break-words text-emerald-950">
+                    {state.data.status ?? "Unknown"}
                   </dd>
                 </div>
                 {verifiedAt ? (
@@ -155,7 +154,7 @@ export default function GatekeeperVerifyPage() {
                     <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Verified at
                     </dt>
-                    <dd className="mt-1 text-sm font-medium text-emerald-950">
+                    <dd className="mt-1 text-sm font-medium break-words text-emerald-950">
                       {verifiedAt}
                     </dd>
                   </div>
@@ -165,8 +164,48 @@ export default function GatekeeperVerifyPage() {
                     <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Name
                     </dt>
-                    <dd className="mt-1 text-sm font-medium text-emerald-950">
+                    <dd className="mt-1 text-sm font-medium break-words text-emerald-950">
                       {state.data.full_name}
+                    </dd>
+                  </div>
+                ) : null}
+                {isValid && state.data.public_alumni_code ? (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Alumni ID
+                    </dt>
+                    <dd className="mt-1 text-sm font-medium break-words text-emerald-950">
+                      {state.data.public_alumni_code}
+                    </dd>
+                  </div>
+                ) : null}
+                {isValid && state.data.registration_roll_number ? (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Roll number
+                    </dt>
+                    <dd className="mt-1 text-sm font-medium break-words text-emerald-950">
+                      {state.data.registration_roll_number}
+                    </dd>
+                  </div>
+                ) : null}
+                {isValid && state.data.degree_label ? (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Degree
+                    </dt>
+                    <dd className="mt-1 text-sm font-medium break-words text-emerald-950">
+                      {state.data.degree_label.split(" — ")[0]}
+                    </dd>
+                  </div>
+                ) : null}
+                {isValid && state.data.graduation_year ? (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Graduation
+                    </dt>
+                    <dd className="mt-1 text-sm font-medium break-words text-emerald-950">
+                      {state.data.graduation_year}
                     </dd>
                   </div>
                 ) : null}

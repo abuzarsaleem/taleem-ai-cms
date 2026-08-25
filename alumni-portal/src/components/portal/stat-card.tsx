@@ -18,7 +18,7 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <div className={cn("portal-card p-5", className)}>
+    <div className={cn("portal-card min-w-0 p-5", className)}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-[1.75rem] leading-none font-extrabold tracking-tight">
         {value}

@@ -127,9 +127,9 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 max-w-full space-y-5 overflow-x-hidden">
       {/* Hero */}
-      <section className="portal-hero relative overflow-hidden rounded-3xl p-7 text-white shadow-[var(--portal-shadow)] sm:p-9">
+      <section className="portal-hero relative overflow-hidden rounded-3xl p-5 text-white shadow-[var(--portal-shadow)] sm:p-9">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-28 -right-20 size-80 rounded-full border border-white/10"
@@ -137,7 +137,7 @@ export function DashboardPage() {
         <p className="relative text-xs font-extrabold tracking-[0.12em] text-[#7fe2de] uppercase">
           Alumni community
         </p>
-        <h2 className="relative mt-3 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+        <h2 className="relative mt-3 font-display text-2xl font-semibold tracking-tight break-words sm:text-3xl">
           {greeting()}, {firstName}
         </h2>
         <p className="relative mt-3 max-w-xl text-sm leading-relaxed text-[#c8d5ed]">
@@ -174,7 +174,7 @@ export function DashboardPage() {
       </section>
 
       {/* Metric cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Profile completion"
           value={`${completion}%`}
@@ -253,10 +253,10 @@ export function DashboardPage() {
       </div>
 
       {/* Events + announcement */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="portal-card p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <div className="portal-card min-w-0 p-4 sm:p-5">
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0">
               <h3 className="text-base font-semibold">Upcoming events</h3>
               <p className="text-xs text-muted-foreground">
                 Stay connected with your community
@@ -266,7 +266,7 @@ export function DashboardPage() {
               to="/events"
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
-                "rounded-[11px]",
+                "shrink-0 rounded-[11px]",
               )}
             >
               View all
@@ -279,38 +279,53 @@ export function DashboardPage() {
             <ul className="space-y-3">
               {upcomingEvents.slice(0, 3).map((event) => {
                 const { month, day } = formatEventDate(event)
+                const rsvpLabel =
+                  event.my_rsvp_status === "GOING"
+                    ? "Registered"
+                    : event.my_rsvp_status === "MAYBE"
+                      ? "Maybe"
+                      : event.my_rsvp_status === "NOT_GOING"
+                        ? "Not going"
+                        : null
                 return (
                   <li
                     key={event.id}
-                    className="flex items-center gap-3 rounded-[14px] border border-border bg-card p-3"
+                    className="flex min-w-0 items-start gap-3 rounded-[14px] border border-border bg-card p-3"
                   >
-                    <div className="grid size-[52px] shrink-0 place-items-center rounded-[13px] bg-[#edf7f7] text-center font-extrabold text-[#087b7e]">
+                    <div className="grid size-12 shrink-0 place-items-center rounded-[13px] bg-[#edf7f7] text-center font-extrabold text-[#087b7e] sm:size-[52px]">
                       <small className="block text-[9px] uppercase">{month}</small>
-                      <b className="text-lg leading-none">{day}</b>
+                      <b className="text-base leading-none sm:text-lg">{day}</b>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{event.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-2 gap-y-1.5">
+                        <p className="min-w-0 flex-1 break-words font-semibold leading-snug">
+                          {event.title}
+                        </p>
+                        {rsvpLabel ? (
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold whitespace-nowrap",
+                              rsvpChipClass(event.my_rsvp_status),
+                            )}
+                          >
+                            {rsvpLabel}
+                          </span>
+                        ) : (
+                          <Link
+                            to={`/events/${event.id}`}
+                            className={cn(
+                              buttonVariants({ size: "sm", variant: "outline" }),
+                              "shrink-0 rounded-[11px] text-xs",
+                            )}
+                          >
+                            View
+                          </Link>
+                        )}
+                      </div>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
                         {event.venue} · {event.start_time?.slice(0, 5)}
                       </p>
                     </div>
-                    {event.my_rsvp_status ? (
-                      <span className={cn("shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold", rsvpChipClass(event.my_rsvp_status))}>
-                        {event.my_rsvp_status === "GOING"
-                          ? "Registered"
-                          : event.my_rsvp_status}
-                      </span>
-                    ) : (
-                      <Link
-                        to={`/events/${event.id}`}
-                        className={cn(
-                          buttonVariants({ size: "sm", variant: "outline" }),
-                          "shrink-0 rounded-[11px] text-xs",
-                        )}
-                      >
-                        View
-                      </Link>
-                    )}
                   </li>
                 )
               })}
@@ -318,9 +333,9 @@ export function DashboardPage() {
           )}
         </div>
 
-        <div className="portal-card p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
+        <div className="portal-card min-w-0 p-4 sm:p-5">
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0">
               <h3 className="text-base font-semibold">Latest announcement</h3>
               <p className="text-xs text-muted-foreground">From the Alumni Office</p>
             </div>
@@ -328,7 +343,7 @@ export function DashboardPage() {
               to="/announcements"
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
-                "rounded-[11px]",
+                "shrink-0 rounded-[11px]",
               )}
             >
               View all
@@ -336,16 +351,16 @@ export function DashboardPage() {
           </div>
           <div className="my-4 h-px bg-border" />
           {latestAnnouncement ? (
-            <article className="border-l-4 border-accent pl-4">
+            <article className="min-w-0 border-l-4 border-accent pl-4">
               {latestAnnouncement.published_at ? (
                 <p className="text-[11px] text-muted-foreground uppercase">
                   {format(parseISO(latestAnnouncement.published_at), "d MMM yyyy")}
                 </p>
               ) : null}
-              <h3 className="mt-1 text-base font-semibold">
+              <h3 className="mt-1 text-base font-semibold break-words">
                 {latestAnnouncement.title}
               </h3>
-              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[#536176]">
+              <p className="mt-2 line-clamp-3 text-sm leading-relaxed break-words text-[#536176]">
                 {latestAnnouncement.content}
               </p>
               <Link
