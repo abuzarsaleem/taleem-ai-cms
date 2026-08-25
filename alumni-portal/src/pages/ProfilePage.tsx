@@ -472,9 +472,9 @@ export function ProfilePage() {
   ]
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_1fr] lg:items-start">
+    <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_1fr] lg:items-stretch">
       {/* Sidebar */}
-      <aside className="portal-card flex flex-col gap-6 p-6">
+      <aside className="portal-card flex h-full flex-col gap-6 p-6">
         <div className="flex flex-col items-center text-center">
           <div className="relative">
             {profile.photo_url ? (
@@ -607,7 +607,7 @@ export function ProfilePage() {
       </aside>
 
       {/* Main panel */}
-      <section className="portal-card p-6 sm:p-8">
+      <section className="portal-card flex h-full min-h-0 flex-col p-6 sm:p-8">
         <header className="mb-10">
           <p className="text-[11px] font-semibold tracking-[0.16em] text-[#1e8f97] uppercase">
             {meta.eyebrow}
