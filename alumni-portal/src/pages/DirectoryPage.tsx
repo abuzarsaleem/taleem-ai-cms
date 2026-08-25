@@ -605,30 +605,35 @@ export function DirectoryPage() {
               })}
             </div>
 
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                Page <span className="font-semibold text-foreground">{page}</span> of{" "}
-                <span className="font-semibold text-foreground">{totalPages}</span>
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="rounded-xl"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  className="rounded-xl"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  Next
-                </Button>
+            {total > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <p className="text-sm leading-7 text-muted-foreground">
+                  Showing {(page - 1) * pageSize + 1}–
+                  {Math.min(page * pageSize, total)} of {total}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <span className="min-w-20 text-center text-sm leading-7 text-muted-foreground">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </>
         )}
     </div>
