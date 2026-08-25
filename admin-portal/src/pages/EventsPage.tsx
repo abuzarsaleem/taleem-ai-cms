@@ -201,7 +201,103 @@ export default function EventsPage() {
         {loading ? (
           <TableSkeleton />
         ) : (
-          <div className="overflow-hidden rounded-xl border bg-card">
+          <>
+            <div className="space-y-3 md:hidden">
+              {items.length ? (
+                items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="cursor-pointer rounded-xl border bg-card p-4"
+                    onClick={() =>
+                      navigate(`/events/${item.id}`, {
+                        state: withNavTrail(location),
+                      })
+                    }
+                  >
+                    <div className="flex items-start gap-3">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt=""
+                          className="size-12 shrink-0 rounded-lg border object-cover"
+                        />
+                      ) : (
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
+                          <CalendarDaysIcon className="size-4" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium leading-snug">{item.title}</p>
+                          <Badge
+                            className={cn(
+                              "shrink-0 font-normal",
+                              item.is_draft
+                                ? "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                : "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                            )}
+                          >
+                            {item.is_draft ? "Draft" : "Published"}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.venue}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatDate(item.event_date)} · {formatTime(item.start_time)}
+                          {item.end_time ? `–${formatTime(item.end_time)}` : ""}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Badge variant="outline">
+                            {typeLabel(item.event_type)}
+                          </Badge>
+                          {item.rsvp_counts ? (
+                            <span className="text-xs text-muted-foreground">
+                              {item.rsvp_counts.total} RSVP
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex justify-end gap-1 border-t pt-3">
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        render={
+                          <Link
+                            to={`/events/${item.id}/edit`}
+                            state={withNavTrail(location)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        }
+                      >
+                        <PencilIcon />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        disabled={deleting && pendingDelete?.id === item.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setPendingDelete(item)
+                        }}
+                      >
+                        <Trash2Icon />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+                  No events found.
+                </div>
+              )}
+            </div>
+
+            <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -348,7 +444,8 @@ export default function EventsPage() {
                 ) : null}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
 
         {!loading ? (

@@ -184,7 +184,74 @@ export default function RegistrationsPage() {
         {loading ? (
           <TableSkeleton />
         ) : (
-          <div className="overflow-hidden rounded-xl border bg-card">
+          <>
+            <div className="space-y-3 md:hidden">
+              {pagedItems.length ? (
+                pagedItems.map((item) => (
+                  <button
+                    key={item.registration_id}
+                    type="button"
+                    className="w-full rounded-xl border bg-card p-4 text-left"
+                    onClick={() =>
+                      navigate(`/registrations/${item.registration_id}`, {
+                        state: withNavTrail(location),
+                      })
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-11">
+                        {item.photo_url ? (
+                          <AvatarImage
+                            src={item.photo_url}
+                            alt={item.full_name}
+                          />
+                        ) : null}
+                        <AvatarFallback className="bg-muted text-xs font-medium">
+                          {initialsFromName(item.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium leading-snug">
+                            {item.full_name}
+                          </p>
+                          <Badge
+                            variant={registrationStatusVariant(item.status)}
+                            className={cn(
+                              "shrink-0 font-normal",
+                              item.status === "PENDING" &&
+                                "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                              item.status === "APPROVED" &&
+                                "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                            )}
+                          >
+                            {statusLabel(item.status)}
+                          </Badge>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {item.email}
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {degreeProgramLabel(item.degree_program_id)}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.registration_roll_number} · {item.graduation_year}
+                          {" · "}
+                          {formatSubmittedDate(item.submitted_at)}
+                        </p>
+                      </div>
+                      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+                  No registrations found.
+                </div>
+              )}
+            </div>
+
+            <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -302,7 +369,8 @@ export default function RegistrationsPage() {
                 ) : null}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
 
         {!loading ? (

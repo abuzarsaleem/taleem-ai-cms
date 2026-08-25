@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
-import { MailIcon } from "lucide-react"
+import { ChevronRightIcon, MailIcon } from "lucide-react"
 
 import { useAuth } from "@/auth/AuthContext"
 import { PageHero } from "@/components/admin/page-hero"
@@ -200,7 +200,54 @@ export default function ContactRequestsPage() {
         {loading ? (
           <TableSkeleton />
         ) : (
-          <div className="overflow-hidden rounded-xl border bg-card">
+          <>
+            <div className="space-y-3 md:hidden">
+              {pagedItems.length ? (
+                pagedItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="w-full rounded-xl border bg-card p-4 text-left"
+                    onClick={() => openRequest(item)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
+                        <MailIcon className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="line-clamp-2 font-medium leading-snug">
+                            {item.request_reason}
+                          </p>
+                          <Badge
+                            className={cn(
+                              "shrink-0 font-normal",
+                              statusClass(item.status),
+                            )}
+                          >
+                            {statusLabel(item.status)}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {partyName(item, "requester")} →{" "}
+                          {partyName(item, "target")}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatDate(item.created_at)}
+                        </p>
+                      </div>
+                      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+                  No contact requests found.
+                </div>
+              )}
+            </div>
+
+            <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -282,7 +329,8 @@ export default function ContactRequestsPage() {
                 ) : null}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
 
         {!loading ? (

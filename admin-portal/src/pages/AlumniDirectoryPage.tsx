@@ -298,7 +298,60 @@ export default function AlumniDirectoryPage() {
         {loading ? (
           <TableSkeleton />
         ) : (
-          <div className="overflow-hidden rounded-xl border bg-card">
+          <>
+            <div className="space-y-3 md:hidden">
+              {items.length ? (
+                items.map((item) => (
+                  <button
+                    key={item.alumni_id}
+                    type="button"
+                    className="w-full rounded-xl border bg-card p-4 text-left"
+                    onClick={() =>
+                      navigate(`/alumni/${item.alumni_id}`, {
+                        state: withNavTrail(location, { alumni: item }),
+                      })
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-11">
+                        {item.photo_url ? (
+                          <AvatarImage
+                            src={item.photo_url}
+                            alt={item.full_name}
+                          />
+                        ) : null}
+                        <AvatarFallback className="bg-muted text-xs font-medium">
+                          {initialsFromName(item.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium leading-snug">
+                          {item.full_name}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {item.email}
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {programLabel(item)}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {[locationLabel(item), item.graduation_year]
+                            .filter((value) => value && value !== "—")
+                            .join(" · ") || "—"}
+                        </p>
+                      </div>
+                      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+                  No alumni found.
+                </div>
+              )}
+            </div>
+
+            <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -402,7 +455,8 @@ export default function AlumniDirectoryPage() {
                 ) : null}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
 
         {!loading ? (

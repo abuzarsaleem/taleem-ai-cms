@@ -453,7 +453,7 @@ export default function ContactRequestDetailPage() {
             <CardFooter className="justify-end bg-transparent">
               <div className="flex gap-2">
                 <Button disabled={busy} onClick={openAccept}>
-                  Accept
+                  Approve
                 </Button>
                 <Button
                   variant="destructive"
@@ -470,9 +470,9 @@ export default function ContactRequestDetailPage() {
 
       <ConfirmDialog
         open={acceptOpen}
-        title="Accept contact request"
-        description="Accept this request? Both alumni will be able to see each other's contact details."
-        confirmLabel="Accept"
+        title="Approve contact request"
+        description="Approve this request? Both alumni will be able to see each other's contact details."
+        confirmLabel="Approve"
         busy={busy}
         onOpenChange={(open) => {
           if (!open) closeAccept()

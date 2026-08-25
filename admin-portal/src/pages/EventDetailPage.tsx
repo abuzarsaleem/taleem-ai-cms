@@ -342,7 +342,38 @@ export default function EventDetailPage() {
             <CardDescription>Alumni responses for this event</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-hidden rounded-xl border">
+            <div className="space-y-3 md:hidden">
+              {rsvps.length ? (
+                rsvps.map((rsvp) => (
+                  <div
+                    key={rsvp.id}
+                    className="rounded-xl border bg-card p-4"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium">
+                          {rsvp.full_name || "Unknown"}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {rsvp.email || rsvp.alumni_id}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="shrink-0">
+                        {rsvp.status.replace("_", " ")}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {formatDate(rsvp.updated_at)}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border px-4 py-10 text-center text-sm text-muted-foreground">
+                  No RSVPs yet.
+                </div>
+              )}
+            </div>
+            <div className="hidden overflow-hidden rounded-xl border md:block">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
