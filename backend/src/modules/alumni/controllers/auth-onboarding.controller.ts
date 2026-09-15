@@ -12,9 +12,9 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { TenantContext } from '../../../common/auth/tenant-context';
 import { ApiResponseDto } from '../../../common/dto/api-response.dto';
 import { SWAGGER_TAGS } from '../../../common/swagger/swagger-tags';
-import { UserRole } from '../../../common/enums';
 import { ApiWrappedCreatedResponse } from '../../../common/swagger/api-wrapped-response.decorator';
 import { AuthService } from '../../auth/auth.service';
 import {
@@ -78,8 +78,11 @@ export class AuthOnboardingController {
   @ApiOperation({ summary: 'Submit alumni registration' })
   @ApiWrappedCreatedResponse(RegisterResponseDto)
   async register(@Body() dto: RegisterDto) {
-    const data = await this.registrationService.register(dto);
-    return ApiResponseDto.of(data, 'Registration submitted');
+    // Bind selected institution before email/CNIC uniqueness checks.
+    return TenantContext.runAsync(dto.tenant_id, async () => {
+      const data = await this.registrationService.register(dto);
+      return ApiResponseDto.of(data, data.message);
+    });
   }
 
   @Post('resend-activation')
@@ -110,12 +113,12 @@ export class AuthOnboardingController {
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Alumni login' })
+  @ApiOperation({
+    summary: 'Alumni portal login via IAM (returns OAuth access token)',
+  })
   @ApiWrappedCreatedResponse(AuthTokenResponseDto)
   async login(@Body() dto: LoginDto) {
-    const data = await this.authService.login(dto.email, dto.password, [
-      UserRole.ALUMNI,
-    ]);
+    const data = await this.authService.login(dto.email, dto.password, 'alumni');
     return ApiResponseDto.of(
       {
         access_token: data.accessToken,
