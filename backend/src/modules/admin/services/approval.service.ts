@@ -140,14 +140,16 @@ export class ApprovalService {
     }
 
     try {
+      // IAM already emails the invite (set-password) link. Avoid a second CMS
+      // "activation" email that previously linked to the portal root and looked
+      // like a magic login.
       await this.notificationSender.send({
         to: request.email,
         templateId: 'approval_with_activation_link',
         variables: {
           fullName: request.fullName,
-          activationLink:
-            process.env.ALUMNI_PORTAL_URL?.replace(/\/$/, '') ||
-            'http://localhost:5173',
+          activationLink: '',
+          approvalOnly: 'true',
         },
       });
       this.logger.log(`APPROVAL_EMAIL_SENT alumniId=${alumniId}`);
